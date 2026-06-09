@@ -1,6 +1,6 @@
 # 部署说明
 
-当前状态：Docker Compose 初版已配置，并已完成容器运行验收。MySQL、Redis、backend、nginx 均可启动，Nginx 入口可完成 API、短链 302 和后台统计验证。v0.4 已补齐 external 短链创建和统计配置，v0.7 已补生产短链路由示例和部署预检脚本，默认仍使用 `internal` 模式。
+当前状态：Docker Compose 初版已配置，并已完成容器运行验收。MySQL、Redis、backend、nginx 均可启动，Nginx 入口可完成 API、短链 302 和后台统计验证。v0.4 已补齐 external 短链创建和统计配置，v0.7 已补生产短链路由示例和部署预检脚本，v1.0 已补稳定版发布检查表，默认仍使用 `internal` 模式。
 
 ## 1. 部署架构
 
@@ -77,6 +77,12 @@ scripts/deploy-preflight.sh deploy/.env
 ```
 
 预检会阻止常见上线错误，例如仍使用 `change-me`、示例域名、缺少 external 短链配置或 `SHORT_LINK_MODE` 非法。
+
+v1.0 发布检查表见：
+
+```text
+docs/v1.0-release-checklist.md
+```
 
 ## 4. 启动命令
 

@@ -12,9 +12,9 @@
 
 | 项 | 说明 |
 | --- | --- |
-| 当前版本 | `v0.9.0-stability-privacy-audit` |
+| 当前版本 | `v1.0.0-stable` |
 | 稳定分支 | `main` |
-| 当前开发分支 | `feature/v0.9-stability-privacy-audit` |
+| 当前开发分支 | `feature/v1.0-stable-release` |
 | MVP 状态 | v0.1 已完成完整单人测算闭环 |
 | v0.2 状态 | 已完成短链接 Provider 适配层，可配置 `internal` / `external` 模式 |
 | v0.3 状态 | 已增强 external 真实 HTTP 联调配置，并为后台总览、短链列表、访问日志增加日期筛选 |
@@ -24,8 +24,9 @@
 | v0.7 状态 | 已完成生产短链路由与部署预检加固 |
 | v0.8 状态 | 已完成后台日趋势、热门星官、最近结果和最近短链展示 |
 | v0.9 状态 | 已完成短码校验、Referer 隐私收敛和 external 空记录稳定性加固 |
+| v1.0 状态 | 稳定版收口，README、发布检查表、质量评分和版本记录已完成 |
 | 最新自评 | 99 / 100，详见 [quality-scorecard.md](docs/quality-scorecard.md) |
-| GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics`、`v0.4.0-external-shortlink-service-integration`、`v0.5.0-external-shortlink-access-records`、`v0.6.0-quality-gates-and-roadmap`、`v0.7.0-production-routing-hardening`、`v0.8.0-admin-operational-insights`、`v0.9.0-stability-privacy-audit` |
+| GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics`、`v0.4.0-external-shortlink-service-integration`、`v0.5.0-external-shortlink-access-records`、`v0.6.0-quality-gates-and-roadmap`、`v0.7.0-production-routing-hardening`、`v0.8.0-admin-operational-insights`、`v0.9.0-stability-privacy-audit`、`v1.0.0-stable` |
 
 ## 核心亮点
 
@@ -42,6 +43,7 @@
 - **生产路由加固**：v0.7 补充短链子域名 / 同域 rewrite 示例和部署预检脚本。
 - **后台运营可读性**：v0.8 补充日趋势、热门星官、最近结果和最近短链，让上线初期数据更好解释。
 - **稳定性与隐私审计**：v0.9 统一后台短码校验，Referer 去 query / fragment，external 空访问记录稳定返回。
+- **稳定版交付**：v1.0 收口 README、部署检查表、质量评分和版本记录，作为可演示 MVP 基线。
 - **教学沉淀**：项目计划、质量评分、短链集成方案、教学手册均已文档化。
 
 ## 目录
@@ -59,7 +61,7 @@
 - [验证结果](#验证结果)
 - [开发进度记录](#开发进度记录)
 - [MVP 功能边界](#mvp-功能边界)
-- [后续迭代计划](#后续迭代计划)
+- [后续建议](#后续建议)
 
 ## 在线地址
 
@@ -346,6 +348,7 @@ scripts/deploy-preflight.sh deploy/.env
 - Docker 版 API 验收：健康检查、题目接口、创建结果、查询结果、短链 302、后台总览、短链列表、访问日志
 - v0.8 后端测试覆盖 overview 日趋势默认返回、日期筛选当天有数据和未来日期为空
 - v0.9 后端测试覆盖 Referer 去 query / fragment、后台非法短码返回 400、external 空访问记录稳定返回空页
+- v1.0 发布检查表已补充，详见 [v1.0-release-checklist.md](docs/v1.0-release-checklist.md)
 
 v0.4 外部联调样例：
 
@@ -373,6 +376,17 @@ admin pv/uv/uip: 1/1/1
 ## 开发进度记录
 
 <details open>
+<summary><strong>2026-06-09｜v1.0 稳定版收口</strong></summary>
+
+- 新建分支：`feature/v1.0-stable-release`。
+- README 更新为稳定版项目主页，展示 v1.0 状态、版本标签、质量门禁和开发进度。
+- 新增 [v1.0 稳定版发布检查表](docs/v1.0-release-checklist.md)。
+- 同步项目计划、质量评分、教学手册和 v1.0 路线图。
+- 验证通过：统一质量门禁。
+
+</details>
+
+<details>
 <summary><strong>2026-06-09｜v0.9 稳定性与隐私审计</strong></summary>
 
 - 新建分支：`feature/v0.9-stability-privacy-audit`。
@@ -516,9 +530,12 @@ admin pv/uv/uip: 1/1/1
 
 第一版不做朋友匹配、登录注册、用户历史记录、社区、评论、点赞、关注、付费、AI 深度解读、复杂排盘、多套卡片模板、复杂图片编辑器、复杂后台权限系统和复杂 BI 大屏。
 
-## 后续迭代计划
+## 后续建议
 
-1. v1.0：最终文档、部署检查表、截图、质量评分和稳定版标签。
+1. 生产上线前使用真实 `deploy/.env` 执行 `scripts/deploy-preflight.sh deploy/.env`。
+2. 在目标服务器补一次标准 `docker compose up --build -d` 全链路验收。
+3. 若正式接入独立短链服务，优先使用短链子域名并单独审计外部短链项目隐私存储。
+4. v1.1 可补 GitHub Actions CI；v2.0 以后再考虑朋友匹配、登录或付费等扩展功能。
 
 ## 娱乐声明与隐私说明
 
