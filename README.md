@@ -13,14 +13,16 @@
 | 项 | 说明 |
 | --- | --- |
 | 当前版本 | `v0.5.0-external-shortlink-access-records` |
-| 当前分支 | `feature/v0.5-external-access-records` |
+| 稳定分支 | `main` |
+| 当前开发分支 | `feature/v0.6-quality-gates-and-roadmap` |
 | MVP 状态 | v0.1 已完成完整单人测算闭环 |
 | v0.2 状态 | 已完成短链接 Provider 适配层，可配置 `internal` / `external` 模式 |
 | v0.3 状态 | 已增强 external 真实 HTTP 联调配置，并为后台总览、短链列表、访问日志增加日期筛选 |
 | v0.4 状态 | 已完成外部短链服务级联调，后台短链列表可读取外部 PV / UV / UIP |
 | v0.5 状态 | 已接入外部短链访问记录，后台短链详情支持 `local` / `external` 来源 |
+| v0.6 目标 | 建立严格质量门禁和 v1.0 路线图 |
 | 最新自评 | 99 / 100，详见 [quality-scorecard.md](docs/quality-scorecard.md) |
-| GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics`、`v0.4.0-external-shortlink-service-integration` |
+| GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics`、`v0.4.0-external-shortlink-service-integration`、`v0.5.0-external-shortlink-access-records` |
 
 ## 核心亮点
 
@@ -33,6 +35,7 @@
 - **外部访问明细接入**：v0.5 后台短链详情可读取外部 `access-record`，并对外部 IP / user 做 hash 后展示。
 - **后台日期分析**：v0.3 支持按日期查看总览指标、短链列表和单条短链访问日志。
 - **可部署验证**：Docker Compose 管理 MySQL、Redis、后端和 Nginx，已完成本地容器验收。
+- **严格质量门禁**：v0.6 建立统一质量脚本、编辑规范和 v1.0 路线，后续版本必须按同一套标准验收。
 - **教学沉淀**：项目计划、质量评分、短链集成方案、教学手册均已文档化。
 
 ## 目录
@@ -46,6 +49,7 @@
 - [短链接接入说明](#短链接接入说明)
 - [本地启动方式](#本地启动方式)
 - [Docker 部署方式](#docker-部署方式)
+- [质量门禁](#质量门禁)
 - [验证结果](#验证结果)
 - [开发进度记录](#开发进度记录)
 - [MVP 功能边界](#mvp-功能边界)
@@ -86,11 +90,13 @@
 │   └── src/main/
 │       ├── java/com/wuxing/persona/
 │       └── resources/db/schema.sql
-└── deploy/
+├── deploy/
     ├── docker-compose.yml
     ├── nginx.Dockerfile
     ├── nginx.conf
     └── .env.example
+└── scripts/
+    └── quality-check.sh
 ```
 
 ## 项目架构图
@@ -288,13 +294,34 @@ FRONTEND_NGINX_IMAGE=docker.m.daocloud.io/library/nginx:1.27-alpine \
 docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml up --build -d
 ```
 
+## 质量门禁
+
+v0.6 开始，所有版本合并前必须执行：
+
+```bash
+scripts/quality-check.sh
+```
+
+该脚本会检查：
+
+- Git 空白差异：`git diff --check`
+- 构建产物未被 Git 跟踪
+- 用户可见源码不包含负面宿命文案
+- 后端测试：`mvn -q test`
+- 前端构建：`npm run build`
+- Compose 配置：`docker compose config`
+
+v1.0 路线和质量要求详见 [v1.0-roadmap-and-quality-gates.md](docs/v1.0-roadmap-and-quality-gates.md)。
+
 ## 验证结果
 
 已通过：
 
+- `scripts/quality-check.sh`
 - `cd backend && mvn -q test`
 - `cd frontend && npm run build`
 - `docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml config`
+- v0.5 Docker 内部链路验收：容器内健康检查、Nginx 到 backend 网络、创建结果、短链访问、访问明细 `statSource=local`
 - v0.4 external 服务级联调：外部短链创建、外部短链 302、五行本地业务绑定、后台 `statSource=external`
 - 本地浏览器验收：`/admin` 日期筛选控件显示正常，按日期应用筛选后接口正常返回
 - Docker Compose 容器全链路验收：MySQL、Redis、backend、nginx 均启动成功，本机验证入口 `http://127.0.0.1:8088`
@@ -328,6 +355,17 @@ admin pv/uv/uip: 1/1/1
 ## 开发进度记录
 
 <details open>
+<summary><strong>2026-06-09｜v0.6 质量门禁与 v1.0 路线规划</strong></summary>
+
+- 新建分支：`feature/v0.6-quality-gates-and-roadmap`。
+- 新增 `.editorconfig`，统一换行、缩进、编码和尾随空白处理。
+- 新增 `scripts/quality-check.sh`，把后端测试、前端构建、Compose config、构建产物检查和文案边界扫描收束为统一门禁。
+- 新增 [v1.0 路线图与质量门禁](docs/v1.0-roadmap-and-quality-gates.md)。
+- 更新 README、开发规范、项目计划和质量评分，明确 v0.6-v1.0 的版本节奏。
+
+</details>
+
+<details>
 <summary><strong>2026-06-09｜v0.5 外部短链访问明细接入</strong></summary>
 
 - 新建分支：`feature/v0.5-external-access-records`。
@@ -426,10 +464,10 @@ admin pv/uv/uip: 1/1/1
 
 ## 后续迭代计划
 
-1. 生产路由完善：确定短链子域名或同域 `/s/**` rewrite，并补 Nginx 上线配置。
-2. 管理后台增强：增加趋势图和短链详情聚合，但保持轻量数据中台边界。
-3. 部署完善：域名、HTTPS、Nginx Basic Auth 或更强后台保护。
-4. 压测与观测：补充短链高频访问、无效短码攻击和 Redis 降级场景。
+1. v0.7：生产路由与部署加固，确定短链子域名或同域 `/s/**` rewrite。
+2. v0.8：后台运营可读性增强，增加轻量趋势和短链聚合，不做复杂 BI 大屏。
+3. v0.9：稳定性、隐私和压力场景审计。
+4. v1.0：最终文档、部署检查表、截图、质量评分和稳定版标签。
 
 ## 娱乐声明与隐私说明
 
