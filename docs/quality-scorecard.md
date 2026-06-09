@@ -64,24 +64,25 @@
 
 总分：99 / 100
 
-等级：A，MVP 主链路已完成本地与 Docker 容器验收，v0.2 已补短链 Provider 适配层，v0.3 已补 external HTTP 联调准备和后台日期筛选，v0.4 已完成外部短链服务级联调和外部 PV / UV / UIP 统计读取，v0.5 已接入外部短链访问明细，可用于上线前演示和面试讲解。
+等级：A，MVP 主链路已完成本地与 Docker 容器验收，v0.2 已补短链 Provider 适配层，v0.3 已补 external HTTP 联调准备和后台日期筛选，v0.4 已完成外部短链服务级联调和外部 PV / UV / UIP 统计读取，v0.5 已接入外部短链访问明细，v0.6 已开始建立 v1.0 前的统一质量门禁，可用于上线前演示和面试讲解。
 
 | 维度 | 分值 | 当前得分 | 说明 |
 | --- | ---: | ---: | --- |
 | MVP 闭环完整度 | 20 | 20 | 首页、测试、结果、短链、跳转、统计、后台和容器入口均已验证 |
-| 后端工程质量 | 15 | 15 | 分层、校验、异常、缓存、统计已落地；v0.5 新增 external access-record 适配和失败回退 |
+| 后端工程质量 | 15 | 15 | 分层、校验、异常、缓存、统计已落地；v0.5 新增 external access-record 适配和失败回退；v0.6 建立统一质量脚本 |
 | 短链接业务价值 | 15 | 15 | 内置短链真实生成、解析、跳转、缓存、空值缓存、统计已落地；external 创建、跳转、统计和访问明细读取已完成 |
 | 前端体验 | 12 | 12 | H5 主流程和后台已通过浏览器验收；后台支持日期筛选、短链统计来源和访问明细来源展示 |
 | 数据与隐私 | 10 | 9 | clientId、IP、User-Agent hash 入库；外部访问记录的 IP / user 会 hash 后返回；后续可加强日志脱敏审计 |
 | 部署可用性 | 10 | 10 | Compose、Nginx、MySQL、Redis、backend 容器均已运行验证；支持可配置基础镜像 |
-| 测试验证 | 10 | 10 | 后端主链路、Provider 切换、外部失败降级、external 创建、统计和访问记录 HTTP 请求、后台日期筛选、前端构建、Compose config、Docker API 和 external 服务级联调已通过 |
-| 教学沉淀 | 8 | 8 | 教学手册已覆盖主流程、短链适配层、external 服务级联调、统计、访问明细、Redis、测试和面试表达 |
+| 测试验证 | 10 | 10 | 后端主链路、Provider 切换、外部失败降级、external 创建、统计和访问记录 HTTP 请求、后台日期筛选、前端构建、Compose config、Docker API、external 服务级联调和统一质量门禁已通过 |
+| 教学沉淀 | 8 | 8 | 教学手册已覆盖主流程、短链适配层、external 服务级联调、统计、访问明细、Redis、测试、质量门禁和 v1.0 路线 |
 
 通过项：
 
 - `cd backend && mvn -q test`
 - `cd frontend && npm run build`
 - `docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml config`
+- `scripts/quality-check.sh`
 - `docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml up --build -d` 已在 `http://127.0.0.1:8088` 完成容器全链路验收
 - 文案边界关键词扫描无命中
 - 后端集成测试覆盖创建结果、结果查询、短链跳转、短链列表、访问详情、非法参数、非法事件、后台 token、无效短码
@@ -98,12 +99,14 @@
 - v0.4 本地服务级联调覆盖外部短链创建、外部 302、五行本地业务绑定和后台 `statSource=external`
 - v0.5 RestClient 测试覆盖 external access-record 接口 URI、查询参数、分页参数和系统用户 header
 - v0.5 StatsAdapter 测试覆盖 external 访问明细读取、分页转换、`statSource=external` 和外部 IP / user hash 映射
+- v0.5 Docker 内部链路补验覆盖健康检查、Nginx 到 backend、创建结果、短链访问、访问明细 `statSource=local`
+- v0.6 新增 `.editorconfig`、`scripts/quality-check.sh` 和 v1.0 路线图
 - 验收截图已保存到 `docs/screenshots/`
 
 未验证项：
 
 - MVP 必需项无未验证项。
-- v0.5 已通过后端测试和前端构建；尚未重新跑 Docker 容器全链路。
+- v0.6 已补 Docker 内部链路验证；标准 `docker compose up --build -d` 曾受镜像元数据网络影响，后续上线前仍需补一次标准外部镜像构建验收。
 
 风险项：
 
@@ -111,8 +114,11 @@
 - 外部短链项目自身仍需做隐私审计，特别是明文 IP 入库问题。
 - 后台当前是 token 保护，适合 MVP，不适合长期复杂权限管理。
 - 生产上线前仍需替换默认密码、默认 token、`HASH_SALT`，并配置域名和 HTTPS。
+- v1.0 前必须持续防止功能膨胀，仍不做朋友匹配、登录注册、付费、AI 深度解读和复杂 BI。
 
 下一步：
 
-- 增加更多短链并发冲突和数据库唯一索引异常场景测试。
-- 补充生产 Nginx 短链子域名或 `/s/**` rewrite 部署方案。
+- v0.7 补充生产 Nginx 短链子域名或 `/s/**` rewrite 部署方案。
+- v0.8 增强后台轻量趋势和短链聚合。
+- v0.9 做稳定性、隐私和压力场景审计。
+- v1.0 做最终部署检查表、截图、质量评分和稳定版标签。

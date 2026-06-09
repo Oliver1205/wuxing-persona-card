@@ -2,7 +2,7 @@
 
 规划日期：2026-06-08
 
-当前状态：第一版 MVP 主链路已实现，并通过本地构建、后端集成测试、H2 演示模式浏览器验收和 Docker Compose 容器全链路验收。v0.2 已新增短链 Provider 适配层，v0.3 已补 external 模式真实 HTTP 联调配置和后台日期筛选统计，v0.4 已完成外部短链服务级联调和外部 PV / UV / UIP 统计适配，v0.5 已接入外部短链访问明细。
+当前状态：第一版 MVP 主链路已实现，并通过本地构建、后端集成测试、H2 演示模式浏览器验收和 Docker Compose 容器全链路验收。v0.2 已新增短链 Provider 适配层，v0.3 已补 external 模式真实 HTTP 联调配置和后台日期筛选统计，v0.4 已完成外部短链服务级联调和外部 PV / UV / UIP 统计适配，v0.5 已接入外部短链访问明细，v0.6 开始建立 v1.0 前的统一质量门禁。
 
 关联文档：
 
@@ -14,6 +14,7 @@
 - v0.3 外部短链联调准备与后台日期统计：`docs/v0.3-external-shortlink-and-analytics.md`
 - v0.4 外部短链服务级联调与统计适配：`docs/v0.4-external-shortlink-service-integration.md`
 - v0.5 外部短链访问明细接入：`docs/v0.5-external-shortlink-access-records.md`
+- v1.0 路线图与质量门禁：`docs/v1.0-roadmap-and-quality-gates.md`
 - 教学手册：`docs/teaching-manual.md`
 
 ## 1. MVP 目标
@@ -207,6 +208,23 @@ flowchart LR
 - 新增 `statSource` 字段区分本地统计和外部统计。
 - 外部统计不可用时回退本地统计。
 
+### 阶段 12：v0.5 外部短链访问明细接入
+
+- 接入独立短链服务 `/api/short-link/v1/stats/access-record`。
+- 后台短链详情优先读取 external 访问记录。
+- external 失败、internal 模式、domain 不匹配或 stats 未启用时回退本地 `visit_event`。
+- 外部 `ip` 和 `user` 按五行项目 `HASH_SALT` 做 hash 后返回。
+- `ShortLinkVisitVO` 新增 `statSource`。
+- 前端短链访问详情表格新增来源列。
+- 完成 PR 合并和标签：`v0.5.0-external-shortlink-access-records`。
+
+### 阶段 13：v0.6 质量门禁与 v1.0 路线
+
+- 新增 `.editorconfig` 统一编辑器基础规范。
+- 新增 `scripts/quality-check.sh` 作为版本合并前统一门禁。
+- 新增 `docs/v1.0-roadmap-and-quality-gates.md`。
+- 开始按 v0.7、v0.8、v0.9、v1.0 的节奏推进稳定版。
+
 ## 5. 当前验证
 
 已通过：
@@ -267,10 +285,21 @@ v0.4 测试和联调覆盖：
 - `ExternalShortLinkStatsAdapter` 的成功读取、失败回退、internal 模式跳过和 domain 不匹配跳过。
 - 本地服务级联调：创建结果、外部短链创建、外部 302、五行本地业务绑定、后台 `statSource=external`。
 
+v0.5 测试和联调覆盖：
+
+- external RestClient 访问明细接口路径、分页参数和系统用户 header。
+- external 访问明细读取、分页转换、失败回退和 hash 映射。
+- Docker 容器内验证：健康检查、Nginx 到 backend、创建结果、短链访问、访问明细 `statSource=local`。
+
+v0.6 起统一执行：
+
+```bash
+scripts/quality-check.sh
+```
+
 ## 6. 下一阶段建议
 
-1. 确定生产短链入口：独立短链子域名或同域 `/s/**` rewrite。
-2. 接入独立短链访问记录接口，让后台短链详情支持 external 明细来源。
-3. 增加趋势图或小时分布，但保持后台为轻量数据中台，不做复杂 BI 大屏。
-4. 增加结果卡片图片生成或截图分享。
-5. 上线前配置域名、HTTPS、强随机 token、强密码和真实 `APP_BASE_URL`。
+1. v0.7：生产路由与部署加固，确定短链子域名或同域 `/s/**` rewrite，并补上线 runbook。
+2. v0.8：后台运营可读性增强，增加轻量趋势和短链聚合，不做复杂 BI 大屏。
+3. v0.9：稳定性、隐私和压力场景审计。
+4. v1.0：最终文档、部署检查表、截图、质量评分和稳定版标签。
