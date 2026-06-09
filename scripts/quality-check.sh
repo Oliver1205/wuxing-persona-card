@@ -16,6 +16,8 @@ run git diff --check
 
 run bash -n scripts/quality-check.sh
 run bash -n scripts/deploy-preflight.sh
+run bash -n scripts/external-shortlink-preflight.sh
+run bash -n scripts/external-shortlink-smoke-test.sh
 
 echo
 echo "==> Ensure generated artifacts are not tracked"
@@ -36,6 +38,7 @@ fi
 run mvn -q -f backend/pom.xml test
 run npm --prefix frontend run build
 run docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml config
+run docker compose --env-file deploy/.env.external.example -f deploy/docker-compose.yml -f deploy/docker-compose.external-mode.yml config
 
 echo
 echo "Quality gate passed."

@@ -12,9 +12,9 @@
 
 | 项 | 说明 |
 | --- | --- |
-| 当前版本 | `v1.0.0-stable` |
+| 当前版本 | `v1.1.0-external-shortlink-production-readiness` |
 | 稳定分支 | `main` |
-| 当前开发分支 | `feature/v1.0-stable-release` |
+| 当前开发分支 | `feature/v1.1-external-shortlink-production-readiness` |
 | MVP 状态 | v0.1 已完成完整单人测算闭环 |
 | v0.2 状态 | 已完成短链接 Provider 适配层，可配置 `internal` / `external` 模式 |
 | v0.3 状态 | 已增强 external 真实 HTTP 联调配置，并为后台总览、短链列表、访问日志增加日期筛选 |
@@ -25,8 +25,9 @@
 | v0.8 状态 | 已完成后台日趋势、热门星官、最近结果和最近短链展示 |
 | v0.9 状态 | 已完成短码校验、Referer 隐私收敛和 external 空记录稳定性加固 |
 | v1.0 状态 | 稳定版收口，README、发布检查表、质量评分和版本记录已完成 |
+| v1.1 状态 | 已补 external 生产接入 overlay、预检脚本、联调脚本、失败测试、对接说明和隐私审计 |
 | 最新自评 | 99 / 100，详见 [quality-scorecard.md](docs/quality-scorecard.md) |
-| GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics`、`v0.4.0-external-shortlink-service-integration`、`v0.5.0-external-shortlink-access-records`、`v0.6.0-quality-gates-and-roadmap`、`v0.7.0-production-routing-hardening`、`v0.8.0-admin-operational-insights`、`v0.9.0-stability-privacy-audit`、`v1.0.0-stable` |
+| GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics`、`v0.4.0-external-shortlink-service-integration`、`v0.5.0-external-shortlink-access-records`、`v0.6.0-quality-gates-and-roadmap`、`v0.7.0-production-routing-hardening`、`v0.8.0-admin-operational-insights`、`v0.9.0-stability-privacy-audit`、`v1.0.0-stable`、`v1.1.0-external-shortlink-production-readiness` |
 
 ## 核心亮点
 
@@ -44,6 +45,7 @@
 - **后台运营可读性**：v0.8 补充日趋势、热门星官、最近结果和最近短链，让上线初期数据更好解释。
 - **稳定性与隐私审计**：v0.9 统一后台短码校验，Referer 去 query / fragment，external 空访问记录稳定返回。
 - **稳定版交付**：v1.0 收口 README、部署检查表、质量评分和版本记录，作为可演示 MVP 基线。
+- **external 生产接入准备**：v1.1 补充 external 模式 Compose overlay、环境样例、预检脚本、联调脚本、失败测试、对接说明和隐私审计报告。
 - **教学沉淀**：项目计划、质量评分、短链集成方案、教学手册均已文档化。
 
 ## 目录
@@ -100,11 +102,15 @@
 │       └── resources/db/schema.sql
 ├── deploy/
     ├── docker-compose.yml
+    ├── docker-compose.external-mode.yml
     ├── nginx.Dockerfile
     ├── nginx.conf
-    └── .env.example
+    ├── .env.example
+    └── .env.external.example
 └── scripts/
     ├── deploy-preflight.sh
+    ├── external-shortlink-preflight.sh
+    ├── external-shortlink-smoke-test.sh
     └── quality-check.sh
 ```
 
@@ -181,6 +187,15 @@ v0.4 已完成本地服务级联调：
 - 五行本地继续保存 `resultId -> shortCode -> shortUrl` 业务绑定。
 - 后台短链列表可在 `SHORT_LINK_EXTERNAL_STATS_ENABLED=true` 时读取外部 PV / UV / UIP。
 - 外部统计失败时保留本地统计，`statSource` 显示为 `local`。
+
+v1.1 将 external 模式补齐为生产接入前可执行方案：
+
+- `deploy/docker-compose.external-mode.yml` 用于在默认 Compose 上叠加 external 配置。
+- `deploy/.env.external.example` 给 external 模式提供单独环境样例。
+- `scripts/external-shortlink-preflight.sh` 检查 external 配置、系统用户、domain 和可选连通性。
+- `scripts/external-shortlink-smoke-test.sh` 创建一次真实测算并验证短链 302 和后台统计来源。
+- [外部短链服务对接说明](docs/external-shortlink-integration-guide.md) 记录 API、header、统计和路由约定。
+- [外部短链接入隐私审计报告](docs/external-shortlink-privacy-audit.md) 区分五行侧脱敏能力和外部服务自身待治理风险。
 
 切换配置：
 
@@ -292,6 +307,33 @@ Nginx 默认暴露 `80` 端口：
 
 上线前必须替换 `deploy/.env` 中的 `APP_BASE_URL`、`ADMIN_TOKEN`、`HASH_SALT` 和数据库密码。
 
+external 模式使用单独样例和 Compose overlay：
+
+```bash
+cp deploy/.env.external.example deploy/.env.external
+scripts/deploy-preflight.sh deploy/.env.external
+scripts/external-shortlink-preflight.sh deploy/.env.external
+docker compose --env-file deploy/.env.external \
+  -f deploy/docker-compose.yml \
+  -f deploy/docker-compose.external-mode.yml \
+  up --build -d
+```
+
+外部短链服务启动后可加 `--probe` 做连通性探测：
+
+```bash
+scripts/external-shortlink-preflight.sh deploy/.env.external --probe
+```
+
+五行服务启动后执行联调脚本：
+
+```bash
+WUXING_BASE_URL=http://127.0.0.1:8088 \
+ADMIN_TOKEN=<your-admin-token> \
+EXPECTED_STAT_SOURCE=external \
+scripts/external-shortlink-smoke-test.sh
+```
+
 如果本机 Docker Hub 访问超时，可以临时通过环境变量切换基础镜像源，默认部署仍使用官方镜像：
 
 ```bash
@@ -320,6 +362,8 @@ scripts/quality-check.sh
 - 后端测试：`mvn -q test`
 - 前端构建：`npm run build`
 - Compose 配置：`docker compose config`
+- external 预检和 smoke 脚本语法检查
+- external Compose overlay 配置检查
 
 v1.0 路线和质量要求详见 [v1.0-roadmap-and-quality-gates.md](docs/v1.0-roadmap-and-quality-gates.md)。
 
@@ -339,6 +383,7 @@ scripts/deploy-preflight.sh deploy/.env
 - `cd backend && mvn -q test`
 - `cd frontend && npm run build`
 - `docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml config`
+- `docker compose --env-file deploy/.env.external.example -f deploy/docker-compose.yml -f deploy/docker-compose.external-mode.yml config`
 - v0.5 Docker 内部链路验收：容器内健康检查、Nginx 到 backend 网络、创建结果、短链访问、访问明细 `statSource=local`
 - v0.4 external 服务级联调：外部短链创建、外部短链 302、五行本地业务绑定、后台 `statSource=external`
 - 本地浏览器验收：`/admin` 日期筛选控件显示正常，按日期应用筛选后接口正常返回
@@ -349,6 +394,8 @@ scripts/deploy-preflight.sh deploy/.env
 - v0.8 后端测试覆盖 overview 日趋势默认返回、日期筛选当天有数据和未来日期为空
 - v0.9 后端测试覆盖 Referer 去 query / fragment、后台非法短码返回 400、external 空访问记录稳定返回空页
 - v1.0 发布检查表已补充，详见 [v1.0-release-checklist.md](docs/v1.0-release-checklist.md)
+- v1.1 后端测试覆盖 external 业务错误码、统计空数据、访问明细错误码、外部短码冲突降级和关闭降级后的明确错误
+- v1.1 新增 external 预检脚本、smoke 联调脚本、Compose overlay、环境样例、对接说明和隐私审计报告
 
 v0.4 外部联调样例：
 
@@ -374,6 +421,20 @@ admin pv/uv/uip: 1/1/1
 - [Docker 后台详情保护截图](docs/screenshots/docker-admin-detail-protected.png)
 
 ## 开发进度记录
+
+<details open>
+<summary><strong>2026-06-10｜v1.1 外部短链生产级接入增强</strong></summary>
+
+- 新建分支：`feature/v1.1-external-shortlink-production-readiness`。
+- 新增 `deploy/docker-compose.external-mode.yml`，用于 external 模式 Compose overlay。
+- 新增 `deploy/.env.external.example`，单独记录 external 模式环境变量。
+- 新增 `scripts/external-shortlink-preflight.sh`，部署前检查 external 关键配置并支持可选连通性探测。
+- 新增 `scripts/external-shortlink-smoke-test.sh`，用于创建结果、验证短链 302 和后台 `statSource`。
+- 新增 [v1.1 外部短链生产级接入增强](docs/v1.1-external-shortlink-production-readiness.md)、[外部短链服务对接说明](docs/external-shortlink-integration-guide.md)、[外部短链接入隐私审计报告](docs/external-shortlink-privacy-audit.md)。
+- 补充 external 失败场景测试：业务错误码、空数据、访问明细错误码、外部短码冲突降级和关闭降级后的明确错误。
+- 验证通过：统一质量门禁。
+
+</details>
 
 <details open>
 <summary><strong>2026-06-09｜v1.0 稳定版收口</strong></summary>

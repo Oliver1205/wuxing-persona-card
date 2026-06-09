@@ -60,11 +60,11 @@
 
 ## 5. 当前 MVP 自评
 
-评估日期：2026-06-09
+评估日期：2026-06-10
 
 总分：99 / 100
 
-等级：A，MVP 主链路已完成本地与 Docker 容器验收，v0.2 已补短链 Provider 适配层，v0.3 已补 external HTTP 联调准备和后台日期筛选，v0.4 已完成外部短链服务级联调和外部 PV / UV / UIP 统计读取，v0.5 已接入外部短链访问明细，v0.6 已建立统一质量门禁，v0.7 已补生产路由与部署预检，v0.8 已增强后台运营可读性，v0.9 已完成稳定性与隐私审计加固，v1.0 已完成稳定版文档收口，可用于上线前演示和面试讲解。
+等级：A，MVP 主链路已完成本地与 Docker 容器验收，v0.2 已补短链 Provider 适配层，v0.3 已补 external HTTP 联调准备和后台日期筛选，v0.4 已完成外部短链服务级联调和外部 PV / UV / UIP 统计读取，v0.5 已接入外部短链访问明细，v0.6 已建立统一质量门禁，v0.7 已补生产路由与部署预检，v0.8 已增强后台运营可读性，v0.9 已完成稳定性与隐私审计加固，v1.0 已完成稳定版文档收口，v1.1 已补 external 生产接入 overlay、预检脚本、smoke 联调脚本、失败测试、对接说明和隐私审计，可用于明天真实部署前的工程化准备。
 
 | 维度 | 分值 | 当前得分 | 说明 |
 | --- | ---: | ---: | --- |
@@ -72,10 +72,10 @@
 | 后端工程质量 | 15 | 15 | 分层、校验、异常、缓存、统计已落地；v0.5 新增 external access-record 适配和失败回退；v0.6 建立统一质量脚本 |
 | 短链接业务价值 | 15 | 15 | 内置短链真实生成、解析、跳转、缓存、空值缓存、统计已落地；external 创建、跳转、统计和访问明细读取已完成 |
 | 前端体验 | 12 | 12 | H5 主流程和后台已通过浏览器验收；后台支持日期筛选、日趋势、热门星官、最近结果、短链统计来源和访问明细来源展示 |
-| 数据与隐私 | 10 | 9 | clientId、IP、User-Agent hash 入库；Referer 已去 query / fragment；外部访问记录的 IP / user 会 hash 后返回；外部短链项目自身仍需单独审计 |
-| 部署可用性 | 10 | 10 | Compose、Nginx、MySQL、Redis、backend 容器均已运行验证；支持可配置基础镜像；v0.7 补生产短链路由示例和环境预检 |
-| 测试验证 | 10 | 10 | 后端主链路、Provider 切换、外部失败降级、external 创建、统计和访问记录 HTTP 请求、后台日期筛选、后台日趋势、Referer 隐私收敛、前端构建、Compose config、Docker API、external 服务级联调和统一质量门禁已通过 |
-| 教学沉淀 | 8 | 8 | 教学手册已覆盖主流程、短链适配层、external 服务级联调、统计、访问明细、后台趋势、隐私审计、Redis、测试、质量门禁、发布检查表和 v1.0 收口 |
+| 数据与隐私 | 10 | 9 | clientId、IP、User-Agent hash 入库；Referer 已去 query / fragment；外部访问记录的 IP / user 会 hash 后返回；v1.1 已新增外部短链接入隐私审计，但外部短链项目自身明文 IP 风险仍需部署前治理 |
+| 部署可用性 | 10 | 10 | Compose、Nginx、MySQL、Redis、backend 容器均已运行验证；支持可配置基础镜像；v0.7 补生产短链路由示例和环境预检；v1.1 补 external Compose overlay、环境样例和 external 预检 |
+| 测试验证 | 10 | 10 | 后端主链路、Provider 切换、外部失败降级、external 创建、统计和访问记录 HTTP 请求、外部业务错误码、空数据、短码冲突、后台日期筛选、后台日趋势、Referer 隐私收敛、前端构建、Compose config、Docker API、external 服务级联调和统一质量门禁已通过 |
+| 教学沉淀 | 8 | 8 | 教学手册已覆盖主流程、短链适配层、external 服务级联调、统计、访问明细、后台趋势、隐私审计、Redis、测试、质量门禁、发布检查表、v1.0 收口和 v1.1 生产接入准备 |
 
 通过项：
 
@@ -107,22 +107,27 @@
 - v0.8 后端集成测试覆盖 overview `dailyTrends` 默认返回、当天筛选有数据和未来筛选为空值口径
 - v0.9 新增 Referer 去 query / fragment、后台短码校验和 external 空访问记录稳定性测试
 - v1.0 新增 `docs/v1.0-release-checklist.md`，覆盖主链路、短链能力、隐私合规、部署和发布动作
+- v1.1 新增 `deploy/docker-compose.external-mode.yml`、`deploy/.env.external.example`、`scripts/external-shortlink-preflight.sh` 和 `scripts/external-shortlink-smoke-test.sh`
+- v1.1 新增 [v1.1 外部短链生产级接入增强](v1.1-external-shortlink-production-readiness.md)、[外部短链服务对接说明](external-shortlink-integration-guide.md) 和 [外部短链接入隐私审计报告](external-shortlink-privacy-audit.md)
+- v1.1 后端测试覆盖 external 业务错误码、统计空数据、访问明细错误码、外部短码冲突降级和关闭降级后的明确错误
 - 验收截图已保存到 `docs/screenshots/`
 
 未验证项：
 
 - MVP 必需项无未验证项。
 - v0.6 已补 Docker 内部链路验证；标准 `docker compose up --build -d` 曾受镜像元数据网络影响，后续上线前仍需补一次标准外部镜像构建验收。
+- v1.1 已完成 external 生产接入准备资产，但尚未在服务器上真实启动外部短链服务并跑 `--probe` 与 smoke 联调。
 
 风险项：
 
-- 外部短链服务已完成本地联调，但生产环境还需要正式决定短链子域名或同域 `/s/**` rewrite。
-- 外部短链项目自身仍需做隐私审计，特别是明文 IP 入库问题。
+- 外部短链服务已完成本地联调，并已补 v1.1 生产接入准备；生产环境还需要正式决定短链子域名或同域 `/s/**` rewrite。
+- 外部短链项目自身仍需做隐私治理，特别是明文 IP 入库、默认 demo 账号和访问日志保留周期。
 - 后台当前是 token 保护，适合 MVP，不适合长期复杂权限管理。
 - 生产上线前仍需替换默认密码、默认 token、`HASH_SALT`，并配置域名和 HTTPS。
 - 后续版本必须持续防止功能膨胀，朋友匹配、登录注册、付费、AI 深度解读和复杂 BI 仍应作为独立大版本评估。
 
 下一步：
 
-- 生产上线前使用真实 `deploy/.env` 执行部署预检。
-- 在目标服务器补一次标准 Docker Compose 全链路验收。
+- 生产上线前使用真实 `deploy/.env.external` 执行部署预检和 external 预检。
+- 在目标服务器启动外部短链 aggregation 后执行 `scripts/external-shortlink-preflight.sh deploy/.env.external --probe`。
+- 五行 external Compose 启动后执行 `scripts/external-shortlink-smoke-test.sh`。

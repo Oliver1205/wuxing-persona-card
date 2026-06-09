@@ -1,8 +1,10 @@
 package com.wuxing.persona.service.shortlink;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.wuxing.persona.common.BusinessException;
 import com.wuxing.persona.config.AppProperties;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -56,6 +58,23 @@ class RestExternalShortLinkClientTest {
     }
 
     @Test
+    void shouldThrowBusinessExceptionWhenExternalCreateReturnsFailureCode() {
+        CapturingRequestFactory requestFactory = new CapturingRequestFactory("""
+                {"code":"500","message":"group not found","data":null}
+                """);
+        AppProperties appProperties = externalAppProperties();
+        RestExternalShortLinkClient client = new RestExternalShortLinkClient(appProperties, requestFactory);
+        ExternalShortLinkCreateRequest request = new ExternalShortLinkCreateRequest();
+        request.setDomain("nurl.ink:8003");
+        request.setOriginUrl("https://wuxing.example.com/result/R1");
+        request.setGid("wuxing_persona");
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> client.create(request));
+
+        assertEquals("external short link service failed: group not found", exception.getMessage());
+    }
+
+    @Test
     void shouldCallExternalStatsApiWithExpectedHeadersAndQuery() {
         CapturingRequestFactory requestFactory = new CapturingRequestFactory("""
                 {"code":"0","data":{"pv":7,"uv":3,"uip":2}}
@@ -89,6 +108,25 @@ class RestExternalShortLinkClientTest {
         assertTrue(query.contains("enableStatus=0"));
         assertTrue(query.contains("startDate=2026-06-09"));
         assertTrue(query.contains("endDate=2026-06-09"));
+    }
+
+    @Test
+    void shouldThrowBusinessExceptionWhenExternalStatsReturnsEmptyData() {
+        CapturingRequestFactory requestFactory = new CapturingRequestFactory("""
+                {"code":"0","message":"success","data":null}
+                """);
+        AppProperties appProperties = externalAppProperties();
+        RestExternalShortLinkClient client = new RestExternalShortLinkClient(appProperties, requestFactory);
+        ExternalShortLinkStatsRequest request = new ExternalShortLinkStatsRequest();
+        request.setFullShortUrl("nurl.ink:8003/Abc123");
+        request.setGid("wuxing_persona");
+        request.setEnableStatus(0);
+        request.setStartDate("2026-06-09");
+        request.setEndDate("2026-06-10");
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> client.stats(request));
+
+        assertEquals("external short link stats returned empty data", exception.getMessage());
     }
 
     @Test
@@ -131,6 +169,36 @@ class RestExternalShortLinkClientTest {
         assertTrue(query.contains("endDate=2026-06-10"));
         assertTrue(query.contains("current=1"));
         assertTrue(query.contains("size=20"));
+    }
+
+    @Test
+    void shouldThrowBusinessExceptionWhenExternalAccessRecordsReturnFailureCode() {
+        CapturingRequestFactory requestFactory = new CapturingRequestFactory("""
+                {"code":"500","message":"stats query failed","data":null}
+                """);
+        AppProperties appProperties = externalAppProperties();
+        RestExternalShortLinkClient client = new RestExternalShortLinkClient(appProperties, requestFactory);
+        ExternalShortLinkAccessRecordRequest request = new ExternalShortLinkAccessRecordRequest();
+        request.setFullShortUrl("nurl.ink:8003/Abc123");
+        request.setGid("wuxing_persona");
+        request.setEnableStatus(0);
+        request.setStartDate("2026-06-09");
+        request.setEndDate("2026-06-10");
+        request.setCurrent(1L);
+        request.setSize(20L);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> client.accessRecords(request));
+
+        assertEquals("external short link access records failed: stats query failed", exception.getMessage());
+    }
+
+    private AppProperties externalAppProperties() {
+        AppProperties appProperties = new AppProperties();
+        appProperties.getShortLink().getExternal().setBaseUrl("http://shortlink:8003");
+        appProperties.getShortLink().getExternal().setSystemUsername("wuxing_system");
+        appProperties.getShortLink().getExternal().setSystemUserId("wuxing-system");
+        appProperties.getShortLink().getExternal().setSystemRealName("wuxing-system");
+        return appProperties;
     }
 
     private static class CapturingRequestFactory implements ClientHttpRequestFactory {
