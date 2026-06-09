@@ -59,6 +59,9 @@ HASH_SALT=<strong-random-salt>
 - `ADMIN_TOKEN` 用于后台接口 `X-Admin-Token` 校验。
 - `HASH_SALT` 用于 clientId、IP、User-Agent 的 hash 脱敏。
 - `NGINX_HTTP_PORT` 可用于本地避开 80 端口冲突，例如 `8088`。
+- `SHORT_LINK_MODE` 默认为 `internal`，可切换为 `external`，让后端优先调用外部短链服务创建短链。
+- `SHORT_LINK_EXTERNAL_BASE_URL` 是外部短链服务地址，例如 `http://shortlink:8003`。
+- `SHORT_LINK_EXTERNAL_FALLBACK_TO_INTERNAL` 默认为 `true`，外部服务不可用时自动降级到内置短链。
 - `BACKEND_MAVEN_IMAGE`、`BACKEND_RUNTIME_IMAGE`、`FRONTEND_NODE_IMAGE`、`FRONTEND_NGINX_IMAGE` 是可选基础镜像参数。默认使用官方镜像，Docker Hub 不稳定时可临时切换到可信镜像源。
 
 ## 4. 启动命令
@@ -125,6 +128,8 @@ location /s/ {
 your-domain.com   -> 五行 H5 和 API
 s.your-domain.com -> 独立短链服务
 ```
+
+v0.2 后端已经支持短链 Provider 配置切换。只验证“外部创建短链 + 失败降级”时，可以先保持 Nginx `/s/**` 指向五行后端；等独立短链服务稳定后，再把 `/s/**` 或短链子域名切到短链服务。
 
 ## 6. 验证清单
 

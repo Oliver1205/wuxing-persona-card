@@ -90,7 +90,7 @@
 resultId -> shortCode -> /s/{shortCode} -> /result/{resultId}?sc={shortCode}
 ```
 
-内置短链的核心在 `ShortLinkService`：
+v0.1 内置短链的核心原本在 `ShortLinkService`，v0.2 后迁移到 `InternalShortLinkProvider`：
 
 - 生成 6 位 Base62 短码。
 - 检查 MySQL 中是否已存在。
@@ -99,7 +99,36 @@ resultId -> shortCode -> /s/{shortCode} -> /result/{resultId}?sc={shortCode}
 - 无效短码缓存 `shortlink:null:{shortCode}`。
 - 访问短链时写入事件并更新 PV。
 
-后续接入外部短链服务时，可以把 `ShortLinkService` 替换为 HTTP Client，五行项目继续保存业务绑定。
+后续接入外部短链服务时，不需要替换上层业务流程，只需要补齐 `ExternalShortLinkProvider` 的真实 HTTP 联调、鉴权和统计读取，五行项目继续保存业务绑定。
+
+### 5.1 v0.2 为什么要做短链适配层
+
+v0.2 没有把外部短链项目直接写死进 `ResultService`，而是把短链模块拆成：
+
+```text
+ShortLinkService
+  -> ShortLinkProvider
+    -> InternalShortLinkProvider
+    -> ExternalShortLinkProvider
+      -> ExternalShortLinkClient
+```
+
+这样做有三个工程价值：
+
+1. **保护 v0.1 闭环**：默认 `internal` 模式继续使用内置短链，创建结果、复制短链、访问 `/s/{code}`、后台统计都不回退。
+2. **隔离外部不确定性**：外部短链服务可能没启动、鉴权没接好或网络失败，`ExternalShortLinkProvider` 可以按配置降级到内置 Provider。
+3. **保留业务绑定**：即使外部服务负责生成短码，五行项目仍保存 `resultId -> shortCode -> shortUrl`，后台和结果页查询不会完全依赖外部系统。
+
+配置方式：
+
+```text
+SHORT_LINK_MODE=internal
+SHORT_LINK_MODE=external
+SHORT_LINK_EXTERNAL_BASE_URL=http://shortlink:8003
+SHORT_LINK_EXTERNAL_FALLBACK_TO_INTERNAL=true
+```
+
+面试里可以把这段讲成：从“单体 MVP 内置短链”演进到“可插拔服务适配层”，但没有为了架构而破坏稳定闭环。
 
 ## 6. PV / UV / UIP 怎么统计
 
@@ -265,6 +294,15 @@ short link Location: /result/R20260609005159599703?sc=4fB7av
 admin short link PV/UV/UIP: 1/1/1
 ```
 
+v0.2 新增验证：
+
+- 默认 `internal` 模式走内置 Provider。
+- `external` 模式走外部 Provider。
+- 外部短链创建成功时保存本地业务绑定。
+- 外部短链创建失败且允许降级时回到内置 Provider。
+- 外部短链创建失败且禁止降级时返回明确业务错误。
+- `mvn test` 覆盖 Provider 切换和外部失败分支。
+
 ## 12. 面试表达重点
 
 可以这样讲：
@@ -276,6 +314,7 @@ admin short link PV/UV/UIP: 1/1/1
 5. 项目不做登录，通过匿名 clientId 和 hash 方式兼顾统计和隐私。
 6. 文案模板化，保证输出正向、可控、可测试。
 7. Docker Compose 把 MySQL、Redis、后端、Nginx 组织成单机部署方案，并已跑通过容器验收。
+8. v0.2 把短链模块抽象成 Provider 适配层，体现从 MVP 到可服务化集成的演进能力。
 
 ## 13. 后续学习建议
 
@@ -284,6 +323,8 @@ admin short link PV/UV/UIP: 1/1/1
 1. `ResultService`：理解主业务流程。
 2. `ElementCalculateService`：理解规则如何工程化。
 3. `ShortLinkService`：理解短码、缓存、跳转。
-4. `VisitEventService`：理解 PV/UV/UIP 和隐私。
-5. `AdminStatService`：理解后台聚合。
-6. `frontend/src/api/request.ts` 和 `tracker.ts`：理解前端如何把匿名 ID 和埋点接入后端。
+4. `service/shortlink/InternalShortLinkProvider`：理解内置短链如何作为默认 Provider。
+5. `service/shortlink/ExternalShortLinkProvider`：理解外部服务接入、业务绑定和失败降级。
+6. `VisitEventService`：理解 PV/UV/UIP 和隐私。
+7. `AdminStatService`：理解后台聚合。
+8. `frontend/src/api/request.ts` 和 `tracker.ts`：理解前端如何把匿名 ID 和埋点接入后端。

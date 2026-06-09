@@ -6,7 +6,7 @@
 
 评估日期：2026-06-08
 
-当前落地策略：五行人格卡第一版已先实现内置短链接能力，确保 MVP 不依赖外部服务也能独立运行。本文档用于后续把内置 `ShortLinkService` 替换为独立短链接系统服务时参考。
+当前落地策略：五行人格卡 v0.1 已先实现内置短链接能力，确保 MVP 不依赖外部服务也能独立运行。v0.2 已新增短链适配层，支持 `internal` / `external` Provider 配置切换；外部服务创建失败时默认降级到内置短链，确保测算主链路不被外部服务可用性拖垮。
 
 ## 1. 项目结论
 
@@ -14,7 +14,7 @@
 
 五行人格卡第一版不需要完整接入它的 SaaS 用户体系、控制台前端、复杂网关和多租户后台。建议把它作为独立短链服务使用，五行后端通过内部 HTTP 调用创建短链和查询统计；短链公网入口由 Nginx 代理到短链服务。
 
-推荐集成方式：
+推荐最终集成方式：
 
 ```text
 浏览器
@@ -211,6 +211,21 @@ realName: wuxing-system
 
 ## 6. 推荐集成步骤
 
+### 已完成：v0.2 适配层
+
+五行项目当前已经完成：
+
+- `ShortLinkService` 从具体实现改为门面服务。
+- `ShortLinkProvider` 定义统一短链接口。
+- `InternalShortLinkProvider` 保留 v0.1 内置短链完整能力。
+- `ExternalShortLinkProvider` 预留外部短链服务创建链路。
+- `ExternalShortLinkClient` 封装 HTTP 调用边界。
+- `SHORT_LINK_MODE=internal|external` 支持配置切换。
+- `SHORT_LINK_EXTERNAL_FALLBACK_TO_INTERNAL=true` 支持外部服务失败降级。
+- 外部返回 `fullShortUrl` 后，五行项目仍保存本地 `short_link` 业务绑定。
+
+这意味着后续不需要再大改 `ResultService` 和 `ShortLinkController`，只需要补外部服务真实联调、鉴权和统计读取。
+
 ### 阶段 A：本地跑通短链服务
 
 目标：能用短链项目创建短链并跳转。
@@ -229,10 +244,11 @@ realName: wuxing-system
 
 动作：
 
-1. 新增短链 HTTP 客户端封装。
-2. 在 `ResultService.createResult` 保存结果后调用短链创建接口。
-3. 保存 `resultId -> fullShortUrl -> shortCode` 的绑定。
-4. 返回给前端 `shortUrl`。
+1. 启动外部短链服务。
+2. 设置 `SHORT_LINK_MODE=external`。
+3. 设置 `SHORT_LINK_EXTERNAL_BASE_URL`、`SHORT_LINK_EXTERNAL_GROUP_ID` 和内部系统用户 header。
+4. 调用五行 `POST /api/results`，确认 `ExternalShortLinkProvider` 创建短链并保存本地绑定。
+5. 若外部服务不可用，确认 `fallback-to-internal=true` 时主流程自动回到内置短链。
 
 ### 阶段 C：Nginx 整合入口
 
@@ -319,3 +335,7 @@ server {
 最推荐的项目叙述：
 
 > 五行人格卡结果页生成后，业务后端调用独立短链接服务创建分享链接。用户访问短链时，短链服务通过 Redis 优先解析映射，未命中再查 MySQL，命中后跳转回对应结果页，同时异步记录 PV/UV/UIP 和访问日志。五行数据中台聚合展示测算数据与短链访问数据，让短链接能力真正服务于业务分享闭环。
+
+v0.2 面试表达可以进一步升级为：
+
+> 我没有把外部短链服务直接写死到业务流程里，而是先抽象出 `ShortLinkProvider` 适配层。默认内置 Provider 保证项目独立可运行，External Provider 负责对接外部短链服务并保留本地业务绑定；外部服务异常时可以按配置降级。这样既保留 MVP 稳定性，也给后续服务化集成留下清晰边界。

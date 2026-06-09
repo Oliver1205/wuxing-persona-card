@@ -34,3 +34,12 @@ app:
   base-url: ${APP_BASE_URL:http://localhost:8080}
   admin-token: ${ADMIN_TOKEN:change-me}
   hash-salt: ${HASH_SALT:change-me}
+  short-link:
+    mode: ${SHORT_LINK_MODE:internal}
+    external:
+      base-url: ${SHORT_LINK_EXTERNAL_BASE_URL:http://localhost:8003}
+      group-id: ${SHORT_LINK_EXTERNAL_GROUP_ID:wuxing_persona}
+      fallback-to-internal: ${SHORT_LINK_EXTERNAL_FALLBACK_TO_INTERNAL:true}
+      system-username: ${SHORT_LINK_EXTERNAL_SYSTEM_USERNAME:wuxing_system}
+      system-user-id: ${SHORT_LINK_EXTERNAL_SYSTEM_USER_ID:wuxing-system}
+      system-real-name: ${SHORT_LINK_EXTERNAL_SYSTEM_REAL_NAME:wuxing-system}

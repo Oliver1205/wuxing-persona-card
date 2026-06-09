@@ -26,3 +26,9 @@ app:
   base-url: ${APP_BASE_URL:http://localhost:5173}
   admin-token: ${ADMIN_TOKEN:dev-token}
   hash-salt: ${HASH_SALT:dev-salt}
+  short-link:
+    mode: ${SHORT_LINK_MODE:internal}
+    external:
+      base-url: ${SHORT_LINK_EXTERNAL_BASE_URL:http://localhost:8003}
+      group-id: ${SHORT_LINK_EXTERNAL_GROUP_ID:wuxing_persona}
+      fallback-to-internal: ${SHORT_LINK_EXTERNAL_FALLBACK_TO_INTERNAL:true}

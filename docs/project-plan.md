@@ -2,7 +2,7 @@
 
 规划日期：2026-06-08
 
-当前状态：第一版 MVP 主链路已实现，并通过本地构建、后端集成测试、H2 演示模式浏览器验收和 Docker Compose 容器全链路验收。
+当前状态：第一版 MVP 主链路已实现，并通过本地构建、后端集成测试、H2 演示模式浏览器验收和 Docker Compose 容器全链路验收。v0.2 已新增短链 Provider 适配层，为后续接入独立短链服务做好准备。
 
 关联文档：
 
@@ -10,6 +10,7 @@
 - 开发规范：`docs/development-standards.md`
 - 质量评分：`docs/quality-scorecard.md`
 - 短链系统评估：`docs/shortlink-integration-assessment.md`
+- v0.2 短链适配层设计：`docs/v0.2-shortlink-adapter-design.md`
 - 教学手册：`docs/teaching-manual.md`
 
 ## 1. MVP 目标
@@ -155,6 +156,17 @@ flowchart LR
 - Docker 容器模式已通过 `http://127.0.0.1:8088` 验收。
 - Dockerfile 支持可配置基础镜像，便于 Docker Hub 不稳定时切换可信镜像源。
 
+### 阶段 9：v0.2 短链适配层
+
+- 新增 `ShortLinkProvider` 接口。
+- `ShortLinkService` 改为门面服务，对上层保持 v0.1 调用入口。
+- `InternalShortLinkProvider` 保留内置短链默认能力。
+- `ExternalShortLinkProvider` 预留外部短链创建流程。
+- `ExternalShortLinkClient` 封装外部 HTTP 调用边界。
+- 支持 `SHORT_LINK_MODE=internal|external` 配置切换。
+- 支持外部服务失败时按配置降级到内置短链。
+- 五行项目继续保存 `short_link` 本地业务绑定。
+
 ## 5. 当前验证
 
 已通过：
@@ -194,10 +206,18 @@ Docker 入口验收覆盖：
 - `GET /s/4fB7av` 返回 `Location: /result/R20260609005159599703?sc=4fB7av`。
 - 后台总览、短链列表和访问日志接口返回 PV/UV/UIP。
 
+v0.2 适配层测试覆盖：
+
+- 默认 `internal` 模式。
+- `external` 模式配置切换。
+- 外部短链创建成功并保存本地绑定。
+- 外部短链失败时自动降级。
+- 禁止降级时返回明确业务错误。
+
 ## 6. 下一阶段建议
 
 1. 为后台增加日期筛选，避免统计长期累计后不可分析。
-2. 接入独立短链接项目，复用其更完整的短链统计能力。
-3. 增加结果卡片图片生成或截图分享。
-4. 给关键接口补充更多缓存命中、Redis 异常降级和短码冲突测试。
+2. 启动独立短链接项目，完成 external 模式真实 HTTP 联调。
+3. 接入独立短链统计接口，复用其更完整的 PV/UV/UIP 和访问记录能力。
+4. 增加结果卡片图片生成或截图分享。
 5. 上线前配置域名、HTTPS、强随机 token、强密码和真实 `APP_BASE_URL`。
