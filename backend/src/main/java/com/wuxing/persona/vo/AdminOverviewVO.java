@@ -14,6 +14,7 @@ public class AdminOverviewVO {
     private long shortLinkCreated;
     private long shortLinkVisits;
     private double completionRate;
+    private List<DailyMetricVO> dailyTrends;
     private List<NameCountVO> popularElementCombos;
     private List<NameCountVO> popularStarOfficers;
     private List<RecentResultVO> recentResults;
@@ -97,6 +98,14 @@ public class AdminOverviewVO {
 
     public void setCompletionRate(double completionRate) {
         this.completionRate = completionRate;
+    }
+
+    public List<DailyMetricVO> getDailyTrends() {
+        return dailyTrends;
+    }
+
+    public void setDailyTrends(List<DailyMetricVO> dailyTrends) {
+        this.dailyTrends = dailyTrends;
     }
 
     public List<NameCountVO> getPopularElementCombos() {

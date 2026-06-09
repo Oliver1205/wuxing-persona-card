@@ -60,6 +60,10 @@ function detailQuery() {
 function statSourceLabel(source: ShortLinkListItem['statSource']) {
   return source === 'external' ? '外部' : '本地';
 }
+
+function formatDateTime(value: string | null) {
+  return value ? value.replace('T', ' ').slice(0, 16) : '-';
+}
 </script>
 
 <template>
@@ -101,10 +105,100 @@ function statSourceLabel(source: ShortLinkListItem['statSource']) {
         </div>
 
         <div class="panel stack">
-          <h2>热门五行组合</h2>
-          <div class="rank-row" v-for="item in overview.popularElementCombos" :key="item.name">
-            <span>{{ item.name }}</span>
-            <strong>{{ item.count }}</strong>
+          <h2>日趋势</h2>
+          <div class="table-wrap">
+            <table class="compact-table">
+              <thead>
+                <tr>
+                  <th>日期</th>
+                  <th>PV</th>
+                  <th>结果</th>
+                  <th>短链生成</th>
+                  <th>短链访问</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in overview.dailyTrends" :key="item.date">
+                  <td>{{ item.date }}</td>
+                  <td>{{ item.pv }}</td>
+                  <td>{{ item.resultCreated }}</td>
+                  <td>{{ item.shortLinkCreated }}</td>
+                  <td>{{ item.shortLinkVisits }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="insight-grid">
+          <div class="panel stack">
+            <h2>热门五行组合</h2>
+            <div v-if="overview.popularElementCombos.length">
+              <div class="rank-row" v-for="item in overview.popularElementCombos" :key="item.name">
+                <span>{{ item.name }}</span>
+                <strong>{{ item.count }}</strong>
+              </div>
+            </div>
+            <p v-else class="muted">暂无数据</p>
+          </div>
+
+          <div class="panel stack">
+            <h2>热门星官</h2>
+            <div v-if="overview.popularStarOfficers.length">
+              <div class="rank-row" v-for="item in overview.popularStarOfficers" :key="item.name">
+                <span>{{ item.name }}</span>
+                <strong>{{ item.count }}</strong>
+              </div>
+            </div>
+            <p v-else class="muted">暂无数据</p>
+          </div>
+
+          <div class="panel stack">
+            <h2>最近结果</h2>
+            <div class="table-wrap">
+              <table class="compact-table">
+                <thead>
+                  <tr>
+                    <th>结果</th>
+                    <th>组合</th>
+                    <th>星官</th>
+                    <th>创建时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="item in overview.recentResults" :key="item.resultId">
+                    <td>{{ item.resultId }}</td>
+                    <td>{{ item.elementCombo }}</td>
+                    <td>{{ item.starOfficerName }}</td>
+                    <td>{{ formatDateTime(item.createdAt) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel stack">
+            <h2>最近短链</h2>
+            <div class="table-wrap">
+              <table class="compact-table">
+                <thead>
+                  <tr>
+                    <th>短码</th>
+                    <th>结果</th>
+                    <th>PV</th>
+                    <th>来源</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="item in overview.recentShortLinks" :key="item.shortCode">
+                    <td>{{ item.shortCode }}</td>
+                    <td>{{ item.resultId }}</td>
+                    <td>{{ item.pv }}</td>
+                    <td>{{ statSourceLabel(item.statSource) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
