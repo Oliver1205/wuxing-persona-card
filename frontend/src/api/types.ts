@@ -56,10 +56,19 @@ export interface AdminOverview {
   shortLinkCreated: number;
   shortLinkVisits: number;
   completionRate: number;
+  dailyTrends: DailyMetric[];
   popularElementCombos: NameCount[];
   popularStarOfficers: NameCount[];
   recentResults: RecentResult[];
   recentShortLinks: ShortLinkListItem[];
+}
+
+export interface DailyMetric {
+  date: string;
+  pv: number;
+  resultCreated: number;
+  shortLinkCreated: number;
+  shortLinkVisits: number;
 }
 
 export interface NameCount {

@@ -80,7 +80,9 @@ class MvpFlowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.resultCreated").value(1))
                 .andExpect(jsonPath("$.data.shortLinkCreated").value(1))
-                .andExpect(jsonPath("$.data.shortLinkVisits").value(1));
+                .andExpect(jsonPath("$.data.shortLinkVisits").value(1))
+                .andExpect(jsonPath("$.data.dailyTrends").isArray())
+                .andExpect(jsonPath("$.data.dailyTrends[0].date").exists());
     }
 
     @Test
@@ -129,7 +131,11 @@ class MvpFlowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.resultCreated").value(1))
                 .andExpect(jsonPath("$.data.shortLinkCreated").value(1))
-                .andExpect(jsonPath("$.data.shortLinkVisits").value(1));
+                .andExpect(jsonPath("$.data.shortLinkVisits").value(1))
+                .andExpect(jsonPath("$.data.dailyTrends[0].date").value(today))
+                .andExpect(jsonPath("$.data.dailyTrends[0].resultCreated").value(1))
+                .andExpect(jsonPath("$.data.dailyTrends[0].shortLinkCreated").value(1))
+                .andExpect(jsonPath("$.data.dailyTrends[0].shortLinkVisits").value(1));
 
         mockMvc.perform(get("/api/admin/overview")
                         .header("X-Admin-Token", "test-token")
@@ -138,7 +144,11 @@ class MvpFlowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.resultCreated").value(0))
                 .andExpect(jsonPath("$.data.shortLinkCreated").value(0))
-                .andExpect(jsonPath("$.data.shortLinkVisits").value(0));
+                .andExpect(jsonPath("$.data.shortLinkVisits").value(0))
+                .andExpect(jsonPath("$.data.dailyTrends[0].date").value(future))
+                .andExpect(jsonPath("$.data.dailyTrends[0].resultCreated").value(0))
+                .andExpect(jsonPath("$.data.dailyTrends[0].shortLinkCreated").value(0))
+                .andExpect(jsonPath("$.data.dailyTrends[0].shortLinkVisits").value(0));
 
         mockMvc.perform(get("/api/admin/short-links")
                         .header("X-Admin-Token", "test-token")

@@ -12,18 +12,19 @@
 
 | 项 | 说明 |
 | --- | --- |
-| 当前版本 | `v0.6.0-quality-gates-and-roadmap` |
+| 当前版本 | `v0.8.0-admin-operational-insights` |
 | 稳定分支 | `main` |
-| 当前开发分支 | `feature/v0.7-production-routing-hardening` |
+| 当前开发分支 | `feature/v0.8-admin-operational-insights` |
 | MVP 状态 | v0.1 已完成完整单人测算闭环 |
 | v0.2 状态 | 已完成短链接 Provider 适配层，可配置 `internal` / `external` 模式 |
 | v0.3 状态 | 已增强 external 真实 HTTP 联调配置，并为后台总览、短链列表、访问日志增加日期筛选 |
 | v0.4 状态 | 已完成外部短链服务级联调，后台短链列表可读取外部 PV / UV / UIP |
 | v0.5 状态 | 已接入外部短链访问记录，后台短链详情支持 `local` / `external` 来源 |
 | v0.6 状态 | 已建立严格质量门禁和 v1.0 路线图 |
-| v0.7 目标 | 生产短链路由与部署预检加固 |
+| v0.7 状态 | 已完成生产短链路由与部署预检加固 |
+| v0.8 状态 | 已完成后台日趋势、热门星官、最近结果和最近短链展示 |
 | 最新自评 | 99 / 100，详见 [quality-scorecard.md](docs/quality-scorecard.md) |
-| GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics`、`v0.4.0-external-shortlink-service-integration`、`v0.5.0-external-shortlink-access-records`、`v0.6.0-quality-gates-and-roadmap` |
+| GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics`、`v0.4.0-external-shortlink-service-integration`、`v0.5.0-external-shortlink-access-records`、`v0.6.0-quality-gates-and-roadmap`、`v0.7.0-production-routing-hardening`、`v0.8.0-admin-operational-insights` |
 
 ## 核心亮点
 
@@ -38,6 +39,7 @@
 - **可部署验证**：Docker Compose 管理 MySQL、Redis、后端和 Nginx，已完成本地容器验收。
 - **严格质量门禁**：v0.6 建立统一质量脚本、编辑规范和 v1.0 路线，后续版本必须按同一套标准验收。
 - **生产路由加固**：v0.7 补充短链子域名 / 同域 rewrite 示例和部署预检脚本。
+- **后台运营可读性**：v0.8 补充日趋势、热门星官、最近结果和最近短链，让上线初期数据更好解释。
 - **教学沉淀**：项目计划、质量评分、短链集成方案、教学手册均已文档化。
 
 ## 目录
@@ -98,6 +100,7 @@
     ├── nginx.conf
     └── .env.example
 └── scripts/
+    ├── deploy-preflight.sh
     └── quality-check.sh
 ```
 
@@ -140,7 +143,7 @@ flowchart LR
 - 外部短链统计：external 模式下可从独立短链服务读取短链列表 PV / UV / UIP，并在后台显示统计来源。
 - Redis 缓存：结果详情缓存、短链解析缓存、无效短码空值缓存。
 - 访问统计：匿名 clientId、IP、User-Agent 均 hash 后入库，统计 PV、UV、UIP。
-- 数据中台：总览指标、热门组合、热门星官、最近结果、短链列表、单条短链访问日志，并支持日期筛选。
+- 数据中台：总览指标、日趋势、热门组合、热门星官、最近结果、最近短链、短链列表、单条短链访问日志，并支持日期筛选。
 - 外部访问明细：external 模式且统计开关开启时，短链详情页优先读取独立短链服务访问记录，失败时回退本地日志。
 - 管理保护：后台接口要求 `X-Admin-Token`。
 
@@ -338,6 +341,7 @@ scripts/deploy-preflight.sh deploy/.env
 - 文案边界关键词扫描无命中
 - 本地 H2 演示模式浏览器验收：首页、测试页、结果页、短链 302、后台总览、短链详情
 - Docker 版 API 验收：健康检查、题目接口、创建结果、查询结果、短链 302、后台总览、短链列表、访问日志
+- v0.8 后端测试覆盖 overview 日趋势默认返回、日期筛选当天有数据和未来日期为空
 
 v0.4 外部联调样例：
 
@@ -365,6 +369,19 @@ admin pv/uv/uip: 1/1/1
 ## 开发进度记录
 
 <details open>
+<summary><strong>2026-06-09｜v0.8 后台运营可读性增强</strong></summary>
+
+- 新建分支：`feature/v0.8-admin-operational-insights`。
+- 后端 `/api/admin/overview` 新增 `dailyTrends`，默认返回最近 7 天，筛选范围最多展示 14 天。
+- 日趋势展示 PV、结果生成、短链生成和短链访问。
+- 前端 `/admin` 新增日趋势、热门星官、最近结果、最近短链展示。
+- 保留原有 PV / UV / UIP、短链列表、访问明细和 `local` / `external` 统计来源展示。
+- 新增 [v0.8 后台运营可读性增强文档](docs/v0.8-admin-operational-insights.md)。
+- 验证通过：后端集成测试、前端构建和统一质量门禁。
+
+</details>
+
+<details>
 <summary><strong>2026-06-09｜v0.7 生产路由与部署加固</strong></summary>
 
 - 新建分支：`feature/v0.7-production-routing-hardening`。
@@ -485,10 +502,8 @@ admin pv/uv/uip: 1/1/1
 
 ## 后续迭代计划
 
-1. v0.7：生产路由与部署加固，确定短链子域名或同域 `/s/**` rewrite。
-2. v0.8：后台运营可读性增强，增加轻量趋势和短链聚合，不做复杂 BI 大屏。
-3. v0.9：稳定性、隐私和压力场景审计。
-4. v1.0：最终文档、部署检查表、截图、质量评分和稳定版标签。
+1. v0.9：稳定性、隐私和压力场景审计。
+2. v1.0：最终文档、部署检查表、截图、质量评分和稳定版标签。
 
 ## 娱乐声明与隐私说明
 

@@ -11,17 +11,24 @@ import com.wuxing.persona.mapper.VisitEventMapper;
 import com.wuxing.persona.service.shortlink.ExternalShortLinkStatsAdapter;
 import com.wuxing.persona.service.shortlink.ExternalShortLinkStatsSnapshot;
 import com.wuxing.persona.vo.AdminOverviewVO;
+import com.wuxing.persona.vo.DailyMetricVO;
 import com.wuxing.persona.vo.NameCountVO;
 import com.wuxing.persona.vo.PageVO;
 import com.wuxing.persona.vo.RecentResultVO;
 import com.wuxing.persona.vo.ShortLinkListItemVO;
 import com.wuxing.persona.vo.ShortLinkVisitVO;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AdminStatService {
+
+    private static final int DEFAULT_TREND_DAYS = 7;
+    private static final int MAX_TREND_DAYS = 14;
 
     private final UserResultMapper userResultMapper;
     private final ShortLinkMapper shortLinkMapper;
@@ -56,6 +63,7 @@ public class AdminStatService {
         overview.setShortLinkVisits(visitEventMapper.countByEventTypeBetween(EventType.SHORT_LINK_VISIT.name(),
                 range.getStartAt(), range.getEndExclusive()));
         overview.setCompletionRate(startClicks == 0 ? 0 : Math.round(resultCreated * 10000.0 / startClicks) / 100.0);
+        overview.setDailyTrends(buildDailyTrends(range));
         overview.setPopularElementCombos(toElementCombos(userResultMapper.listPopularElementCombosBetween(5,
                 range.getStartAt(), range.getEndExclusive())));
         overview.setPopularStarOfficers(toStarOfficers(userResultMapper.listPopularStarOfficersBetween(5,
@@ -98,6 +106,38 @@ public class AdminStatService {
                 .toList();
         return new PageVO<>(normalizedPage, normalizedPageSize, visitEventMapper.countByShortCodeBetween(shortCode,
                 range.getStartAt(), range.getEndExclusive()), records);
+    }
+
+    private List<DailyMetricVO> buildDailyTrends(AdminDateRange range) {
+        LocalDate today = LocalDate.now();
+        LocalDate endDate = range.getEndDate() == null ? today : range.getEndDate();
+        LocalDate startDate = range.getStartDate() == null
+                ? endDate.minusDays(DEFAULT_TREND_DAYS - 1L)
+                : range.getStartDate();
+        if (endDate.isBefore(startDate)) {
+            endDate = startDate;
+        }
+        LocalDate earliestAllowed = endDate.minusDays(MAX_TREND_DAYS - 1L);
+        if (startDate.isBefore(earliestAllowed)) {
+            startDate = earliestAllowed;
+        }
+
+        List<DailyMetricVO> trends = new ArrayList<>();
+        LocalDate cursor = startDate;
+        while (!cursor.isAfter(endDate)) {
+            LocalDateTime dayStart = cursor.atStartOfDay();
+            LocalDateTime dayEnd = cursor.plusDays(1).atStartOfDay();
+            DailyMetricVO metric = new DailyMetricVO();
+            metric.setDate(cursor.toString());
+            metric.setPv(visitEventMapper.countAllBetween(dayStart, dayEnd));
+            metric.setResultCreated(userResultMapper.countAllBetween(dayStart, dayEnd));
+            metric.setShortLinkCreated(shortLinkMapper.countAllBetween(dayStart, dayEnd));
+            metric.setShortLinkVisits(visitEventMapper.countByEventTypeBetween(EventType.SHORT_LINK_VISIT.name(),
+                    dayStart, dayEnd));
+            trends.add(metric);
+            cursor = cursor.plusDays(1);
+        }
+        return trends;
     }
 
     private List<NameCountVO> toElementCombos(List<Map<String, Object>> rows) {

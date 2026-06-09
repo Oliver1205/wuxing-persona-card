@@ -171,6 +171,12 @@ select {
   gap: 12px;
 }
 
+.insight-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
 .rank-row {
   display: flex;
   justify-content: space-between;
@@ -193,6 +199,10 @@ table {
   min-width: 760px;
   border-collapse: collapse;
   font-size: 14px;
+}
+
+table.compact-table {
+  min-width: 520px;
 }
 
 th,
@@ -226,5 +236,9 @@ td a {
 
   .stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .insight-grid {
+    grid-template-columns: 1fr;
   }
 }
