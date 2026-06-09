@@ -1,0 +1,289 @@
+# 五行人格卡 MVP 教学手册
+
+本文档用于复盘本项目第一版 MVP：做了什么、为什么这么做、代码里哪些地方最有学习价值、面试时如何表达。
+
+## 1. 项目要解决什么问题
+
+五行人格卡不是一个单纯的测试页面，而是一个带真实分享链路和统计后台的 H5 微项目。
+
+核心工程问题：
+
+1. 如何把用户输入转成稳定、正向、可复用的结果数据。
+2. 如何为每个结果生成可分享短链接。
+3. 如何让短链接访问回到同一个结果页。
+4. 如何统计 PV、UV、UIP，并在后台展示。
+5. 如何在不登录的情况下保护用户隐私。
+
+## 2. 为什么先做单人闭环
+
+第一版不做朋友匹配，是因为短链接和统计本身已经足够形成业务闭环：
+
+```text
+用户完成测算 -> 得到结果 -> 复制短链 -> 朋友访问 -> 后台看到访问数据
+```
+
+这个闭环成立后，后续任何分享、匹配、增长功能都可以复用短链和统计基础设施。
+
+## 3. 代码分层怎么设计
+
+后端按典型 Spring Boot 分层：
+
+| 层 | 代表代码 | 职责 |
+| --- | --- | --- |
+| controller | `ResultController`、`ShortLinkController`、`AdminController` | 接收请求、读取 header、返回统一响应 |
+| service | `ResultService`、`ShortLinkService`、`VisitEventService` | 承载业务流程 |
+| mapper | `UserResultMapper`、`ShortLinkMapper`、`VisitEventMapper` | 数据库访问 |
+| entity | `UserResultEntity`、`ShortLinkEntity`、`VisitEventEntity` | 表结构映射 |
+| dto / vo | `CreateResultRequest`、`ResultDetailVO`、`AdminOverviewVO` | 入参和出参模型 |
+| util | `HashUtils`、`IpUtils`、`JsonUtils` | 通用工具 |
+
+关键原则：Controller 不写计算规则，不直接拼统计 SQL，不做缓存细节。这样面试时可以清楚说明“业务流程在 Service，数据访问在 Mapper”。
+
+## 4. 结果生成怎么做
+
+入口是 `POST /api/results`，核心流程在 `ResultService.create`：
+
+```text
+参数校验
+  -> ElementCalculateService 计算五行分数
+  -> StarOfficerService 根据月份生成星官
+  -> ResultTextService 生成关键词和三段文案
+  -> 保存 user_result
+  -> ShortLinkService 生成短链
+  -> 写入结果缓存
+  -> 返回 ResultDetailVO
+```
+
+### 4.1 五行计算
+
+`ElementCalculateService` 把规则拆成几个来源：
+
+- 初始分：五个元素各 20。
+- 年份：`birthYear % 5` 影响一个元素。
+- 月份：主元素加 25，辅助元素加 10。
+- 日期：可选，按 `birthDay % 5` 加权。
+- 时段：可选，按枚举加权。
+- 题目：5 道题，每题选择的元素加 12。
+
+最后取分数最高的两个元素，按二者分数重新归一化，得到前端展示的主副比例。
+
+### 4.2 星官和文案
+
+`StarOfficerService` 只根据月份生成星官，避免第一版引入复杂规则。
+
+`ResultTextService` 使用模板化文案，不接 AI。这样做有两个好处：
+
+- 输出可控，符合娱乐化、正向边界。
+- 可测试、可复用，不会每次返回不可控长文。
+
+## 5. 短链接为什么先内置
+
+用户提供的外部短链项目已经克隆到：
+
+```text
+/Users/linyuxiang/JavaBackend/01_Projects/shortlink
+```
+
+它功能很完整，但包含 SaaS 控制台、网关、用户体系、分组、更多中间件。第一版五行 MVP 的目标是快速跑通结果分享，所以先内置短链：
+
+```text
+resultId -> shortCode -> /s/{shortCode} -> /result/{resultId}?sc={shortCode}
+```
+
+内置短链的核心在 `ShortLinkService`：
+
+- 生成 6 位 Base62 短码。
+- 检查 MySQL 中是否已存在。
+- 同一个 resultId 复用已有短链。
+- Redis 缓存 `shortlink:code:{shortCode}`。
+- 无效短码缓存 `shortlink:null:{shortCode}`。
+- 访问短链时写入事件并更新 PV。
+
+后续接入外部短链服务时，可以把 `ShortLinkService` 替换为 HTTP Client，五行项目继续保存业务绑定。
+
+## 6. PV / UV / UIP 怎么统计
+
+前端 `clientId.ts` 首次访问生成匿名 ID：
+
+```text
+wuxing_client_id = UUID
+```
+
+所有请求通过 `X-Client-Id` 传给后端。
+
+后端 `VisitEventService` 做三件事：
+
+1. 解析 clientId、IP、User-Agent。
+2. 使用 `HashUtils.sha256(value + salt)` 脱敏。
+3. 写入 `visit_event`。
+
+统计口径：
+
+- PV：事件行数。
+- UV：去重 `client_id_hash`。
+- UIP：去重 `ip_hash`。
+
+这是项目面试里的高价值点：不用登录，也能做基础行为统计，同时不保存明文访问标识。
+
+## 7. Redis 的真实作用
+
+Redis 不是为了“显得技术栈丰富”，而是有明确使用点：
+
+| Key | 作用 |
+| --- | --- |
+| `result:{resultId}` | 热门结果页缓存 |
+| `shortlink:code:{shortCode}` | 短码解析缓存 |
+| `shortlink:null:{shortCode}` | 无效短码空值缓存 |
+
+其中空值缓存很适合面试表达：当有人反复访问不存在的短码时，系统不会每次都打数据库。
+
+## 8. 前端怎么组织
+
+前端按页面和组件拆分：
+
+- 页面：`GuidePage`、`TestPage`、`ResultPage`、`AdminDashboard`、`AdminShortLinkDetail`。
+- 组件：`QuestionCard`、`PersonaCard`、`ElementRatioCard`、`ShareLinkBox`、`StatCard`。
+- API：`request.ts` 统一注入 `X-Client-Id`，其余文件按业务模块拆分。
+- 工具：`tracker.ts` 封装事件上报，`clientId.ts` 管理匿名 ID。
+
+值得注意的是：前端不是只展示假数据，所有核心页面都调用真实后端接口。
+
+## 9. 后台为什么这样做
+
+第一版后台不做复杂账号系统，只使用 `X-Admin-Token`：
+
+- 符合 MVP 快速上线。
+- 比完全裸奔安全。
+- 后续可以替换为登录系统，不影响统计服务。
+
+`AdminStatService` 聚合：
+
+- 站点总 PV / UV / UIP。
+- 首页、开始测试、提交、结果、短链访问等业务指标。
+- 热门五行组合和星官。
+- 短链列表和访问日志。
+
+## 10. 测试怎么覆盖
+
+当前测试分两类：
+
+1. 单元测试：五行计算、星官生成。
+2. 短链专项单元测试：短链复用、短码冲突重试、空值缓存、计数更新。
+3. Redis 缓存专项测试：结果缓存序列化、短链 key、空值 key、TTL、异常降级。
+4. 集成测试：`MvpFlowIntegrationTest` 使用 H2 和 MockMvc 跑主流程。
+
+集成测试覆盖：
+
+```text
+POST /api/results
+GET /api/results/{resultId}
+GET /s/{shortCode}
+GET /api/admin/overview
+GET /api/admin/short-links
+GET /api/admin/short-links/{shortCode}/visits
+```
+
+边界测试覆盖：
+
+- 出生月份非法时返回 400。
+- 5 道题出现重复题号时返回业务错误。
+- 前端事件类型非法时返回 400。
+- 后台不带 token 时返回 401。
+- 不存在的 6 位短码跳转 `/not-found`。
+- 格式非法的短码返回 400。
+- 同一个 resultId 复用已有短链，不重复创建。
+- 短码随机冲突时会重试并保存新短码。
+- 无效短码数据库未命中时写入空值缓存。
+- 短链访问后按事件表回算 PV、UV、UIP 并更新 `short_link`。
+- Redis 缓存层异常时降级为 miss，不影响主业务。
+
+这比只测 Service 更有价值，因为它验证了 Controller、Service、Mapper、SQL、事件统计之间的协作。
+
+本轮补测还发现并修复了一个真实口径问题：短链访问详情原本会把 `SHORT_LINK_CREATED`、`RESULT_CREATED`、`TEST_SUBMIT` 等携带 shortCode 的业务事件也算进去。修复后，`VisitEventMapper.listByShortCode` 和 `countByShortCode` 只统计 `SHORT_LINK_VISIT`，让“短链访问日志”语义更准确。
+
+浏览器验收又发现一个真实部署细节：`HttpServletResponse.sendRedirect("/result/...")` 在真实 Servlet 容器中会输出带后端 Host 的绝对 Location。代理部署时这可能把用户带到后端端口。修复后，`ShortLinkController` 手动设置 `302` 和相对 `Location`，让短链访问稳定跳回同域 H5 路由。
+
+## 11. 当前验证结果
+
+已通过：
+
+```bash
+cd backend && mvn -q test
+cd frontend && npm run build
+docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml config
+```
+
+Docker 容器验收已通过。由于本机访问 Docker Hub 时曾出现匿名 token 超时，Dockerfile 已支持通过环境变量切换基础镜像源；本次验收使用 `http://127.0.0.1:8088` 作为本地入口：
+
+```bash
+APP_BASE_URL=http://localhost:8088 \
+NGINX_HTTP_PORT=8088 \
+BACKEND_MAVEN_IMAGE=docker.m.daocloud.io/library/maven:3.9.9-eclipse-temurin-17 \
+BACKEND_RUNTIME_IMAGE=docker.m.daocloud.io/library/eclipse-temurin:17-jre \
+FRONTEND_NODE_IMAGE=docker.m.daocloud.io/library/node:20-alpine \
+FRONTEND_NGINX_IMAGE=docker.m.daocloud.io/library/nginx:1.27-alpine \
+docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml up --build -d
+```
+
+本地浏览器验收：
+
+```bash
+cd backend
+APP_BASE_URL=http://127.0.0.1:4173 mvn spring-boot:run -Dspring-boot.run.profiles=local
+
+cd frontend
+npm run build
+npm run preview -- --host 127.0.0.1 --port 4173
+```
+
+已验证页面：
+
+- 首页进入测试页。
+- 测试页提交出生年月和 5 道题。
+- 结果页展示五行比例、星官、关键词、解读和短链。
+- 短链后端入口返回相对路径 302。
+- 后台总览展示 PV、UV、UIP、提交、结果、短链访问。
+- 短链详情展示 hash 后的访问日志。
+
+验收截图：
+
+- `docs/screenshots/local-result-page.png`
+- `docs/screenshots/local-admin-overview.png`
+- `docs/screenshots/local-shortlink-detail.png`
+- `docs/screenshots/docker-home-page.png`
+- `docs/screenshots/docker-result-page.png`
+- `docs/screenshots/docker-admin-token-gate.png`
+- `docs/screenshots/docker-admin-detail-protected.png`
+
+Docker 入口实际验证样例：
+
+```text
+resultId: R20260609005159599703
+shortCode: 4fB7av
+shortUrl: http://localhost:8088/s/4fB7av
+short link Location: /result/R20260609005159599703?sc=4fB7av
+admin short link PV/UV/UIP: 1/1/1
+```
+
+## 12. 面试表达重点
+
+可以这样讲：
+
+1. 这是一个从 0 到 1 的 H5 微项目，不只是 CRUD。
+2. 短链接接入真实业务结果页，每个结果都有可分享入口。
+3. 短链支持生成、解析、302 跳转、Redis 缓存和空值缓存。
+4. 访问统计按 PV、UV、UIP 拆分，并在后台展示。
+5. 项目不做登录，通过匿名 clientId 和 hash 方式兼顾统计和隐私。
+6. 文案模板化，保证输出正向、可控、可测试。
+7. Docker Compose 把 MySQL、Redis、后端、Nginx 组织成单机部署方案，并已跑通过容器验收。
+
+## 13. 后续学习建议
+
+优先读代码顺序：
+
+1. `ResultService`：理解主业务流程。
+2. `ElementCalculateService`：理解规则如何工程化。
+3. `ShortLinkService`：理解短码、缓存、跳转。
+4. `VisitEventService`：理解 PV/UV/UIP 和隐私。
+5. `AdminStatService`：理解后台聚合。
+6. `frontend/src/api/request.ts` 和 `tracker.ts`：理解前端如何把匿名 ID 和埋点接入后端。

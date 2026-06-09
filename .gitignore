@@ -1,0 +1,25 @@
+.DS_Store
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
+
+# Java / Maven
+backend/target/
+*.class
+
+# IDE
+.idea/
+.vscode/
+
+# Local env
+.env
+deploy/.env
+
+# Logs
+*.log
+
+# Private planning notes
+前期工作/
