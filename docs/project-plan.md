@@ -2,7 +2,7 @@
 
 规划日期：2026-06-08
 
-当前状态：第一版 MVP 主链路已实现，并通过本地构建、后端集成测试、H2 演示模式浏览器验收和 Docker Compose 容器全链路验收。v0.2 已新增短链 Provider 适配层，v0.3 已补 external 模式真实 HTTP 联调配置和后台日期筛选统计，v0.4 已完成外部短链服务级联调和外部 PV / UV / UIP 统计适配，v0.5 已接入外部短链访问明细，v0.6 开始建立 v1.0 前的统一质量门禁。
+当前状态：第一版 MVP 主链路已实现，并通过本地构建、后端集成测试、H2 演示模式浏览器验收和 Docker Compose 容器全链路验收。v0.2 已新增短链 Provider 适配层，v0.3 已补 external 模式真实 HTTP 联调配置和后台日期筛选统计，v0.4 已完成外部短链服务级联调和外部 PV / UV / UIP 统计适配，v0.5 已接入外部短链访问明细，v0.6 已建立 v1.0 前的统一质量门禁，v0.7 开始补生产路由与部署预检。
 
 关联文档：
 
@@ -15,6 +15,7 @@
 - v0.4 外部短链服务级联调与统计适配：`docs/v0.4-external-shortlink-service-integration.md`
 - v0.5 外部短链访问明细接入：`docs/v0.5-external-shortlink-access-records.md`
 - v1.0 路线图与质量门禁：`docs/v1.0-roadmap-and-quality-gates.md`
+- v0.7 生产路由与部署加固：`docs/v0.7-production-routing-hardening.md`
 - 教学手册：`docs/teaching-manual.md`
 
 ## 1. MVP 目标
@@ -225,6 +226,13 @@ flowchart LR
 - 新增 `docs/v1.0-roadmap-and-quality-gates.md`。
 - 开始按 v0.7、v0.8、v0.9、v1.0 的节奏推进稳定版。
 
+### 阶段 14：v0.7 生产路由与部署加固
+
+- 新增 `deploy/nginx.shortlink-routing.example.conf`。
+- 推荐短链子域名 `s.your-domain.com`，保留同域 `/s/**` rewrite 备选。
+- 新增 `scripts/deploy-preflight.sh`，上线前检查 `.env` 必填项、占位值和 external 配置完整性。
+- 更新部署文档，明确 `SHORT_LINK_EXTERNAL_DOMAIN` 必须与外部短链服务生成域名一致。
+
 ## 5. 当前验证
 
 已通过：
@@ -297,9 +305,13 @@ v0.6 起统一执行：
 scripts/quality-check.sh
 ```
 
+v0.7 新增验证：
+
+- `scripts/deploy-preflight.sh` 语法检查纳入质量门禁。
+- `deploy/nginx.shortlink-routing.example.conf` 作为生产 Nginx 路由参考，不改变默认 Compose internal 行为。
+
 ## 6. 下一阶段建议
 
-1. v0.7：生产路由与部署加固，确定短链子域名或同域 `/s/**` rewrite，并补上线 runbook。
-2. v0.8：后台运营可读性增强，增加轻量趋势和短链聚合，不做复杂 BI 大屏。
-3. v0.9：稳定性、隐私和压力场景审计。
-4. v1.0：最终文档、部署检查表、截图、质量评分和稳定版标签。
+1. v0.8：后台运营可读性增强，增加轻量趋势和短链聚合，不做复杂 BI 大屏。
+2. v0.9：稳定性、隐私和压力场景审计。
+3. v1.0：最终文档、部署检查表、截图、质量评分和稳定版标签。
