@@ -251,6 +251,11 @@ class MvpFlowIntegrationTest {
         mockMvc.perform(get("/s/bad-code"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("shortCode must be base62 and length 6 or 7"));
+
+        mockMvc.perform(get("/api/admin/short-links/bad-code/visits")
+                        .header("X-Admin-Token", "test-token"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("shortCode must be base62 and length 6 or 7"));
     }
 
     private JsonNode createValidResult(String clientId) throws Exception {

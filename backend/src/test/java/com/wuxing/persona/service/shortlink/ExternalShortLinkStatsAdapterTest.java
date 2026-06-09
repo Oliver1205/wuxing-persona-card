@@ -125,6 +125,26 @@ class ExternalShortLinkStatsAdapterTest {
     }
 
     @Test
+    void shouldReturnEmptyAccessRecordsWhenExternalRecordsAreNull() {
+        ExternalShortLinkAccessRecordPageResponse response = new ExternalShortLinkAccessRecordPageResponse();
+        response.setCurrent(1L);
+        response.setSize(20L);
+        response.setTotal(0L);
+        when(externalShortLinkClient.accessRecords(any(ExternalShortLinkAccessRecordRequest.class))).thenReturn(response);
+
+        Optional<PageVO<ShortLinkVisitVO>> page = adapter.fetchAccessRecords(
+                shortLink("abc123", "http://nurl.ink:8003/abc123"),
+                1,
+                20,
+                AdminDateRange.of(LocalDate.of(2026, 6, 8), LocalDate.of(2026, 6, 9))
+        );
+
+        assertTrue(page.isPresent());
+        assertEquals(0L, page.get().getTotal());
+        assertTrue(page.get().getRecords().isEmpty());
+    }
+
+    @Test
     void shouldFallbackToLocalStatsWhenExternalStatsFails() {
         when(externalShortLinkClient.stats(any(ExternalShortLinkStatsRequest.class)))
                 .thenThrow(new BusinessException("external short link stats unavailable"));

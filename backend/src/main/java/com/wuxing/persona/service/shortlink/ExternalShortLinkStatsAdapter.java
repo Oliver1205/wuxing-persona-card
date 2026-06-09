@@ -9,6 +9,7 @@ import com.wuxing.persona.vo.PageVO;
 import com.wuxing.persona.vo.ShortLinkVisitVO;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,7 +73,7 @@ public class ExternalShortLinkStatsAdapter {
                     firstNonNull(response.getCurrent(), normalizedPage),
                     firstNonNull(response.getSize(), normalizedPageSize),
                     nullToZero(response.getTotal()),
-                    response.getRecords().stream()
+                    recordsOrEmpty(response).stream()
                             .map(this::toExternalVisit)
                             .toList()
             ));
@@ -177,6 +178,11 @@ public class ExternalShortLinkStatsAdapter {
             }
         }
         return String.join("; ", parts);
+    }
+
+    private List<ExternalShortLinkAccessRecordResponse> recordsOrEmpty(
+            ExternalShortLinkAccessRecordPageResponse response) {
+        return response.getRecords() == null ? List.of() : response.getRecords();
     }
 
     private String toExternalFullShortUrl(String shortUrl, String configuredDomain) {
