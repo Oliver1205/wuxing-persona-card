@@ -10,6 +10,7 @@ import com.wuxing.persona.mapper.UserResultMapper;
 import com.wuxing.persona.mapper.VisitEventMapper;
 import com.wuxing.persona.service.shortlink.ExternalShortLinkStatsAdapter;
 import com.wuxing.persona.service.shortlink.ExternalShortLinkStatsSnapshot;
+import com.wuxing.persona.service.shortlink.ShortLinkCodeUtils;
 import com.wuxing.persona.vo.AdminOverviewVO;
 import com.wuxing.persona.vo.DailyMetricVO;
 import com.wuxing.persona.vo.NameCountVO;
@@ -89,6 +90,7 @@ public class AdminStatService {
     }
 
     public PageVO<ShortLinkVisitVO> listShortLinkVisits(String shortCode, long page, long pageSize, AdminDateRange range) {
+        ShortLinkCodeUtils.validate(shortCode);
         long normalizedPage = Math.max(1, page);
         long normalizedPageSize = Math.min(100, Math.max(1, pageSize));
         long offset = (normalizedPage - 1) * normalizedPageSize;

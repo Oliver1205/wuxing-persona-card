@@ -3,7 +3,7 @@ package com.wuxing.persona.service.shortlink;
 import com.wuxing.persona.common.BusinessException;
 import java.util.regex.Pattern;
 
-final class ShortLinkCodeUtils {
+public final class ShortLinkCodeUtils {
 
     static final String BASE62 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     static final int CODE_LENGTH = 6;
@@ -13,7 +13,7 @@ final class ShortLinkCodeUtils {
     private ShortLinkCodeUtils() {
     }
 
-    static void validate(String shortCode) {
+    public static void validate(String shortCode) {
         if (shortCode == null || !SHORT_CODE_PATTERN.matcher(shortCode).matches()) {
             throw new BusinessException("shortCode must be base62 and length 6 or 7");
         }

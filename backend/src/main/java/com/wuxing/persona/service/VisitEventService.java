@@ -7,11 +7,15 @@ import com.wuxing.persona.mapper.VisitEventMapper;
 import com.wuxing.persona.util.HashUtils;
 import com.wuxing.persona.util.IpUtils;
 import jakarta.servlet.http.HttpServletRequest;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
 
 @Service
 public class VisitEventService {
+
+    private static final int MAX_REFERER_LENGTH = 255;
 
     private final VisitEventMapper visitEventMapper;
     private final AppProperties appProperties;
@@ -41,8 +45,63 @@ public class VisitEventService {
         entity.setClientIdHash(HashUtils.sha256(clientHashSource + appProperties.getHashSalt()));
         entity.setIpHash(HashUtils.sha256(ip + appProperties.getHashSalt()));
         entity.setUserAgentHash(HashUtils.sha256((userAgent == null ? "" : userAgent) + appProperties.getHashSalt()));
-        entity.setReferer(request.getHeader("Referer"));
+        entity.setReferer(sanitizeReferer(request.getHeader("Referer")));
         entity.setCreatedAt(LocalDateTime.now());
         visitEventMapper.insert(entity);
+    }
+
+    private String sanitizeReferer(String referer) {
+        if (referer == null || referer.isBlank()) {
+            return null;
+        }
+        String trimmed = referer.trim();
+        try {
+            URI uri = new URI(trimmed);
+            String sanitized = uri.isAbsolute() ? absoluteReferer(uri) : uri.getPath();
+            if (sanitized == null || sanitized.isBlank()) {
+                return null;
+            }
+            return truncate(sanitized);
+        } catch (URISyntaxException ex) {
+            return truncate(stripQueryAndFragment(trimmed));
+        }
+    }
+
+    private String absoluteReferer(URI uri) {
+        if (uri.getScheme() == null || uri.getHost() == null) {
+            return stripQueryAndFragment(uri.toString());
+        }
+        StringBuilder builder = new StringBuilder(uri.getScheme())
+                .append("://")
+                .append(uri.getHost());
+        if (uri.getPort() >= 0) {
+            builder.append(':').append(uri.getPort());
+        }
+        if (uri.getPath() != null && !uri.getPath().isBlank()) {
+            builder.append(uri.getPath());
+        }
+        return builder.toString();
+    }
+
+    private String stripQueryAndFragment(String value) {
+        int queryIndex = value.indexOf('?');
+        int fragmentIndex = value.indexOf('#');
+        int cutIndex = -1;
+        if (queryIndex >= 0 && fragmentIndex >= 0) {
+            cutIndex = Math.min(queryIndex, fragmentIndex);
+        } else if (queryIndex >= 0) {
+            cutIndex = queryIndex;
+        } else if (fragmentIndex >= 0) {
+            cutIndex = fragmentIndex;
+        }
+        return cutIndex >= 0 ? value.substring(0, cutIndex) : value;
+    }
+
+    private String truncate(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.length() <= MAX_REFERER_LENGTH ? trimmed : trimmed.substring(0, MAX_REFERER_LENGTH);
     }
 }

@@ -12,9 +12,9 @@
 
 | 项 | 说明 |
 | --- | --- |
-| 当前版本 | `v0.8.0-admin-operational-insights` |
+| 当前版本 | `v0.9.0-stability-privacy-audit` |
 | 稳定分支 | `main` |
-| 当前开发分支 | `feature/v0.8-admin-operational-insights` |
+| 当前开发分支 | `feature/v0.9-stability-privacy-audit` |
 | MVP 状态 | v0.1 已完成完整单人测算闭环 |
 | v0.2 状态 | 已完成短链接 Provider 适配层，可配置 `internal` / `external` 模式 |
 | v0.3 状态 | 已增强 external 真实 HTTP 联调配置，并为后台总览、短链列表、访问日志增加日期筛选 |
@@ -23,8 +23,9 @@
 | v0.6 状态 | 已建立严格质量门禁和 v1.0 路线图 |
 | v0.7 状态 | 已完成生产短链路由与部署预检加固 |
 | v0.8 状态 | 已完成后台日趋势、热门星官、最近结果和最近短链展示 |
+| v0.9 状态 | 已完成短码校验、Referer 隐私收敛和 external 空记录稳定性加固 |
 | 最新自评 | 99 / 100，详见 [quality-scorecard.md](docs/quality-scorecard.md) |
-| GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics`、`v0.4.0-external-shortlink-service-integration`、`v0.5.0-external-shortlink-access-records`、`v0.6.0-quality-gates-and-roadmap`、`v0.7.0-production-routing-hardening`、`v0.8.0-admin-operational-insights` |
+| GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics`、`v0.4.0-external-shortlink-service-integration`、`v0.5.0-external-shortlink-access-records`、`v0.6.0-quality-gates-and-roadmap`、`v0.7.0-production-routing-hardening`、`v0.8.0-admin-operational-insights`、`v0.9.0-stability-privacy-audit` |
 
 ## 核心亮点
 
@@ -40,6 +41,7 @@
 - **严格质量门禁**：v0.6 建立统一质量脚本、编辑规范和 v1.0 路线，后续版本必须按同一套标准验收。
 - **生产路由加固**：v0.7 补充短链子域名 / 同域 rewrite 示例和部署预检脚本。
 - **后台运营可读性**：v0.8 补充日趋势、热门星官、最近结果和最近短链，让上线初期数据更好解释。
+- **稳定性与隐私审计**：v0.9 统一后台短码校验，Referer 去 query / fragment，external 空访问记录稳定返回。
 - **教学沉淀**：项目计划、质量评分、短链集成方案、教学手册均已文档化。
 
 ## 目录
@@ -145,6 +147,7 @@ flowchart LR
 - 访问统计：匿名 clientId、IP、User-Agent 均 hash 后入库，统计 PV、UV、UIP。
 - 数据中台：总览指标、日趋势、热门组合、热门星官、最近结果、最近短链、短链列表、单条短链访问日志，并支持日期筛选。
 - 外部访问明细：external 模式且统计开关开启时，短链详情页优先读取独立短链服务访问记录，失败时回退本地日志。
+- 隐私加固：访问事件只保存 hash 后的 clientId / IP / User-Agent，Referer 入库前会去掉 query 和 fragment。
 - 管理保护：后台接口要求 `X-Admin-Token`。
 
 ## 短链接接入说明
@@ -342,6 +345,7 @@ scripts/deploy-preflight.sh deploy/.env
 - 本地 H2 演示模式浏览器验收：首页、测试页、结果页、短链 302、后台总览、短链详情
 - Docker 版 API 验收：健康检查、题目接口、创建结果、查询结果、短链 302、后台总览、短链列表、访问日志
 - v0.8 后端测试覆盖 overview 日趋势默认返回、日期筛选当天有数据和未来日期为空
+- v0.9 后端测试覆盖 Referer 去 query / fragment、后台非法短码返回 400、external 空访问记录稳定返回空页
 
 v0.4 外部联调样例：
 
@@ -369,6 +373,18 @@ admin pv/uv/uip: 1/1/1
 ## 开发进度记录
 
 <details open>
+<summary><strong>2026-06-09｜v0.9 稳定性与隐私审计</strong></summary>
+
+- 新建分支：`feature/v0.9-stability-privacy-audit`。
+- 后台短链访问明细接口复用 Base62 短码校验，非法短码直接返回 400。
+- `visit_event.referer` 入库前去掉 query 和 fragment，减少分享参数、临时 token 等敏感信息留存。
+- external `access-record` 响应 `records=null` 时稳定返回空列表，不误触发本地回退。
+- 新增 [v0.9 稳定性与隐私审计文档](docs/v0.9-stability-privacy-audit.md)。
+- 验证通过：后端测试、前端构建和统一质量门禁。
+
+</details>
+
+<details>
 <summary><strong>2026-06-09｜v0.8 后台运营可读性增强</strong></summary>
 
 - 新建分支：`feature/v0.8-admin-operational-insights`。
@@ -502,8 +518,7 @@ admin pv/uv/uip: 1/1/1
 
 ## 后续迭代计划
 
-1. v0.9：稳定性、隐私和压力场景审计。
-2. v1.0：最终文档、部署检查表、截图、质量评分和稳定版标签。
+1. v1.0：最终文档、部署检查表、截图、质量评分和稳定版标签。
 
 ## 娱乐声明与隐私说明
 
