@@ -2,7 +2,7 @@
 
 规划日期：2026-06-08
 
-当前状态：第一版 MVP 主链路已实现，并通过本地构建、后端集成测试、H2 演示模式浏览器验收和 Docker Compose 容器全链路验收。v0.2 已新增短链 Provider 适配层，v0.3 已补 external 模式真实 HTTP 联调配置和后台日期筛选统计，v0.4 已完成外部短链服务级联调和外部 PV / UV / UIP 统计适配。
+当前状态：第一版 MVP 主链路已实现，并通过本地构建、后端集成测试、H2 演示模式浏览器验收和 Docker Compose 容器全链路验收。v0.2 已新增短链 Provider 适配层，v0.3 已补 external 模式真实 HTTP 联调配置和后台日期筛选统计，v0.4 已完成外部短链服务级联调和外部 PV / UV / UIP 统计适配，v0.5 已接入外部短链访问明细。
 
 关联文档：
 
@@ -13,6 +13,7 @@
 - v0.2 短链适配层设计：`docs/v0.2-shortlink-adapter-design.md`
 - v0.3 外部短链联调准备与后台日期统计：`docs/v0.3-external-shortlink-and-analytics.md`
 - v0.4 外部短链服务级联调与统计适配：`docs/v0.4-external-shortlink-service-integration.md`
+- v0.5 外部短链访问明细接入：`docs/v0.5-external-shortlink-access-records.md`
 - 教学手册：`docs/teaching-manual.md`
 
 ## 1. MVP 目标

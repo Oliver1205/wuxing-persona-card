@@ -10,6 +10,7 @@ public class ShortLinkVisitVO {
     private String ipHash;
     private String userAgentHash;
     private String referer;
+    private String statSource;
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
@@ -57,5 +58,13 @@ public class ShortLinkVisitVO {
 
     public void setReferer(String referer) {
         this.referer = referer;
+    }
+
+    public String getStatSource() {
+        return statSource;
+    }
+
+    public void setStatSource(String statSource) {
+        this.statSource = statSource;
     }
 }

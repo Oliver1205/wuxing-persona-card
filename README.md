@@ -12,12 +12,13 @@
 
 | 项 | 说明 |
 | --- | --- |
-| 当前版本 | `v0.4.0-external-shortlink-service-integration` |
-| 当前分支 | `feature/v0.4-external-shortlink-service-integration` |
+| 当前版本 | `v0.5.0-external-shortlink-access-records` |
+| 当前分支 | `feature/v0.5-external-access-records` |
 | MVP 状态 | v0.1 已完成完整单人测算闭环 |
 | v0.2 状态 | 已完成短链接 Provider 适配层，可配置 `internal` / `external` 模式 |
 | v0.3 状态 | 已增强 external 真实 HTTP 联调配置，并为后台总览、短链列表、访问日志增加日期筛选 |
 | v0.4 状态 | 已完成外部短链服务级联调，后台短链列表可读取外部 PV / UV / UIP |
+| v0.5 状态 | 已接入外部短链访问记录，后台短链详情支持 `local` / `external` 来源 |
 | 最新自评 | 99 / 100，详见 [quality-scorecard.md](docs/quality-scorecard.md) |
 | GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics`、`v0.4.0-external-shortlink-service-integration` |
 
@@ -29,6 +30,7 @@
 - **Redis 缓存闭环**：结果详情缓存、短链解析缓存、无效短码空值缓存均已落地。
 - **可切换短链架构**：v0.2 将短链模块升级为 Provider 适配层，默认内置实现，external 模式可接入独立短链服务。
 - **外部短链服务级联调**：v0.4 已跑通本地独立短链项目创建短链、302 跳转和外部 PV / UV / UIP 读取。
+- **外部访问明细接入**：v0.5 后台短链详情可读取外部 `access-record`，并对外部 IP / user 做 hash 后展示。
 - **后台日期分析**：v0.3 支持按日期查看总览指标、短链列表和单条短链访问日志。
 - **可部署验证**：Docker Compose 管理 MySQL、Redis、后端和 Nginx，已完成本地容器验收。
 - **教学沉淀**：项目计划、质量评分、短链集成方案、教学手册均已文档化。
@@ -131,6 +133,7 @@ flowchart LR
 - Redis 缓存：结果详情缓存、短链解析缓存、无效短码空值缓存。
 - 访问统计：匿名 clientId、IP、User-Agent 均 hash 后入库，统计 PV、UV、UIP。
 - 数据中台：总览指标、热门组合、热门星官、最近结果、短链列表、单条短链访问日志，并支持日期筛选。
+- 外部访问明细：external 模式且统计开关开启时，短链详情页优先读取独立短链服务访问记录，失败时回退本地日志。
 - 管理保护：后台接口要求 `X-Admin-Token`。
 
 ## 短链接接入说明
@@ -199,6 +202,11 @@ GET /api/admin/short-links/{shortCode}/visits?startDate=2026-06-09&endDate=2026-
 
 - `local`：使用五行本地 `visit_event` 和 `short_link` 统计。
 - `external`：使用独立短链服务 `/api/short-link/v1/stats` 返回的 PV / UV / UIP。
+
+短链详情记录也返回 `statSource`：
+
+- `local`：展示五行本地 `visit_event` 访问记录。
+- `external`：展示独立短链服务 `/api/short-link/v1/stats/access-record` 访问记录；外部 `ip` 和 `user` 会按五行项目的 `HASH_SALT` 做 hash 后再返回。
 
 ## 数据库表说明
 
@@ -305,7 +313,7 @@ admin statSource: external
 admin pv/uv/uip: 1/1/1
 ```
 
-后端测试覆盖：创建结果、查询结果、短链跳转、短链列表、访问详情、非法参数、非法事件、后台 token、无效短码、后台日期筛选、短链复用、短码冲突重试、空值缓存、短链统计计数更新、Redis key/TTL/序列化、异常降级、Provider 默认模式、Provider 配置切换、外部短链创建成功、失败降级，以及 external RestClient 的创建和统计接口路径、请求体、查询参数和系统用户 header。
+后端测试覆盖：创建结果、查询结果、短链跳转、短链列表、访问详情、非法参数、非法事件、后台 token、无效短码、后台日期筛选、短链复用、短码冲突重试、空值缓存、短链统计计数更新、Redis key/TTL/序列化、异常降级、Provider 默认模式、Provider 配置切换、外部短链创建成功、失败降级，以及 external RestClient 的创建、统计和访问明细接口路径、请求体、查询参数、分页参数和系统用户 header。
 
 浏览器验收截图：
 
@@ -320,6 +328,19 @@ admin pv/uv/uip: 1/1/1
 ## 开发进度记录
 
 <details open>
+<summary><strong>2026-06-09｜v0.5 外部短链访问明细接入</strong></summary>
+
+- 新建分支：`feature/v0.5-external-access-records`。
+- 接入独立短链服务 `/api/short-link/v1/stats/access-record`。
+- 后台短链详情优先读取 external 访问记录，失败、internal 模式或 domain 不匹配时回退本地 `visit_event`。
+- 外部 `ip` 和 `user` 字段按五行项目 `HASH_SALT` 做 hash 后映射到后台访问详情。
+- 短链访问详情新增 `statSource`，前端表格显示 `local` / `external` 来源。
+- 新增 [v0.5 外部短链访问明细接入文档](docs/v0.5-external-shortlink-access-records.md)。
+- 验证通过：`mvn test`、前端构建。
+
+</details>
+
+<details>
 <summary><strong>2026-06-09｜v0.4 外部短链服务级联调与统计适配</strong></summary>
 
 - 新建分支：`feature/v0.4-external-shortlink-service-integration`。
@@ -406,10 +427,9 @@ admin pv/uv/uip: 1/1/1
 ## 后续迭代计划
 
 1. 生产路由完善：确定短链子域名或同域 `/s/**` rewrite，并补 Nginx 上线配置。
-2. 外部短链访问明细：接入 `/api/short-link/v1/stats/access-record`，让后台详情也支持 external 来源。
-3. 管理后台增强：增加趋势图和短链详情聚合，但保持轻量数据中台边界。
-4. 部署完善：域名、HTTPS、Nginx Basic Auth 或更强后台保护。
-5. 压测与观测：补充短链高频访问、无效短码攻击和 Redis 降级场景。
+2. 管理后台增强：增加趋势图和短链详情聚合，但保持轻量数据中台边界。
+3. 部署完善：域名、HTTPS、Nginx Basic Auth 或更强后台保护。
+4. 压测与观测：补充短链高频访问、无效短码攻击和 Redis 降级场景。
 
 ## 娱乐声明与隐私说明
 

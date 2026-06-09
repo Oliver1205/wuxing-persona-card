@@ -95,6 +95,7 @@ export interface ShortLinkVisit {
   ipHash: string;
   userAgentHash: string;
   referer: string | null;
+  statSource: 'local' | 'external';
 }
 
 export interface PageResult<T> {

@@ -91,6 +91,48 @@ class RestExternalShortLinkClientTest {
         assertTrue(query.contains("endDate=2026-06-09"));
     }
 
+    @Test
+    void shouldCallExternalAccessRecordApiWithExpectedHeadersAndQuery() {
+        CapturingRequestFactory requestFactory = new CapturingRequestFactory("""
+                {"code":"0","data":{"current":1,"size":20,"total":1,"records":[{"uvType":"新访客","browser":"Chrome","os":"macOS","ip":"127.0.0.1","network":"WiFi","device":"PC","locale":"上海","user":"uv-1","createTime":"2026-06-09 15:30:00"}]}}
+                """);
+        AppProperties appProperties = new AppProperties();
+        appProperties.getShortLink().getExternal().setBaseUrl("http://shortlink:8003");
+        appProperties.getShortLink().getExternal().setSystemUsername("wuxing_system");
+        appProperties.getShortLink().getExternal().setSystemUserId("wuxing-system");
+        appProperties.getShortLink().getExternal().setSystemRealName("wuxing-system");
+        RestExternalShortLinkClient client = new RestExternalShortLinkClient(appProperties, requestFactory);
+        ExternalShortLinkAccessRecordRequest request = new ExternalShortLinkAccessRecordRequest();
+        request.setFullShortUrl("nurl.ink:8003/Abc123");
+        request.setGid("wuxing_persona");
+        request.setEnableStatus(0);
+        request.setStartDate("2026-06-09");
+        request.setEndDate("2026-06-10");
+        request.setCurrent(1L);
+        request.setSize(20L);
+
+        ExternalShortLinkAccessRecordPageResponse response = client.accessRecords(request);
+
+        assertEquals(1L, response.getCurrent());
+        assertEquals(20L, response.getSize());
+        assertEquals(1L, response.getTotal());
+        assertEquals("Chrome", response.getRecords().get(0).getBrowser());
+        assertEquals("2026-06-09T15:30", response.getRecords().get(0).getCreateTime().toString());
+        assertEquals("GET", requestFactory.request.getMethod().name());
+        assertEquals("/api/short-link/v1/stats/access-record", requestFactory.request.getURI().getPath());
+        assertEquals("wuxing_system", requestFactory.request.getHeaders().getFirst("username"));
+        assertEquals("wuxing-system", requestFactory.request.getHeaders().getFirst("userId"));
+        assertEquals("wuxing-system", requestFactory.request.getHeaders().getFirst("realName"));
+        String query = URLDecoder.decode(requestFactory.request.getURI().getRawQuery(), StandardCharsets.UTF_8);
+        assertTrue(query.contains("fullShortUrl=nurl.ink:8003/Abc123"));
+        assertTrue(query.contains("gid=wuxing_persona"));
+        assertTrue(query.contains("enableStatus=0"));
+        assertTrue(query.contains("startDate=2026-06-09"));
+        assertTrue(query.contains("endDate=2026-06-10"));
+        assertTrue(query.contains("current=1"));
+        assertTrue(query.contains("size=20"));
+    }
+
     private static class CapturingRequestFactory implements ClientHttpRequestFactory {
 
         private final String responseBody;

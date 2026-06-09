@@ -83,6 +83,39 @@ public class RestExternalShortLinkClient implements ExternalShortLinkClient {
         }
     }
 
+    @Override
+    public ExternalShortLinkAccessRecordPageResponse accessRecords(ExternalShortLinkAccessRecordRequest request) {
+        AppProperties.ExternalShortLinkProperties external = appProperties.getShortLink().getExternal();
+        try {
+            ExternalShortLinkAccessRecordApiResponse response = restClient(external)
+                    .get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/api/short-link/v1/stats/access-record")
+                            .queryParam("fullShortUrl", request.getFullShortUrl())
+                            .queryParam("gid", request.getGid())
+                            .queryParam("enableStatus", request.getEnableStatus())
+                            .queryParam("startDate", request.getStartDate())
+                            .queryParam("endDate", request.getEndDate())
+                            .queryParam("current", request.getCurrent())
+                            .queryParam("size", request.getSize())
+                            .build())
+                    .retrieve()
+                    .body(ExternalShortLinkAccessRecordApiResponse.class);
+            if (response == null) {
+                throw new BusinessException("external short link access records returned empty response");
+            }
+            if (!response.isSuccess()) {
+                throw new BusinessException("external short link access records failed: " + response.getMessage());
+            }
+            if (response.getData() == null) {
+                throw new BusinessException("external short link access records returned empty data");
+            }
+            return response.getData();
+        } catch (RestClientException ex) {
+            throw new BusinessException("external short link access records unavailable: " + ex.getClass().getSimpleName());
+        }
+    }
+
     private RestClient restClient(AppProperties.ExternalShortLinkProperties external) {
         return RestClient.builder()
                 .requestFactory(requestFactory(external))
