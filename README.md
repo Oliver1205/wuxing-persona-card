@@ -1,12 +1,49 @@
 # 五行人格卡
 
-五行人格卡是一个传统文化元素启发下的娱乐性人格测试 H5 微项目。第一版 MVP 的重点不是复杂测评，而是跑通一条真实业务闭环：
+五行人格卡是一个传统文化元素启发下的娱乐性人格测试 H5 全栈项目。项目以“测算结果页分享”为真实业务场景，重点实现从用户测算、结果生成、短链接分享到访问统计和后台数据中台的完整闭环。
 
 ```text
 匿名用户测算 -> 生成结果页 -> 生成专属短链接 -> 朋友访问短链 -> 后台看到 PV / UV / UIP
 ```
 
-当前仓库状态：v0.2 已在 v0.1 MVP 闭环基础上完成短链接适配层升级。项目包含前端 H5、后端 API、可切换短链接 Provider、访问统计、后台数据页、Docker Compose 初版和配套文档。
+项目不是命理预测工具，而是一个正向、娱乐化、可分享的人格解读产品原型；工程重点是短链接真实接入业务、匿名访问统计、Redis 缓存和 Docker 单机部署。
+
+## 项目状态
+
+| 项 | 说明 |
+| --- | --- |
+| 当前版本 | `v0.2.0-shortlink-adapter` |
+| 当前分支 | `feature/v0.2-shortlink-integration` |
+| MVP 状态 | v0.1 已完成完整单人测算闭环 |
+| v0.2 状态 | 已完成短链接 Provider 适配层，可配置 `internal` / `external` 模式 |
+| 最新自评 | 98 / 100，详见 [quality-scorecard.md](docs/quality-scorecard.md) |
+| GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter` |
+
+## 核心亮点
+
+- **真实业务短链**：每个测算结果都会生成专属短链接，不是页面假字段。
+- **完整访问统计**：记录并展示 PV、UV、UIP、提交量、短链访问量。
+- **隐私克制**：不做登录注册，不收集昵称和性别，clientId、IP、User-Agent 均 hash 后入库。
+- **Redis 缓存闭环**：结果详情缓存、短链解析缓存、无效短码空值缓存均已落地。
+- **可切换短链架构**：v0.2 将短链模块升级为 Provider 适配层，默认内置实现，预留外部短链服务。
+- **可部署验证**：Docker Compose 管理 MySQL、Redis、后端和 Nginx，已完成本地容器验收。
+- **教学沉淀**：项目计划、质量评分、短链集成方案、教学手册均已文档化。
+
+## 目录
+
+- [在线地址](#在线地址)
+- [技术栈](#技术栈)
+- [项目结构](#项目结构)
+- [项目架构图](#项目架构图)
+- [核心流程图](#核心流程图)
+- [已实现功能](#已实现功能)
+- [短链接接入说明](#短链接接入说明)
+- [本地启动方式](#本地启动方式)
+- [Docker 部署方式](#docker-部署方式)
+- [验证结果](#验证结果)
+- [开发进度记录](#开发进度记录)
+- [MVP 功能边界](#mvp-功能边界)
+- [后续迭代计划](#后续迭代计划)
 
 ## 在线地址
 
@@ -229,6 +266,53 @@ docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml up --
 - [Docker 结果页截图](docs/screenshots/docker-result-page.png)
 - [Docker 后台 token 门禁截图](docs/screenshots/docker-admin-token-gate.png)
 - [Docker 后台详情保护截图](docs/screenshots/docker-admin-detail-protected.png)
+
+## 开发进度记录
+
+<details open>
+<summary><strong>2026-06-09｜v0.2 短链接适配层</strong></summary>
+
+- 新建分支：`feature/v0.2-shortlink-integration`。
+- 新增 `ShortLinkProvider` 统一接口。
+- 将 v0.1 内置短链逻辑迁移为 `InternalShortLinkProvider`。
+- 新增 `ExternalShortLinkProvider` 和 `ExternalShortLinkClient`，预留外部短链服务创建链路。
+- 支持 `SHORT_LINK_MODE=internal|external` 配置切换。
+- 支持外部短链创建失败后按配置降级到内置短链。
+- 新增 [v0.2 短链适配层设计文档](docs/v0.2-shortlink-adapter-design.md)。
+- 更新 README、部署文档、短链集成评估、教学手册和质量评分。
+- 验证通过：`mvn test`、前端构建、Compose 配置校验、Docker 入口健康检查、创建结果和短链 302。
+- Git 提交：`19ab737 feat: add short link provider adapter`。
+- Git 标签：`v0.2.0-shortlink-adapter`。
+
+</details>
+
+<details>
+<summary><strong>2026-06-09｜v0.1 MVP 完整闭环</strong></summary>
+
+- 完成前端 H5：引导页、测试页、结果页、后台总览、短链详情和 404。
+- 完成后端主流程：题目配置、五行计算、星官生成、模板文案、结果保存和查询。
+- 完成内置短链接：Base62 短码生成、短链绑定、短链解析、302 跳转。
+- 完成统计能力：匿名 clientId、访问事件、PV、UV、UIP、后台总览和短链访问日志。
+- 完成 Redis 能力：结果缓存、短链解析缓存、无效短码空值缓存。
+- 完成 Docker Compose 初版：MySQL、Redis、backend、nginx。
+- 完成质量机制：开发规范、项目计划、自评机制、教学手册。
+- 验证通过：后端测试、前端构建、Compose 配置、Docker 容器全链路、浏览器截图验收。
+- Git 提交：`c2dea88 feat: complete wuxing persona card MVP`。
+- Git 标签：`v0.1.0-mvp`。
+
+</details>
+
+<details>
+<summary><strong>2026-06-08｜项目初始化与短链系统评估</strong></summary>
+
+- 阅读并整理项目开发指令，明确第一版只做单人测算闭环。
+- 初始化 monorepo 结构：`frontend/`、`backend/`、`docs/`、`deploy/`。
+- 建立开发规范、8-10 小时开发计划和质量评分机制。
+- 克隆并评估外部短链项目 `/Users/linyuxiang/JavaBackend/01_Projects/shortlink`。
+- 输出 [短链接系统评估与五行人格卡集成方案](docs/shortlink-integration-assessment.md)。
+- 明确 v0.1 先用内置短链，后续再服务化接入外部短链项目。
+
+</details>
 
 ## MVP 功能边界
 
