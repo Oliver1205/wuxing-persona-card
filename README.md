@@ -12,17 +12,18 @@
 
 | 项 | 说明 |
 | --- | --- |
-| 当前版本 | `v0.5.0-external-shortlink-access-records` |
+| 当前版本 | `v0.6.0-quality-gates-and-roadmap` |
 | 稳定分支 | `main` |
-| 当前开发分支 | `feature/v0.6-quality-gates-and-roadmap` |
+| 当前开发分支 | `feature/v0.7-production-routing-hardening` |
 | MVP 状态 | v0.1 已完成完整单人测算闭环 |
 | v0.2 状态 | 已完成短链接 Provider 适配层，可配置 `internal` / `external` 模式 |
 | v0.3 状态 | 已增强 external 真实 HTTP 联调配置，并为后台总览、短链列表、访问日志增加日期筛选 |
 | v0.4 状态 | 已完成外部短链服务级联调，后台短链列表可读取外部 PV / UV / UIP |
 | v0.5 状态 | 已接入外部短链访问记录，后台短链详情支持 `local` / `external` 来源 |
-| v0.6 目标 | 建立严格质量门禁和 v1.0 路线图 |
+| v0.6 状态 | 已建立严格质量门禁和 v1.0 路线图 |
+| v0.7 目标 | 生产短链路由与部署预检加固 |
 | 最新自评 | 99 / 100，详见 [quality-scorecard.md](docs/quality-scorecard.md) |
-| GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics`、`v0.4.0-external-shortlink-service-integration`、`v0.5.0-external-shortlink-access-records` |
+| GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics`、`v0.4.0-external-shortlink-service-integration`、`v0.5.0-external-shortlink-access-records`、`v0.6.0-quality-gates-and-roadmap` |
 
 ## 核心亮点
 
@@ -36,6 +37,7 @@
 - **后台日期分析**：v0.3 支持按日期查看总览指标、短链列表和单条短链访问日志。
 - **可部署验证**：Docker Compose 管理 MySQL、Redis、后端和 Nginx，已完成本地容器验收。
 - **严格质量门禁**：v0.6 建立统一质量脚本、编辑规范和 v1.0 路线，后续版本必须按同一套标准验收。
+- **生产路由加固**：v0.7 补充短链子域名 / 同域 rewrite 示例和部署预检脚本。
 - **教学沉淀**：项目计划、质量评分、短链集成方案、教学手册均已文档化。
 
 ## 目录
@@ -313,11 +315,19 @@ scripts/quality-check.sh
 
 v1.0 路线和质量要求详见 [v1.0-roadmap-and-quality-gates.md](docs/v1.0-roadmap-and-quality-gates.md)。
 
+上线前部署预检：
+
+```bash
+scripts/deploy-preflight.sh deploy/.env
+```
+
 ## 验证结果
 
 已通过：
 
 - `scripts/quality-check.sh`
+- `scripts/deploy-preflight.sh` 语法检查已纳入质量门禁；真实 `deploy/.env` 上线前执行
+- `scripts/deploy-preflight.sh /private/tmp/wuxing-v07.env` 正向预检通过
 - `cd backend && mvn -q test`
 - `cd frontend && npm run build`
 - `docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml config`
@@ -355,6 +365,17 @@ admin pv/uv/uip: 1/1/1
 ## 开发进度记录
 
 <details open>
+<summary><strong>2026-06-09｜v0.7 生产路由与部署加固</strong></summary>
+
+- 新建分支：`feature/v0.7-production-routing-hardening`。
+- 新增 `deploy/nginx.shortlink-routing.example.conf`，提供短链子域名和同域 `/s/**` rewrite 两种生产路由策略。
+- 新增 `scripts/deploy-preflight.sh`，上线前检查 `.env` 必填项、占位值、弱密码占位和 external 模式配置完整性。
+- 更新 [部署说明](docs/deploy.md) 和 [v0.7 生产路由与部署加固文档](docs/v0.7-production-routing-hardening.md)。
+- 验证通过：`scripts/quality-check.sh`、临时 `.env` 部署预检。
+
+</details>
+
+<details>
 <summary><strong>2026-06-09｜v0.6 质量门禁与 v1.0 路线规划</strong></summary>
 
 - 新建分支：`feature/v0.6-quality-gates-and-roadmap`。

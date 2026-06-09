@@ -14,6 +14,9 @@ echo "Quality gate for wuxing-persona-card"
 
 run git diff --check
 
+run bash -n scripts/quality-check.sh
+run bash -n scripts/deploy-preflight.sh
+
 echo
 echo "==> Ensure generated artifacts are not tracked"
 if git ls-files | grep -E '(^frontend/(dist|node_modules)/|^backend/target/)' >/tmp/wuxing-tracked-generated.txt; then
@@ -36,4 +39,3 @@ run docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml c
 
 echo
 echo "Quality gate passed."
-

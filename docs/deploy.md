@@ -1,6 +1,6 @@
 # 部署说明
 
-当前状态：Docker Compose 初版已配置，并已完成容器运行验收。MySQL、Redis、backend、nginx 均可启动，Nginx 入口可完成 API、短链 302 和后台统计验证。v0.4 已补齐 external 短链创建和统计配置，默认仍使用 `internal` 模式。
+当前状态：Docker Compose 初版已配置，并已完成容器运行验收。MySQL、Redis、backend、nginx 均可启动，Nginx 入口可完成 API、短链 302 和后台统计验证。v0.4 已补齐 external 短链创建和统计配置，v0.7 已补生产短链路由示例和部署预检脚本，默认仍使用 `internal` 模式。
 
 ## 1. 部署架构
 
@@ -70,6 +70,14 @@ HASH_SALT=<strong-random-salt>
 - `SHORT_LINK_EXTERNAL_STATS_ENABLE_STATUS` 对应外部短链统计接口的 `enableStatus`，默认 `0`。
 - `BACKEND_MAVEN_IMAGE`、`BACKEND_RUNTIME_IMAGE`、`FRONTEND_NODE_IMAGE`、`FRONTEND_NGINX_IMAGE` 是可选基础镜像参数。默认使用官方镜像，Docker Hub 不稳定时可临时切换到可信镜像源。
 
+上线前执行预检：
+
+```bash
+scripts/deploy-preflight.sh deploy/.env
+```
+
+预检会阻止常见上线错误，例如仍使用 `change-me`、示例域名、缺少 external 短链配置或 `SHORT_LINK_MODE` 非法。
+
 ## 4. 启动命令
 
 ```bash
@@ -135,6 +143,14 @@ your-domain.com   -> 五行 H5 和 API
 s.your-domain.com -> 独立短链服务
 ```
 
+v0.7 新增完整示例：
+
+```text
+deploy/nginx.shortlink-routing.example.conf
+```
+
+该文件不被默认 Compose 加载，生产部署时可以按实际域名复制到 Nginx 配置目录后修改 `server_name`。
+
 只验证“外部创建短链 + 外部统计读取 + 失败降级”时，可以先保持 Nginx `/s/**` 指向五行后端；等独立短链服务稳定后，再把 `/s/**` 或短链子域名切到短链服务。
 
 external 模式建议配置：
@@ -146,11 +162,15 @@ SHORT_LINK_EXTERNAL_DOMAIN=s.your-domain.com
 SHORT_LINK_EXTERNAL_STATS_ENABLED=true
 ```
 
+如果使用短链子域名，`SHORT_LINK_EXTERNAL_DOMAIN` 必须与短链服务生成的 `fullShortUrl` 域名一致，例如 `s.your-domain.com`。
+
 ## 6. 验证清单
 
 容器启动后验证：
 
 ```bash
+scripts/deploy-preflight.sh deploy/.env
+docker compose --env-file deploy/.env -f deploy/docker-compose.yml config
 curl http://localhost/api/health
 curl http://localhost/api/questions
 ```
