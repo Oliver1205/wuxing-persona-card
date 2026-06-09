@@ -31,47 +31,58 @@ public class AdminStatService {
         this.visitEventMapper = visitEventMapper;
     }
 
-    public AdminOverviewVO overview() {
+    public AdminOverviewVO overview(AdminDateRange range) {
         AdminOverviewVO overview = new AdminOverviewVO();
-        long startClicks = visitEventMapper.countByEventType(EventType.START_TEST_CLICK.name());
-        long resultCreated = userResultMapper.countAll();
-        overview.setTotalPv(visitEventMapper.countAll());
-        overview.setTotalUv(visitEventMapper.countDistinctClient());
-        overview.setTotalUip(visitEventMapper.countDistinctIp());
-        overview.setHomeViews(visitEventMapper.countByEventType(EventType.PAGE_VIEW_HOME.name()));
+        long startClicks = visitEventMapper.countByEventTypeBetween(EventType.START_TEST_CLICK.name(),
+                range.getStartAt(), range.getEndExclusive());
+        long resultCreated = userResultMapper.countAllBetween(range.getStartAt(), range.getEndExclusive());
+        overview.setTotalPv(visitEventMapper.countAllBetween(range.getStartAt(), range.getEndExclusive()));
+        overview.setTotalUv(visitEventMapper.countDistinctClientBetween(range.getStartAt(), range.getEndExclusive()));
+        overview.setTotalUip(visitEventMapper.countDistinctIpBetween(range.getStartAt(), range.getEndExclusive()));
+        overview.setHomeViews(visitEventMapper.countByEventTypeBetween(EventType.PAGE_VIEW_HOME.name(),
+                range.getStartAt(), range.getEndExclusive()));
         overview.setStartClicks(startClicks);
-        overview.setTestSubmits(visitEventMapper.countByEventType(EventType.TEST_SUBMIT.name()));
+        overview.setTestSubmits(visitEventMapper.countByEventTypeBetween(EventType.TEST_SUBMIT.name(),
+                range.getStartAt(), range.getEndExclusive()));
         overview.setResultCreated(resultCreated);
-        overview.setShortLinkCreated(shortLinkMapper.countAll());
-        overview.setShortLinkVisits(visitEventMapper.countByEventType(EventType.SHORT_LINK_VISIT.name()));
+        overview.setShortLinkCreated(shortLinkMapper.countAllBetween(range.getStartAt(), range.getEndExclusive()));
+        overview.setShortLinkVisits(visitEventMapper.countByEventTypeBetween(EventType.SHORT_LINK_VISIT.name(),
+                range.getStartAt(), range.getEndExclusive()));
         overview.setCompletionRate(startClicks == 0 ? 0 : Math.round(resultCreated * 10000.0 / startClicks) / 100.0);
-        overview.setPopularElementCombos(toElementCombos(userResultMapper.listPopularElementCombos(5)));
-        overview.setPopularStarOfficers(toStarOfficers(userResultMapper.listPopularStarOfficers(5)));
-        overview.setRecentResults(toRecentResults(userResultMapper.listRecent(5)));
-        overview.setRecentShortLinks(toShortLinkItems(shortLinkMapper.listPage(0, 5)));
+        overview.setPopularElementCombos(toElementCombos(userResultMapper.listPopularElementCombosBetween(5,
+                range.getStartAt(), range.getEndExclusive())));
+        overview.setPopularStarOfficers(toStarOfficers(userResultMapper.listPopularStarOfficersBetween(5,
+                range.getStartAt(), range.getEndExclusive())));
+        overview.setRecentResults(toRecentResults(userResultMapper.listRecentBetween(5,
+                range.getStartAt(), range.getEndExclusive())));
+        overview.setRecentShortLinks(toShortLinkItems(shortLinkMapper.listPageBetween(0, 5,
+                range.getStartAt(), range.getEndExclusive()), range));
         return overview;
     }
 
-    public PageVO<ShortLinkListItemVO> listShortLinks(long page, long pageSize) {
+    public PageVO<ShortLinkListItemVO> listShortLinks(long page, long pageSize, AdminDateRange range) {
         long normalizedPage = Math.max(1, page);
         long normalizedPageSize = Math.min(100, Math.max(1, pageSize));
         long offset = (normalizedPage - 1) * normalizedPageSize;
         return new PageVO<>(
                 normalizedPage,
                 normalizedPageSize,
-                shortLinkMapper.countAll(),
-                toShortLinkItems(shortLinkMapper.listPage(offset, normalizedPageSize))
+                shortLinkMapper.countAllBetween(range.getStartAt(), range.getEndExclusive()),
+                toShortLinkItems(shortLinkMapper.listPageBetween(offset, normalizedPageSize,
+                        range.getStartAt(), range.getEndExclusive()), range)
         );
     }
 
-    public PageVO<ShortLinkVisitVO> listShortLinkVisits(String shortCode, long page, long pageSize) {
+    public PageVO<ShortLinkVisitVO> listShortLinkVisits(String shortCode, long page, long pageSize, AdminDateRange range) {
         long normalizedPage = Math.max(1, page);
         long normalizedPageSize = Math.min(100, Math.max(1, pageSize));
         long offset = (normalizedPage - 1) * normalizedPageSize;
-        List<ShortLinkVisitVO> records = visitEventMapper.listByShortCode(shortCode, offset, normalizedPageSize).stream()
+        List<ShortLinkVisitVO> records = visitEventMapper.listByShortCodeBetween(shortCode,
+                        range.getStartAt(), range.getEndExclusive(), offset, normalizedPageSize).stream()
                 .map(this::toVisit)
                 .toList();
-        return new PageVO<>(normalizedPage, normalizedPageSize, visitEventMapper.countByShortCode(shortCode), records);
+        return new PageVO<>(normalizedPage, normalizedPageSize, visitEventMapper.countByShortCodeBetween(shortCode,
+                range.getStartAt(), range.getEndExclusive()), records);
     }
 
     private List<NameCountVO> toElementCombos(List<Map<String, Object>> rows) {
@@ -103,13 +114,16 @@ public class AdminStatService {
                 .toList();
     }
 
-    private List<ShortLinkListItemVO> toShortLinkItems(List<ShortLinkEntity> rows) {
+    private List<ShortLinkListItemVO> toShortLinkItems(List<ShortLinkEntity> rows, AdminDateRange range) {
         return rows.stream()
                 .map(row -> {
                     UserResultEntity result = userResultMapper.selectByResultId(row.getResultId());
-                    long pv = visitEventMapper.countPvByShortCode(row.getShortCode());
-                    long uv = visitEventMapper.countUvByShortCode(row.getShortCode());
-                    long uip = visitEventMapper.countUipByShortCode(row.getShortCode());
+                    long pv = visitEventMapper.countPvByShortCodeBetween(row.getShortCode(),
+                            range.getStartAt(), range.getEndExclusive());
+                    long uv = visitEventMapper.countUvByShortCodeBetween(row.getShortCode(),
+                            range.getStartAt(), range.getEndExclusive());
+                    long uip = visitEventMapper.countUipByShortCodeBetween(row.getShortCode(),
+                            range.getStartAt(), range.getEndExclusive());
                     ShortLinkListItemVO vo = new ShortLinkListItemVO();
                     vo.setShortCode(row.getShortCode());
                     vo.setShortUrl(row.getShortUrl());

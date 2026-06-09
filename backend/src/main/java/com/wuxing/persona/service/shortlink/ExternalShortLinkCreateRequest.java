@@ -2,12 +2,21 @@ package com.wuxing.persona.service.shortlink;
 
 public class ExternalShortLinkCreateRequest {
 
+    private String domain;
     private String originUrl;
     private String gid;
     private Integer createdType;
     private Integer validDateType;
     private String validDate;
     private String describe;
+
+    public String getDomain() {
+        return domain;
+    }
+
+    public void setDomain(String domain) {
+        this.domain = domain;
+    }
 
     public String getOriginUrl() {
         return originUrl;

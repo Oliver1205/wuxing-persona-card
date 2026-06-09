@@ -47,6 +47,7 @@ class ExternalShortLinkProviderTest {
         appProperties = new AppProperties();
         appProperties.setBaseUrl("https://wuxing.example.com/");
         appProperties.getShortLink().getExternal().setGroupId("wuxing_persona");
+        appProperties.getShortLink().getExternal().setDomain("s.example.com");
         provider = new ExternalShortLinkProvider(
                 shortLinkMapper,
                 redisCacheService,
@@ -72,6 +73,7 @@ class ExternalShortLinkProviderTest {
                 ArgumentCaptor.forClass(ExternalShortLinkCreateRequest.class);
         verify(externalShortLinkClient).create(requestCaptor.capture());
         ExternalShortLinkCreateRequest externalRequest = requestCaptor.getValue();
+        assertEquals("s.example.com", externalRequest.getDomain());
         assertEquals("https://wuxing.example.com/result/R1", externalRequest.getOriginUrl());
         assertEquals("wuxing_persona", externalRequest.getGid());
         assertEquals(0, externalRequest.getCreatedType());

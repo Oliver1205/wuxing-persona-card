@@ -6,7 +6,7 @@
 
 评估日期：2026-06-08
 
-当前落地策略：五行人格卡 v0.1 已先实现内置短链接能力，确保 MVP 不依赖外部服务也能独立运行。v0.2 已新增短链适配层，支持 `internal` / `external` Provider 配置切换；外部服务创建失败时默认降级到内置短链，确保测算主链路不被外部服务可用性拖垮。
+当前落地策略：五行人格卡 v0.1 已先实现内置短链接能力，确保 MVP 不依赖外部服务也能独立运行。v0.2 已新增短链适配层，支持 `internal` / `external` Provider 配置切换；v0.3 已补齐 external 创建请求的真实 HTTP 路径、系统用户 header、短链域名和超时配置，并为后台增加日期筛选。外部服务创建失败时默认降级到内置短链，确保测算主链路不被外部服务可用性拖垮。
 
 ## 1. 项目结论
 
@@ -226,6 +226,23 @@ realName: wuxing-system
 
 这意味着后续不需要再大改 `ResultService` 和 `ShortLinkController`，只需要补外部服务真实联调、鉴权和统计读取。
 
+### 已完成：v0.3 external 联调准备
+
+五行项目当前已经完成：
+
+- `RestExternalShortLinkClient` 对齐外部项目创建接口 `/api/short-link/v1/create`。
+- 请求头固定传递外部项目 `UserTransmitInterceptor` 需要的 `username`、`userId`、`realName`。
+- 请求体补充外部 DTO 中的 `domain` 字段，同时保留 `originUrl`、`gid`、`createdType`、`validDateType`、`validDate` 和 `describe`。
+- 新增 `SHORT_LINK_EXTERNAL_DOMAIN`、`SHORT_LINK_EXTERNAL_CONNECT_TIMEOUT_MILLIS`、`SHORT_LINK_EXTERNAL_READ_TIMEOUT_MILLIS`。
+- 新增无端口 HTTP client 测试，验证 URI、header 和 JSON body，避免本地测试依赖外部服务启动。
+- 后台接口新增 `startDate/endDate`，便于后续比对五行本地统计和外部短链统计。
+
+仍未完成：
+
+- 尚未把五行 Nginx `/s/**` 或短链子域名切到外部短链服务。
+- 尚未启动外部短链项目完成真实服务级联调。
+- 尚未从外部短链统计接口读取 PV/UV/UIP。
+
 ### 阶段 A：本地跑通短链服务
 
 目标：能用短链项目创建短链并跳转。
@@ -242,13 +259,16 @@ realName: wuxing-system
 
 目标：五行结果创建后自动生成短链。
 
+状态：五行侧联调代码已就绪，等待外部短链服务实际启动后做服务级验证。
+
 动作：
 
 1. 启动外部短链服务。
 2. 设置 `SHORT_LINK_MODE=external`。
 3. 设置 `SHORT_LINK_EXTERNAL_BASE_URL`、`SHORT_LINK_EXTERNAL_GROUP_ID` 和内部系统用户 header。
-4. 调用五行 `POST /api/results`，确认 `ExternalShortLinkProvider` 创建短链并保存本地绑定。
-5. 若外部服务不可用，确认 `fallback-to-internal=true` 时主流程自动回到内置短链。
+4. 设置 `SHORT_LINK_EXTERNAL_DOMAIN`，与外部服务 `short-link.domain.default` 保持同一口径。
+5. 调用五行 `POST /api/results`，确认 `ExternalShortLinkProvider` 创建短链并保存本地绑定。
+6. 若外部服务不可用，确认 `fallback-to-internal=true` 时主流程自动回到内置短链。
 
 ### 阶段 C：Nginx 整合入口
 
@@ -339,3 +359,7 @@ server {
 v0.2 面试表达可以进一步升级为：
 
 > 我没有把外部短链服务直接写死到业务流程里，而是先抽象出 `ShortLinkProvider` 适配层。默认内置 Provider 保证项目独立可运行，External Provider 负责对接外部短链服务并保留本地业务绑定；外部服务异常时可以按配置降级。这样既保留 MVP 稳定性，也给后续服务化集成留下清晰边界。
+
+v0.3 面试表达可以继续升级为：
+
+> 我进一步把 External Provider 从“概念预留”推进到“可联调状态”：请求路径、外部系统用户 header、短链域名、超时和失败降级都配置化，并用无端口 HTTP client 测试验证真实请求结构。同时后台支持日期筛选，后续接外部短链统计时可以按同一时间窗口对齐本地业务数据和短链服务数据。

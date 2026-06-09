@@ -1,6 +1,7 @@
 package com.wuxing.persona.mapper;
 
 import com.wuxing.persona.entity.UserResultEntity;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import org.apache.ibatis.annotations.Insert;
@@ -49,6 +50,17 @@ public interface UserResultMapper {
     long countAll();
 
     @Select("""
+            <script>
+            SELECT COUNT(*) FROM user_result
+            WHERE status = 1
+            <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+            </script>
+            """)
+    long countAllBetween(@Param("startAt") LocalDateTime startAt,
+                         @Param("endAt") LocalDateTime endAt);
+
+    @Select("""
             SELECT primary_element AS primaryElement, secondary_element AS secondaryElement, COUNT(*) AS count
             FROM user_result
             WHERE status = 1
@@ -57,6 +69,22 @@ public interface UserResultMapper {
             LIMIT #{limit}
             """)
     List<Map<String, Object>> listPopularElementCombos(@Param("limit") int limit);
+
+    @Select("""
+            <script>
+            SELECT primary_element AS primaryElement, secondary_element AS secondaryElement, COUNT(*) AS count
+            FROM user_result
+            WHERE status = 1
+            <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+            GROUP BY primary_element, secondary_element
+            ORDER BY count DESC
+            LIMIT #{limit}
+            </script>
+            """)
+    List<Map<String, Object>> listPopularElementCombosBetween(@Param("limit") int limit,
+                                                              @Param("startAt") LocalDateTime startAt,
+                                                              @Param("endAt") LocalDateTime endAt);
 
     @Select("""
             SELECT star_officer_name AS starOfficerName, COUNT(*) AS count
@@ -69,6 +97,22 @@ public interface UserResultMapper {
     List<Map<String, Object>> listPopularStarOfficers(@Param("limit") int limit);
 
     @Select("""
+            <script>
+            SELECT star_officer_name AS starOfficerName, COUNT(*) AS count
+            FROM user_result
+            WHERE status = 1
+            <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+            GROUP BY star_officer_name
+            ORDER BY count DESC
+            LIMIT #{limit}
+            </script>
+            """)
+    List<Map<String, Object>> listPopularStarOfficersBetween(@Param("limit") int limit,
+                                                             @Param("startAt") LocalDateTime startAt,
+                                                             @Param("endAt") LocalDateTime endAt);
+
+    @Select("""
             SELECT id, result_id AS resultId, primary_element AS primaryElement,
                    secondary_element AS secondaryElement, star_officer_name AS starOfficerName,
                    created_at AS createdAt
@@ -78,4 +122,21 @@ public interface UserResultMapper {
             LIMIT #{limit}
             """)
     List<UserResultEntity> listRecent(@Param("limit") int limit);
+
+    @Select("""
+            <script>
+            SELECT id, result_id AS resultId, primary_element AS primaryElement,
+                   secondary_element AS secondaryElement, star_officer_name AS starOfficerName,
+                   created_at AS createdAt
+            FROM user_result
+            WHERE status = 1
+            <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+            ORDER BY created_at DESC
+            LIMIT #{limit}
+            </script>
+            """)
+    List<UserResultEntity> listRecentBetween(@Param("limit") int limit,
+                                             @Param("startAt") LocalDateTime startAt,
+                                             @Param("endAt") LocalDateTime endAt);
 }

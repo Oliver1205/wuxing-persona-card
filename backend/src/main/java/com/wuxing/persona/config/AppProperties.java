@@ -84,10 +84,13 @@ public class AppProperties {
 
         private String baseUrl = "http://localhost:8003";
         private String groupId = "wuxing_persona";
+        private String domain = "nurl.ink:8003";
         private boolean fallbackToInternal = true;
         private String systemUsername = "wuxing_system";
         private String systemUserId = "wuxing-system";
         private String systemRealName = "wuxing-system";
+        private int connectTimeoutMillis = 2000;
+        private int readTimeoutMillis = 3000;
 
         public String getBaseUrl() {
             return baseUrl;
@@ -103,6 +106,14 @@ public class AppProperties {
 
         public void setGroupId(String groupId) {
             this.groupId = groupId;
+        }
+
+        public String getDomain() {
+            return domain;
+        }
+
+        public void setDomain(String domain) {
+            this.domain = domain;
         }
 
         public boolean isFallbackToInternal() {
@@ -135,6 +146,22 @@ public class AppProperties {
 
         public void setSystemRealName(String systemRealName) {
             this.systemRealName = systemRealName;
+        }
+
+        public int getConnectTimeoutMillis() {
+            return connectTimeoutMillis;
+        }
+
+        public void setConnectTimeoutMillis(int connectTimeoutMillis) {
+            this.connectTimeoutMillis = connectTimeoutMillis;
+        }
+
+        public int getReadTimeoutMillis() {
+            return readTimeoutMillis;
+        }
+
+        public void setReadTimeoutMillis(int readTimeoutMillis) {
+            this.readTimeoutMillis = readTimeoutMillis;
         }
 
         private static String trimTrailingSlashValue(String value, String defaultValue) {

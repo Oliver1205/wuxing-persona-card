@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -110,6 +111,58 @@ class MvpFlowIntegrationTest {
                 .andExpect(jsonPath("$.data.records[0].eventType").value("SHORT_LINK_VISIT"))
                 .andExpect(jsonPath("$.data.records[0].clientIdHash").exists())
                 .andExpect(jsonPath("$.data.records[0].ipHash").exists());
+    }
+
+    @Test
+    void shouldFilterAdminStatsByDateRange() throws Exception {
+        JsonNode data = createValidResult("client-a");
+        String shortCode = data.get("shortCode").asText();
+        mockMvc.perform(get("/s/" + shortCode).header("X-Client-Id", "same-client"))
+                .andExpect(status().is3xxRedirection());
+        String today = LocalDate.now().toString();
+        String future = LocalDate.now().plusDays(30).toString();
+
+        mockMvc.perform(get("/api/admin/overview")
+                        .header("X-Admin-Token", "test-token")
+                        .param("startDate", today)
+                        .param("endDate", today))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.resultCreated").value(1))
+                .andExpect(jsonPath("$.data.shortLinkCreated").value(1))
+                .andExpect(jsonPath("$.data.shortLinkVisits").value(1));
+
+        mockMvc.perform(get("/api/admin/overview")
+                        .header("X-Admin-Token", "test-token")
+                        .param("startDate", future)
+                        .param("endDate", future))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.resultCreated").value(0))
+                .andExpect(jsonPath("$.data.shortLinkCreated").value(0))
+                .andExpect(jsonPath("$.data.shortLinkVisits").value(0));
+
+        mockMvc.perform(get("/api/admin/short-links")
+                        .header("X-Admin-Token", "test-token")
+                        .param("startDate", future)
+                        .param("endDate", future))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.total").value(0));
+
+        mockMvc.perform(get("/api/admin/short-links/" + shortCode + "/visits")
+                        .header("X-Admin-Token", "test-token")
+                        .param("startDate", future)
+                        .param("endDate", future))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.total").value(0));
+    }
+
+    @Test
+    void shouldRejectInvalidAdminDateRange() throws Exception {
+        mockMvc.perform(get("/api/admin/overview")
+                        .header("X-Admin-Token", "test-token")
+                        .param("startDate", "2026-06-10")
+                        .param("endDate", "2026-06-09"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("startDate must be before or equal to endDate"));
     }
 
     @Test

@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { fetchAdminOverview, fetchAdminShortLinks } from '../api/admin';
+import type { AdminDateFilter } from '../api/admin';
 import type { AdminOverview, PageResult, ShortLinkListItem } from '../api/types';
 import StatCard from '../components/StatCard.vue';
 
 const token = ref(localStorage.getItem('wuxing_admin_token') || '');
+const startDate = ref('');
+const endDate = ref('');
 const overview = ref<AdminOverview | null>(null);
 const shortLinks = ref<PageResult<ShortLinkListItem> | null>(null);
 const error = ref('');
@@ -21,13 +24,37 @@ async function load() {
   loading.value = true;
   try {
     localStorage.setItem('wuxing_admin_token', token.value);
-    overview.value = await fetchAdminOverview(token.value);
-    shortLinks.value = await fetchAdminShortLinks(token.value, 1, 20);
+    overview.value = await fetchAdminOverview(token.value, dateFilter());
+    shortLinks.value = await fetchAdminShortLinks(token.value, 1, 20, dateFilter());
   } catch (err) {
     error.value = err instanceof Error ? err.message : '后台数据加载失败';
   } finally {
     loading.value = false;
   }
+}
+
+function clearDateFilter() {
+  startDate.value = '';
+  endDate.value = '';
+  load();
+}
+
+function dateFilter(): AdminDateFilter {
+  return {
+    startDate: startDate.value || undefined,
+    endDate: endDate.value || undefined,
+  };
+}
+
+function detailQuery() {
+  const query: Record<string, string> = {};
+  if (startDate.value) {
+    query.startDate = startDate.value;
+  }
+  if (endDate.value) {
+    query.endDate = endDate.value;
+  }
+  return query;
 }
 </script>
 
@@ -39,6 +66,18 @@ async function load() {
         <div class="admin-token">
           <input v-model="token" type="password" placeholder="输入管理 token" />
           <button type="button" @click="load">{{ loading ? '加载中...' : '进入后台' }}</button>
+        </div>
+        <div class="filter-bar">
+          <label>
+            开始日期
+            <input v-model="startDate" type="date" />
+          </label>
+          <label>
+            结束日期
+            <input v-model="endDate" type="date" />
+          </label>
+          <button type="button" @click="load">应用筛选</button>
+          <button class="secondary" type="button" @click="clearDateFilter">清空</button>
         </div>
         <p v-if="error" class="error-text">{{ error }}</p>
       </div>
@@ -91,7 +130,7 @@ async function load() {
                   <td>{{ item.uv }}</td>
                   <td>{{ item.uip }}</td>
                   <td>
-                    <RouterLink :to="`/admin/short-links/${item.shortCode}`">查看</RouterLink>
+                    <RouterLink :to="{ path: `/admin/short-links/${item.shortCode}`, query: detailQuery() }">查看</RouterLink>
                   </td>
                 </tr>
               </tbody>

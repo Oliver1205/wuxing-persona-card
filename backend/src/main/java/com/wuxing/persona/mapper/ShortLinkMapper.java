@@ -1,6 +1,7 @@
 package com.wuxing.persona.mapper;
 
 import com.wuxing.persona.entity.ShortLinkEntity;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
@@ -51,6 +52,17 @@ public interface ShortLinkMapper {
     long countAll();
 
     @Select("""
+            <script>
+            SELECT COUNT(*) FROM short_link
+            WHERE status = 1
+            <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+            </script>
+            """)
+    long countAllBetween(@Param("startAt") LocalDateTime startAt,
+                         @Param("endAt") LocalDateTime endAt);
+
+    @Select("""
             SELECT id, short_code AS shortCode, result_id AS resultId, original_path AS originalPath,
                    short_url AS shortUrl, pv_count AS pvCount, uv_count AS uvCount, uip_count AS uipCount,
                    last_visit_at AS lastVisitAt, status, created_at AS createdAt, updated_at AS updatedAt
@@ -60,6 +72,24 @@ public interface ShortLinkMapper {
             LIMIT #{limit} OFFSET #{offset}
             """)
     List<ShortLinkEntity> listPage(@Param("offset") long offset, @Param("limit") long limit);
+
+    @Select("""
+            <script>
+            SELECT id, short_code AS shortCode, result_id AS resultId, original_path AS originalPath,
+                   short_url AS shortUrl, pv_count AS pvCount, uv_count AS uvCount, uip_count AS uipCount,
+                   last_visit_at AS lastVisitAt, status, created_at AS createdAt, updated_at AS updatedAt
+            FROM short_link
+            WHERE status = 1
+            <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+            ORDER BY created_at DESC
+            LIMIT #{limit} OFFSET #{offset}
+            </script>
+            """)
+    List<ShortLinkEntity> listPageBetween(@Param("offset") long offset,
+                                          @Param("limit") long limit,
+                                          @Param("startAt") LocalDateTime startAt,
+                                          @Param("endAt") LocalDateTime endAt);
 
     @Update("""
             UPDATE short_link

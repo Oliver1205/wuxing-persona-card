@@ -2,7 +2,7 @@
 
 规划日期：2026-06-08
 
-当前状态：第一版 MVP 主链路已实现，并通过本地构建、后端集成测试、H2 演示模式浏览器验收和 Docker Compose 容器全链路验收。v0.2 已新增短链 Provider 适配层，为后续接入独立短链服务做好准备。
+当前状态：第一版 MVP 主链路已实现，并通过本地构建、后端集成测试、H2 演示模式浏览器验收和 Docker Compose 容器全链路验收。v0.2 已新增短链 Provider 适配层，v0.3 已补 external 模式真实 HTTP 联调配置和后台日期筛选统计。
 
 关联文档：
 
@@ -11,6 +11,7 @@
 - 质量评分：`docs/quality-scorecard.md`
 - 短链系统评估：`docs/shortlink-integration-assessment.md`
 - v0.2 短链适配层设计：`docs/v0.2-shortlink-adapter-design.md`
+- v0.3 外部短链联调准备与后台日期统计：`docs/v0.3-external-shortlink-and-analytics.md`
 - 教学手册：`docs/teaching-manual.md`
 
 ## 1. MVP 目标
@@ -167,6 +168,18 @@ flowchart LR
 - 支持外部服务失败时按配置降级到内置短链。
 - 五行项目继续保存 `short_link` 本地业务绑定。
 
+### 阶段 10：v0.3 external 联调准备与统计增强
+
+- 对齐外部短链项目创建接口 `/api/short-link/v1/create`。
+- external HTTP 请求补充 `username/userId/realName` 系统用户 header 验证。
+- external 请求体补充 `domain` 字段。
+- 新增 `SHORT_LINK_EXTERNAL_DOMAIN`、连接超时、读取超时配置。
+- 保留外部失败降级到内置短链的默认策略。
+- 后台总览支持 `startDate/endDate` 筛选。
+- 短链列表支持按短链创建日期筛选。
+- 短链访问日志支持按访问日期筛选。
+- 前端后台页和短链详情页增加日期筛选控件。
+
 ## 5. 当前验证
 
 已通过：
@@ -214,10 +227,17 @@ v0.2 适配层测试覆盖：
 - 外部短链失败时自动降级。
 - 禁止降级时返回明确业务错误。
 
+v0.3 测试覆盖：
+
+- external RestClient 路径、请求体和 `username/userId/realName` header。
+- external Provider 创建请求中的 `domain`、`originUrl`、`gid`。
+- 后台日期筛选：当天有数据、未来日期为空、非法日期范围返回 400。
+- 不传日期时保持原有全量累计统计行为。
+
 ## 6. 下一阶段建议
 
-1. 为后台增加日期筛选，避免统计长期累计后不可分析。
-2. 启动独立短链接项目，完成 external 模式真实 HTTP 联调。
-3. 接入独立短链统计接口，复用其更完整的 PV/UV/UIP 和访问记录能力。
+1. 启动独立短链接项目，完成 `SHORT_LINK_MODE=external` 的服务级联调。
+2. 接入独立短链统计接口，复用其更完整的 PV/UV/UIP 和访问记录能力。
+3. 增加趋势图或小时分布，但保持后台为轻量数据中台，不做复杂 BI 大屏。
 4. 增加结果卡片图片生成或截图分享。
 5. 上线前配置域名、HTTPS、强随机 token、强密码和真实 `APP_BASE_URL`。

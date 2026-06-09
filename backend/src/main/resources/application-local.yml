@@ -31,4 +31,7 @@ app:
     external:
       base-url: ${SHORT_LINK_EXTERNAL_BASE_URL:http://localhost:8003}
       group-id: ${SHORT_LINK_EXTERNAL_GROUP_ID:wuxing_persona}
+      domain: ${SHORT_LINK_EXTERNAL_DOMAIN:nurl.ink:8003}
       fallback-to-internal: ${SHORT_LINK_EXTERNAL_FALLBACK_TO_INTERNAL:true}
+      connect-timeout-millis: ${SHORT_LINK_EXTERNAL_CONNECT_TIMEOUT_MILLIS:2000}
+      read-timeout-millis: ${SHORT_LINK_EXTERNAL_READ_TIMEOUT_MILLIS:3000}

@@ -158,6 +158,13 @@ select {
   gap: 12px;
 }
 
+.filter-bar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(160px, 1fr)) repeat(2, auto);
+  gap: 12px;
+  align-items: end;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -212,7 +219,8 @@ td a {
 
 @media (max-width: 760px) {
   .form-grid,
-  .admin-token {
+  .admin-token,
+  .filter-bar {
     grid-template-columns: 1fr;
   }
 

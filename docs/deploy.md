@@ -61,7 +61,10 @@ HASH_SALT=<strong-random-salt>
 - `NGINX_HTTP_PORT` 可用于本地避开 80 端口冲突，例如 `8088`。
 - `SHORT_LINK_MODE` 默认为 `internal`，可切换为 `external`，让后端优先调用外部短链服务创建短链。
 - `SHORT_LINK_EXTERNAL_BASE_URL` 是外部短链服务地址，例如 `http://shortlink:8003`。
+- `SHORT_LINK_EXTERNAL_GROUP_ID` 对应外部短链项目分组，例如 `wuxing_persona`。
+- `SHORT_LINK_EXTERNAL_DOMAIN` 对应外部短链项目 `short-link.domain.default`，例如 `nurl.ink:8003`。
 - `SHORT_LINK_EXTERNAL_FALLBACK_TO_INTERNAL` 默认为 `true`，外部服务不可用时自动降级到内置短链。
+- `SHORT_LINK_EXTERNAL_CONNECT_TIMEOUT_MILLIS` 和 `SHORT_LINK_EXTERNAL_READ_TIMEOUT_MILLIS` 用于限制外部短链调用等待时间。
 - `BACKEND_MAVEN_IMAGE`、`BACKEND_RUNTIME_IMAGE`、`FRONTEND_NODE_IMAGE`、`FRONTEND_NGINX_IMAGE` 是可选基础镜像参数。默认使用官方镜像，Docker Hub 不稳定时可临时切换到可信镜像源。
 
 ## 4. 启动命令

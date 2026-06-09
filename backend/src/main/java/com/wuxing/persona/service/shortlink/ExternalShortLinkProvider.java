@@ -77,6 +77,7 @@ public class ExternalShortLinkProvider implements ShortLinkProvider {
     private ExternalShortLinkCreateRequest buildCreateRequest(String resultId) {
         AppProperties.ExternalShortLinkProperties external = appProperties.getShortLink().getExternal();
         ExternalShortLinkCreateRequest request = new ExternalShortLinkCreateRequest();
+        request.setDomain(external.getDomain());
         request.setOriginUrl(appProperties.getBaseUrl() + "/result/" + resultId);
         request.setGid(external.getGroupId());
         request.setCreatedType(0);
