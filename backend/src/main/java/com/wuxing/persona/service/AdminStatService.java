@@ -84,6 +84,14 @@ public class AdminStatService {
         long normalizedPage = Math.max(1, page);
         long normalizedPageSize = Math.min(100, Math.max(1, pageSize));
         long offset = (normalizedPage - 1) * normalizedPageSize;
+        ShortLinkEntity shortLink = shortLinkMapper.selectByShortCode(shortCode);
+        if (shortLink != null) {
+            java.util.Optional<PageVO<ShortLinkVisitVO>> externalRecords =
+                    externalShortLinkStatsAdapter.fetchAccessRecords(shortLink, normalizedPage, normalizedPageSize, range);
+            if (externalRecords.isPresent()) {
+                return externalRecords.get();
+            }
+        }
         List<ShortLinkVisitVO> records = visitEventMapper.listByShortCodeBetween(shortCode,
                         range.getStartAt(), range.getEndExclusive(), offset, normalizedPageSize).stream()
                 .map(this::toVisit)
@@ -166,6 +174,7 @@ public class AdminStatService {
         vo.setIpHash(entity.getIpHash());
         vo.setUserAgentHash(entity.getUserAgentHash());
         vo.setReferer(entity.getReferer());
+        vo.setStatSource("local");
         return vo;
     }
 

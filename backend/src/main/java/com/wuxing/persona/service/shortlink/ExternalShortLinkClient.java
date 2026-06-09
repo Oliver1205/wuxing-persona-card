@@ -5,4 +5,6 @@ public interface ExternalShortLinkClient {
     ExternalShortLinkCreateResponse create(ExternalShortLinkCreateRequest request);
 
     ExternalShortLinkStatsResponse stats(ExternalShortLinkStatsRequest request);
+
+    ExternalShortLinkAccessRecordPageResponse accessRecords(ExternalShortLinkAccessRecordRequest request);
 }

@@ -60,6 +60,7 @@ function dateFilter(): AdminDateFilter {
           <thead>
             <tr>
               <th>时间</th>
+              <th>来源</th>
               <th>事件</th>
               <th>Client Hash</th>
               <th>IP Hash</th>
@@ -70,6 +71,7 @@ function dateFilter(): AdminDateFilter {
           <tbody>
             <tr v-for="item in visits?.records" :key="`${item.createdAt}-${item.clientIdHash}`">
               <td>{{ item.createdAt }}</td>
+              <td>{{ item.statSource }}</td>
               <td>{{ item.eventType }}</td>
               <td>{{ item.clientIdHash }}</td>
               <td>{{ item.ipHash }}</td>
