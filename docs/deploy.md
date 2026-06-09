@@ -1,6 +1,6 @@
 # 部署说明
 
-当前状态：Docker Compose 初版已配置，并已完成容器运行验收。MySQL、Redis、backend、nginx 均可启动，Nginx 入口可完成 API、短链 302 和后台统计验证。v0.4 已补齐 external 短链创建和统计配置，v0.7 已补生产短链路由示例和部署预检脚本，v1.0 已补稳定版发布检查表，默认仍使用 `internal` 模式。
+当前状态：Docker Compose 初版已配置，并已完成容器运行验收。MySQL、Redis、backend、nginx 均可启动，Nginx 入口可完成 API、短链 302 和后台统计验证。v0.4 已补齐 external 短链创建和统计配置，v0.7 已补生产短链路由示例和部署预检脚本，v1.0 已补稳定版发布检查表，v1.1 已新增 external 模式 Compose overlay、环境样例、预检脚本和 smoke 联调脚本。默认仍使用 `internal` 模式。
 
 ## 1. 部署架构
 
@@ -35,6 +35,14 @@ MySQL 初始化脚本挂载自：
 ```text
 backend/src/main/resources/db/schema.sql
 ```
+
+external 模式使用叠加文件：
+
+```text
+deploy/docker-compose.external-mode.yml
+```
+
+该 overlay 只负责把五行 backend 切到 external 模式，并不启动外部短链项目。当前本地短链仓库 `/Users/linyuxiang/JavaBackend/01_Projects/shortlink` 没有可直接复用的 Docker Compose，因此外部 aggregation 服务需要单独启动或在服务器上另行编排。
 
 ## 3. 环境变量
 
@@ -84,10 +92,35 @@ v1.0 发布检查表见：
 docs/v1.0-release-checklist.md
 ```
 
+external 模式建议使用单独环境文件：
+
+```bash
+cp deploy/.env.external.example deploy/.env.external
+scripts/deploy-preflight.sh deploy/.env.external
+scripts/external-shortlink-preflight.sh deploy/.env.external
+```
+
+外部 aggregation 服务启动后，可增加连通性探测：
+
+```bash
+scripts/external-shortlink-preflight.sh deploy/.env.external --probe
+```
+
+注意：`deploy/.env.external.example` 中的 `replace-with-*` 只是占位值，不能直接用于生产部署。
+
 ## 4. 启动命令
 
 ```bash
 docker compose --env-file deploy/.env -f deploy/docker-compose.yml up --build -d
+```
+
+external 模式启动：
+
+```bash
+docker compose --env-file deploy/.env.external \
+  -f deploy/docker-compose.yml \
+  -f deploy/docker-compose.external-mode.yml \
+  up --build -d
 ```
 
 本地验收若需要避开 80 端口：
@@ -120,6 +153,15 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.yml logs -f backe
 
 ```bash
 docker compose --env-file deploy/.env -f deploy/docker-compose.yml down
+```
+
+external 模式停止：
+
+```bash
+docker compose --env-file deploy/.env.external \
+  -f deploy/docker-compose.yml \
+  -f deploy/docker-compose.external-mode.yml \
+  down
 ```
 
 ## 5. Nginx 路由
@@ -170,6 +212,14 @@ SHORT_LINK_EXTERNAL_STATS_ENABLED=true
 
 如果使用短链子域名，`SHORT_LINK_EXTERNAL_DOMAIN` 必须与短链服务生成的 `fullShortUrl` 域名一致，例如 `s.your-domain.com`。
 
+v1.1 详细对接步骤见：
+
+```text
+docs/external-shortlink-integration-guide.md
+docs/v1.1-external-shortlink-production-readiness.md
+docs/external-shortlink-privacy-audit.md
+```
+
 ## 6. 验证清单
 
 容器启动后验证：
@@ -180,6 +230,17 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.yml config
 curl http://localhost/api/health
 curl http://localhost/api/questions
 ```
+
+external smoke 联调：
+
+```bash
+WUXING_BASE_URL=http://127.0.0.1:8088 \
+ADMIN_TOKEN=<your-admin-token> \
+EXPECTED_STAT_SOURCE=external \
+scripts/external-shortlink-smoke-test.sh
+```
+
+如果外部短链服务尚未接管短链入口，`EXPECTED_STAT_SOURCE` 可以不传，只验证五行兼容入口 `/s/{shortCode}` 仍可跳转。
 
 浏览器验证：
 

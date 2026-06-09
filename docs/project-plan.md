@@ -2,7 +2,7 @@
 
 规划日期：2026-06-08
 
-当前状态：第一版 MVP 主链路已实现，并通过本地构建、后端集成测试、H2 演示模式浏览器验收和 Docker Compose 容器全链路验收。v0.2 已新增短链 Provider 适配层，v0.3 已补 external 模式真实 HTTP 联调配置和后台日期筛选统计，v0.4 已完成外部短链服务级联调和外部 PV / UV / UIP 统计适配，v0.5 已接入外部短链访问明细，v0.6 已建立 v1.0 前的统一质量门禁，v0.7 已完成生产路由与部署预检，v0.8 已增强后台运营可读性，v0.9 已完成稳定性与隐私审计加固，v1.0 已进入稳定版收口。
+当前状态：第一版 MVP 主链路已实现，并通过本地构建、后端集成测试、H2 演示模式浏览器验收和 Docker Compose 容器全链路验收。v0.2 已新增短链 Provider 适配层，v0.3 已补 external 模式真实 HTTP 联调配置和后台日期筛选统计，v0.4 已完成外部短链服务级联调和外部 PV / UV / UIP 统计适配，v0.5 已接入外部短链访问明细，v0.6 已建立 v1.0 前的统一质量门禁，v0.7 已完成生产路由与部署预检，v0.8 已增强后台运营可读性，v0.9 已完成稳定性与隐私审计加固，v1.0 已完成稳定版收口，v1.1 已推进 external 生产接入准备。
 
 关联文档：
 
@@ -19,6 +19,9 @@
 - v0.8 后台运营可读性增强：`docs/v0.8-admin-operational-insights.md`
 - v0.9 稳定性与隐私审计：`docs/v0.9-stability-privacy-audit.md`
 - v1.0 稳定版发布检查表：`docs/v1.0-release-checklist.md`
+- v1.1 外部短链生产级接入增强：`docs/v1.1-external-shortlink-production-readiness.md`
+- 外部短链服务对接说明：`docs/external-shortlink-integration-guide.md`
+- 外部短链接入隐私审计报告：`docs/external-shortlink-privacy-audit.md`
 - 教学手册：`docs/teaching-manual.md`
 
 ## 1. MVP 目标
@@ -257,6 +260,17 @@ flowchart LR
 - 新增 v1.0 发布检查表。
 - 同步项目计划、质量评分、教学手册和路线图。
 - 保持业务代码不扩范围，把 v1.0 定义为可演示 MVP 基线。
+
+### 阶段 18：v1.1 external 生产接入准备
+
+- 新增 `deploy/docker-compose.external-mode.yml`，用于在默认 Compose 上叠加 external 模式配置。
+- 新增 `deploy/.env.external.example`，单独保存 external 模式环境变量样例。
+- 新增 `scripts/external-shortlink-preflight.sh`，上线前检查 external baseUrl、groupId、domain、系统用户 header、布尔开关和本地短链项目路径。
+- 新增 `scripts/external-shortlink-smoke-test.sh`，用于创建真实测算、验证短链 302 和可选后台 `statSource`。
+- 补充 RestClient 和 Provider 失败场景测试：外部业务错误码、统计空数据、访问明细错误码、外部短码冲突降级、关闭 fallback 后明确抛错。
+- 新增 v1.1 阶段文档、外部短链服务对接说明和外部短链接入隐私审计报告。
+- 更新 README、部署说明、短链集成评估、教学手册和质量评分。
+- 不执行服务器真实部署，保留明天部署时的 probe 和 smoke 验证步骤。
 
 ## 5. 当前验证
 

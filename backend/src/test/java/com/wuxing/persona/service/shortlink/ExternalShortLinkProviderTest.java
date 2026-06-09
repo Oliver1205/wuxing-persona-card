@@ -108,6 +108,26 @@ class ExternalShortLinkProviderTest {
     }
 
     @Test
+    void createForResultShouldFallbackToInternalWhenExternalCodeConflictsWithLocalBinding() {
+        when(shortLinkMapper.selectByResultId("R2")).thenReturn(null);
+        when(shortLinkMapper.countByShortCode("Dup123")).thenReturn(1L);
+        ExternalShortLinkCreateResponse response = new ExternalShortLinkCreateResponse();
+        response.setFullShortUrl("https://s.example.com/Dup123");
+        when(externalShortLinkClient.create(any(ExternalShortLinkCreateRequest.class))).thenReturn(response);
+        ShortLinkEntity fallback = new ShortLinkEntity();
+        fallback.setResultId("R2");
+        fallback.setShortCode("local1");
+        when(internalShortLinkProvider.createForResult("R2")).thenReturn(fallback);
+
+        ShortLinkEntity result = provider.createForResult("R2");
+
+        assertSame(fallback, result);
+        verify(shortLinkMapper, never()).insert(any(ShortLinkEntity.class));
+        verify(redisCacheService, never()).setShortLinkResultId(any(), any());
+        verify(internalShortLinkProvider).createForResult("R2");
+    }
+
+    @Test
     void createForResultShouldFailWhenRemoteFailsAndFallbackDisabled() {
         appProperties.getShortLink().getExternal().setFallbackToInternal(false);
         when(shortLinkMapper.selectByResultId("R3")).thenReturn(null);
@@ -117,6 +137,23 @@ class ExternalShortLinkProviderTest {
         BusinessException exception = assertThrows(BusinessException.class, () -> provider.createForResult("R3"));
 
         assertEquals("external short link service unavailable", exception.getMessage());
+        verify(internalShortLinkProvider, never()).createForResult("R3");
+    }
+
+    @Test
+    void createForResultShouldFailWhenExternalCodeConflictsAndFallbackDisabled() {
+        appProperties.getShortLink().getExternal().setFallbackToInternal(false);
+        when(shortLinkMapper.selectByResultId("R3")).thenReturn(null);
+        when(shortLinkMapper.countByShortCode("Dup123")).thenReturn(1L);
+        ExternalShortLinkCreateResponse response = new ExternalShortLinkCreateResponse();
+        response.setFullShortUrl("https://s.example.com/Dup123");
+        when(externalShortLinkClient.create(any(ExternalShortLinkCreateRequest.class))).thenReturn(response);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> provider.createForResult("R3"));
+
+        assertEquals("external shortCode already exists in local binding", exception.getMessage());
+        verify(shortLinkMapper, never()).insert(any(ShortLinkEntity.class));
+        verify(redisCacheService, never()).setShortLinkResultId(any(), any());
         verify(internalShortLinkProvider, never()).createForResult("R3");
     }
 

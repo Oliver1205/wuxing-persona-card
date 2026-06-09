@@ -6,7 +6,7 @@
 
 评估日期：2026-06-08
 
-当前落地策略：五行人格卡 v0.1 已先实现内置短链接能力，确保 MVP 不依赖外部服务也能独立运行。v0.2 已新增短链适配层，支持 `internal` / `external` Provider 配置切换；v0.3 已补齐 external 创建请求的真实 HTTP 路径、系统用户 header、短链域名和超时配置，并为后台增加日期筛选；v0.4 已完成本地独立短链服务级联调，并在后台短链列表接入外部 PV / UV / UIP 统计。外部服务创建失败时默认降级到内置短链，外部统计读取失败时回退本地统计，确保测算主链路不被外部服务可用性拖垮。
+当前落地策略：五行人格卡 v0.1 已先实现内置短链接能力，确保 MVP 不依赖外部服务也能独立运行。v0.2 已新增短链适配层，支持 `internal` / `external` Provider 配置切换；v0.3 已补齐 external 创建请求的真实 HTTP 路径、系统用户 header、短链域名和超时配置，并为后台增加日期筛选；v0.4 已完成本地独立短链服务级联调，并在后台短链列表接入外部 PV / UV / UIP 统计；v0.5 已接入外部访问明细；v1.1 已补 external 生产接入 overlay、预检脚本、smoke 联调脚本、失败场景测试、对接说明和隐私审计。外部服务创建失败时默认降级到内置短链，外部统计读取失败时回退本地统计，确保测算主链路不被外部服务可用性拖垮。
 
 ## 1. 项目结论
 
@@ -336,6 +336,30 @@ server {
 5. 短链详情页调用外部 `/api/short-link/v1/stats/access-record`。
 6. 外部访问记录的 `ip` 和 `user` 字段按五行项目 `HASH_SALT` 做 hash 后返回，避免后台展示明文。
 
+### 阶段 E：v1.1 生产接入准备
+
+目标：明天正式部署前，五行项目侧已有可执行检查和交接文档。
+
+状态：v1.1 已完成工程化准备，不执行服务器真实部署。
+
+已完成：
+
+1. 新增 `deploy/docker-compose.external-mode.yml`，在默认 Compose 基础上切换 backend 到 external 模式。
+2. 新增 `deploy/.env.external.example`，单独记录 external 模式所需环境变量。
+3. 新增 `scripts/external-shortlink-preflight.sh`，校验 external baseUrl、groupId、domain、系统用户 header、布尔开关和本地短链项目路径。
+4. 新增 `scripts/external-shortlink-smoke-test.sh`，创建测算结果并验证短链 302、可选后台 `statSource`。
+5. 新增 [外部短链服务对接说明](external-shortlink-integration-guide.md)，明确 API、header、统计和路由约定。
+6. 新增 [外部短链接入隐私审计报告](external-shortlink-privacy-audit.md)，明确五行后台已脱敏展示，但外部短链项目自身明文 IP 入库仍需生产前治理。
+7. 补充 external 失败场景测试：业务错误码、空数据、访问明细错误码、外部短码冲突降级和关闭降级后的明确错误。
+
+明天部署时仍需做：
+
+- 启动外部短链项目 `aggregation` 及其 MySQL `link` 库、Redis、Nacos。
+- 初始化或确认 `wuxing_system` 用户和 `wuxing_persona` 分组。
+- 决定短链入口使用子域名还是同域 `/s/**` rewrite。
+- 用真实生产值替换 `deploy/.env.external`。
+- 执行 external 预检、五行 external Compose 启动和 smoke 联调。
+
 ## 7. 建议保留和裁剪
 
 保留：
@@ -394,3 +418,7 @@ v0.3 面试表达可以继续升级为：
 v0.4 面试表达可以再升级为：
 
 > 我完成了 external 模式的真实服务级联调：五行结果创建后调用独立短链服务生成短链，用户访问外部短链服务会 302 回五行结果页，五行项目继续保存本地业务绑定。后台短链列表在 external stats 开启后会读取外部 PV、UV、UIP，并用 `statSource` 标记统计来源；外部统计不可用时回退本地统计，保证主链路稳定。
+
+v1.1 面试表达可以继续升级为：
+
+> 我没有停留在“能联调”的状态，而是继续补了 external 模式的生产接入准备：独立的 Compose overlay、external 环境样例、部署前预检脚本、端到端 smoke 脚本、失败场景测试、对接说明和隐私审计。这样上线前能快速确认配置、domain、系统用户、fallback 和统计来源，外部服务故障时也不会影响核心测算闭环。

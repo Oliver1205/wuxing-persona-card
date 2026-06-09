@@ -16,7 +16,7 @@ require_key() {
   if [[ -z "$value" ]]; then
     fail "Missing required env key: ${key}"
   fi
-  if [[ "$value" == "change-me" || "$value" == "https://your-domain.com" ]]; then
+  if [[ "$value" == "change-me" || "$value" == replace-with-* || "$value" == "https://your-domain.com" ]]; then
     fail "Replace placeholder value for ${key}"
   fi
 }
@@ -46,4 +46,3 @@ if grep -E '(^|=)(changeme|password|123456)$' "$ENV_FILE" >/dev/null; then
 fi
 
 echo "Deploy preflight passed for ${ENV_FILE}"
-
