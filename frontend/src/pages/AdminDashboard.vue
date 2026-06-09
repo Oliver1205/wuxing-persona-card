@@ -56,6 +56,10 @@ function detailQuery() {
   }
   return query;
 }
+
+function statSourceLabel(source: ShortLinkListItem['statSource']) {
+  return source === 'external' ? '外部' : '本地';
+}
 </script>
 
 <template>
@@ -117,6 +121,7 @@ function detailQuery() {
                   <th>PV</th>
                   <th>UV</th>
                   <th>UIP</th>
+                  <th>来源</th>
                   <th>详情</th>
                 </tr>
               </thead>
@@ -129,6 +134,7 @@ function detailQuery() {
                   <td>{{ item.pv }}</td>
                   <td>{{ item.uv }}</td>
                   <td>{{ item.uip }}</td>
+                  <td>{{ statSourceLabel(item.statSource) }}</td>
                   <td>
                     <RouterLink :to="{ path: `/admin/short-links/${item.shortCode}`, query: detailQuery() }">查看</RouterLink>
                   </td>

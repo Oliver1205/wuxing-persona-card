@@ -8,6 +8,8 @@ import com.wuxing.persona.enums.EventType;
 import com.wuxing.persona.mapper.ShortLinkMapper;
 import com.wuxing.persona.mapper.UserResultMapper;
 import com.wuxing.persona.mapper.VisitEventMapper;
+import com.wuxing.persona.service.shortlink.ExternalShortLinkStatsAdapter;
+import com.wuxing.persona.service.shortlink.ExternalShortLinkStatsSnapshot;
 import com.wuxing.persona.vo.AdminOverviewVO;
 import com.wuxing.persona.vo.NameCountVO;
 import com.wuxing.persona.vo.PageVO;
@@ -24,11 +26,16 @@ public class AdminStatService {
     private final UserResultMapper userResultMapper;
     private final ShortLinkMapper shortLinkMapper;
     private final VisitEventMapper visitEventMapper;
+    private final ExternalShortLinkStatsAdapter externalShortLinkStatsAdapter;
 
-    public AdminStatService(UserResultMapper userResultMapper, ShortLinkMapper shortLinkMapper, VisitEventMapper visitEventMapper) {
+    public AdminStatService(UserResultMapper userResultMapper,
+                            ShortLinkMapper shortLinkMapper,
+                            VisitEventMapper visitEventMapper,
+                            ExternalShortLinkStatsAdapter externalShortLinkStatsAdapter) {
         this.userResultMapper = userResultMapper;
         this.shortLinkMapper = shortLinkMapper;
         this.visitEventMapper = visitEventMapper;
+        this.externalShortLinkStatsAdapter = externalShortLinkStatsAdapter;
     }
 
     public AdminOverviewVO overview(AdminDateRange range) {
@@ -124,6 +131,16 @@ public class AdminStatService {
                             range.getStartAt(), range.getEndExclusive());
                     long uip = visitEventMapper.countUipByShortCodeBetween(row.getShortCode(),
                             range.getStartAt(), range.getEndExclusive());
+                    String statSource = "local";
+                    java.util.Optional<ExternalShortLinkStatsSnapshot> externalStats =
+                            externalShortLinkStatsAdapter.fetchStats(row, range);
+                    if (externalStats.isPresent()) {
+                        ExternalShortLinkStatsSnapshot snapshot = externalStats.get();
+                        pv = snapshot.getPv();
+                        uv = snapshot.getUv();
+                        uip = snapshot.getUip();
+                        statSource = "external";
+                    }
                     ShortLinkListItemVO vo = new ShortLinkListItemVO();
                     vo.setShortCode(row.getShortCode());
                     vo.setShortUrl(row.getShortUrl());
@@ -134,6 +151,7 @@ public class AdminStatService {
                     vo.setPv(pv);
                     vo.setUv(uv);
                     vo.setUip(uip);
+                    vo.setStatSource(statSource);
                     vo.setLastVisitAt(row.getLastVisitAt());
                     return vo;
                 })

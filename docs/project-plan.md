@@ -2,7 +2,7 @@
 
 规划日期：2026-06-08
 
-当前状态：第一版 MVP 主链路已实现，并通过本地构建、后端集成测试、H2 演示模式浏览器验收和 Docker Compose 容器全链路验收。v0.2 已新增短链 Provider 适配层，v0.3 已补 external 模式真实 HTTP 联调配置和后台日期筛选统计。
+当前状态：第一版 MVP 主链路已实现，并通过本地构建、后端集成测试、H2 演示模式浏览器验收和 Docker Compose 容器全链路验收。v0.2 已新增短链 Provider 适配层，v0.3 已补 external 模式真实 HTTP 联调配置和后台日期筛选统计，v0.4 已完成外部短链服务级联调和外部 PV / UV / UIP 统计适配。
 
 关联文档：
 
@@ -12,6 +12,7 @@
 - 短链系统评估：`docs/shortlink-integration-assessment.md`
 - v0.2 短链适配层设计：`docs/v0.2-shortlink-adapter-design.md`
 - v0.3 外部短链联调准备与后台日期统计：`docs/v0.3-external-shortlink-and-analytics.md`
+- v0.4 外部短链服务级联调与统计适配：`docs/v0.4-external-shortlink-service-integration.md`
 - 教学手册：`docs/teaching-manual.md`
 
 ## 1. MVP 目标
@@ -57,6 +58,20 @@ flowchart LR
 - 可控：不用先处理外部短链系统的账号、分组、网关和多服务部署。
 - 快速：MVP 能独立完成结果分享、跳转、统计。
 - 可演进：后续只需要替换 `ShortLinkService` 的实现，五行业务表继续保存 resultId 和 shortUrl 绑定。
+
+v0.4 后，短链模块已经具备可切换服务形态：
+
+```mermaid
+flowchart LR
+  ResultService["ResultService"] --> ShortLinkService["ShortLinkService"]
+  ShortLinkService --> Provider["ShortLinkProvider"]
+  Provider --> Internal["InternalShortLinkProvider"]
+  Provider --> External["ExternalShortLinkProvider"]
+  External --> Client["RestExternalShortLinkClient"]
+  Client --> Shortlink["独立短链服务"]
+  Admin["AdminStatService"] --> Stats["ExternalShortLinkStatsAdapter"]
+  Stats --> Shortlink
+```
 
 ## 3. 服务职责
 
@@ -180,6 +195,17 @@ flowchart LR
 - 短链访问日志支持按访问日期筛选。
 - 前端后台页和短链详情页增加日期筛选控件。
 
+### 阶段 11：v0.4 外部短链服务级联调与统计适配
+
+- 启动本地独立短链项目 `aggregation` 服务完成真实联调。
+- external 模式下五行创建结果可调用外部短链服务创建短链。
+- 外部短链服务返回的 `fullShortUrl` 会保存为五行本地业务绑定。
+- 访问外部短链可 302 到五行结果页。
+- 五行本地 `/s/{code}` 保留兼容跳转能力。
+- 新增外部短链统计读取适配，后台短链列表可显示 external PV / UV / UIP。
+- 新增 `statSource` 字段区分本地统计和外部统计。
+- 外部统计不可用时回退本地统计。
+
 ## 5. 当前验证
 
 已通过：
@@ -234,10 +260,16 @@ v0.3 测试覆盖：
 - 后台日期筛选：当天有数据、未来日期为空、非法日期范围返回 400。
 - 不传日期时保持原有全量累计统计行为。
 
+v0.4 测试和联调覆盖：
+
+- external RestClient 统计接口路径、查询参数和系统用户 header。
+- `ExternalShortLinkStatsAdapter` 的成功读取、失败回退、internal 模式跳过和 domain 不匹配跳过。
+- 本地服务级联调：创建结果、外部短链创建、外部 302、五行本地业务绑定、后台 `statSource=external`。
+
 ## 6. 下一阶段建议
 
-1. 启动独立短链接项目，完成 `SHORT_LINK_MODE=external` 的服务级联调。
-2. 接入独立短链统计接口，复用其更完整的 PV/UV/UIP 和访问记录能力。
+1. 确定生产短链入口：独立短链子域名或同域 `/s/**` rewrite。
+2. 接入独立短链访问记录接口，让后台短链详情支持 external 明细来源。
 3. 增加趋势图或小时分布，但保持后台为轻量数据中台，不做复杂 BI 大屏。
 4. 增加结果卡片图片生成或截图分享。
 5. 上线前配置域名、HTTPS、强随机 token、强密码和真实 `APP_BASE_URL`。

@@ -84,6 +84,7 @@ export interface ShortLinkListItem {
   pv: number;
   uv: number;
   uip: number;
+  statSource: 'local' | 'external';
   lastVisitAt: string | null;
 }
 

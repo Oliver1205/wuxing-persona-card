@@ -6,7 +6,7 @@
 
 评估日期：2026-06-08
 
-当前落地策略：五行人格卡 v0.1 已先实现内置短链接能力，确保 MVP 不依赖外部服务也能独立运行。v0.2 已新增短链适配层，支持 `internal` / `external` Provider 配置切换；v0.3 已补齐 external 创建请求的真实 HTTP 路径、系统用户 header、短链域名和超时配置，并为后台增加日期筛选。外部服务创建失败时默认降级到内置短链，确保测算主链路不被外部服务可用性拖垮。
+当前落地策略：五行人格卡 v0.1 已先实现内置短链接能力，确保 MVP 不依赖外部服务也能独立运行。v0.2 已新增短链适配层，支持 `internal` / `external` Provider 配置切换；v0.3 已补齐 external 创建请求的真实 HTTP 路径、系统用户 header、短链域名和超时配置，并为后台增加日期筛选；v0.4 已完成本地独立短链服务级联调，并在后台短链列表接入外部 PV / UV / UIP 统计。外部服务创建失败时默认降级到内置短链，外部统计读取失败时回退本地统计，确保测算主链路不被外部服务可用性拖垮。
 
 ## 1. 项目结论
 
@@ -24,7 +24,7 @@
     -> /s/{code}      短链服务跳转入口
 
 五行后端
-  -> MySQL / Redis
+  -> 五行 MySQL / Redis
   -> 内部调用短链服务创建短链、查询短链统计
 
 短链服务
@@ -133,7 +133,7 @@ GET /api/short-link/v1/stats/group?gid=wuxing_persona&startDate=2026-06-08&endDa
 GET /api/short-link/v1/stats/access-record?fullShortUrl=...&gid=wuxing_persona&enableStatus=0&startDate=...&endDate=...&current=1&size=20
 ```
 
-五行后台 `/admin` 可以调用这些接口展示短链 PV/UV/UIP 和访问记录。
+五行后台 `/admin` 已在 v0.4 接入单条短链统计接口，用于短链列表展示 PV / UV / UIP。访问记录接口仍保留为下一步，可让短链详情页展示 external 来源的明细。
 
 ## 4. 已覆盖 AGENTS 要求的能力
 
@@ -237,11 +237,35 @@ realName: wuxing-system
 - 新增无端口 HTTP client 测试，验证 URI、header 和 JSON body，避免本地测试依赖外部服务启动。
 - 后台接口新增 `startDate/endDate`，便于后续比对五行本地统计和外部短链统计。
 
-仍未完成：
+### 已完成：v0.4 服务级联调与统计适配
 
-- 尚未把五行 Nginx `/s/**` 或短链子域名切到外部短链服务。
-- 尚未启动外部短链项目完成真实服务级联调。
-- 尚未从外部短链统计接口读取 PV/UV/UIP。
+五行项目当前已经完成：
+
+- 启动本地独立短链项目 `aggregation` 服务并完成真实服务级联调。
+- `SHORT_LINK_MODE=external` 下，五行 `POST /api/results` 可调用外部短链项目创建短链。
+- 外部返回的 `fullShortUrl` 会解析为 `shortCode`，并保存到五行本地 `short_link` 业务绑定。
+- 访问外部短链服务 `/{shortCode}` 可 302 到五行结果页。
+- 五行后端 `/s/{shortCode}` 仍保留兼容跳转能力，适配 internal 模式和本地兜底。
+- 新增 `ExternalShortLinkStatsAdapter`，后台短链列表可读取外部统计接口的 PV / UV / UIP。
+- 新增 `statSource` 字段，标记短链列表当前统计来自 `local` 或 `external`。
+- 外部统计读取失败、domain 不匹配或 stats 未启用时，自动保留五行本地统计。
+
+本地联调证据：
+
+```text
+resultId: R20260609153410726802
+shortCode: 1cgeMu
+shortUrl: http://127.0.0.1:8003/1cgeMu
+external short link Location: http://127.0.0.1:4173/result/R20260609153410726802
+admin statSource: external
+admin pv/uv/uip: 1/1/1
+```
+
+仍需后续处理：
+
+- 生产环境尚未真正把 Nginx `/s/**` 或短链子域名切到外部短链服务。
+- 短链详情页尚未读取外部 `/api/short-link/v1/stats/access-record` 访问记录。
+- 外部短链项目自身的明文 IP 入库问题尚未改造。
 
 ### 阶段 A：本地跑通短链服务
 
@@ -259,7 +283,7 @@ realName: wuxing-system
 
 目标：五行结果创建后自动生成短链。
 
-状态：五行侧联调代码已就绪，等待外部短链服务实际启动后做服务级验证。
+状态：v0.4 已完成本地服务级验证。
 
 动作：
 
@@ -302,12 +326,19 @@ server {
 
 目标：`/admin` 能看到每条短链 PV/UV/UIP。
 
-动作：
+状态：v0.4 已完成短链列表 PV / UV / UIP 读取，短链访问明细仍待后续接入。
+
+已完成：
 
 1. 五行后台短链列表读取本地结果表 + 短链绑定。
-2. 对每条短链调用独立短链服务的统计接口。
-3. 展示 `pv/uv/uip/lastVisitAt`。
-4. 明细页调用访问记录接口。
+2. 对匹配外部 domain 的短链调用独立短链服务统计接口。
+3. 展示 `pv/uv/uip` 和 `statSource`。
+4. 外部统计失败时回退本地统计。
+
+下一步：
+
+1. 短链详情页调用访问记录接口。
+2. 统一 external 明细字段和五行本地 hash 隐私口径。
 
 ## 7. 建议保留和裁剪
 
@@ -363,3 +394,7 @@ v0.2 面试表达可以进一步升级为：
 v0.3 面试表达可以继续升级为：
 
 > 我进一步把 External Provider 从“概念预留”推进到“可联调状态”：请求路径、外部系统用户 header、短链域名、超时和失败降级都配置化，并用无端口 HTTP client 测试验证真实请求结构。同时后台支持日期筛选，后续接外部短链统计时可以按同一时间窗口对齐本地业务数据和短链服务数据。
+
+v0.4 面试表达可以再升级为：
+
+> 我完成了 external 模式的真实服务级联调：五行结果创建后调用独立短链服务生成短链，用户访问外部短链服务会 302 回五行结果页，五行项目继续保存本地业务绑定。后台短链列表在 external stats 开启后会读取外部 PV、UV、UIP，并用 `statSource` 标记统计来源；外部统计不可用时回退本地统计，保证主链路稳定。

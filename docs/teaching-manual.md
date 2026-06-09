@@ -146,6 +146,34 @@ v0.3 做的是联调前最关键的工程收口：
 
 新增的 `RestExternalShortLinkClientTest` 使用无端口的 `ClientHttpRequestFactory` 捕获请求，验证 URI、header 和 JSON body。这样测试不需要连接公网，也不需要本机额外启动短链服务，但能证明五行侧发出的请求结构是对的。
 
+### 5.3 v0.4 为什么要做服务级联调和统计适配
+
+v0.3 证明了“五行侧会发正确的 HTTP 请求”，但还不能证明外部短链项目真的能接住这条链路。v0.4 补上了这一步：
+
+- 本地启动独立短链项目 `aggregation` 服务。
+- 初始化固定系统用户和 `wuxing_persona` 分组。
+- 五行后端用 `SHORT_LINK_MODE=external` 创建结果。
+- 外部短链服务返回真实 `fullShortUrl`。
+- 访问外部短链后 302 到五行结果页。
+- 五行后台短链列表读取外部 PV / UV / UIP。
+
+这里的工程重点是“服务职责不混在一起”：
+
+```text
+五行项目保存业务绑定和人格结果
+外部短链服务负责短码基础设施和访问统计
+后台聚合两边数据，展示给运营或开发者
+```
+
+v0.4 新增的 `ExternalShortLinkStatsAdapter` 不是直接替换本地统计，而是先判断：
+
+1. 当前是否为 `external` 模式。
+2. 是否开启 `SHORT_LINK_EXTERNAL_STATS_ENABLED`。
+3. 短链域名是否匹配外部短链服务 domain。
+4. 外部统计接口是否成功返回。
+
+只有全部满足时，后台短链列表才使用 external 统计，并把 `statSource` 标记为 `external`。否则继续显示本地统计。这种设计能避免外部系统抖动时影响后台可用性，也方便面试时说明“外部依赖要有降级策略”。
+
 ## 6. PV / UV / UIP 怎么统计
 
 前端 `clientId.ts` 首次访问生成匿名 ID：
@@ -215,6 +243,8 @@ v0.3 又补了日期筛选：
 - 单条短链访问日志按 `SHORT_LINK_VISIT` 事件时间筛选。
 
 这样做的价值是：项目一旦上线，不同日期的访问数据才能被分析；后续接外部短链统计接口时，也能按同一个时间窗口对齐五行本地数据和短链服务数据。
+
+v0.4 又把这个时间窗口传给外部短链统计接口。外部短链服务用时间边界查询访问日志，所以五行侧会把 `endDate` 向后补一天，确保选择某一天时能覆盖当天完整访问数据。后台列表新增 `statSource` 字段，能看出 PV / UV / UIP 来自本地还是外部服务。
 
 ## 10. 测试怎么覆盖
 
@@ -334,6 +364,14 @@ v0.3 新增验证：
 - 后台日期筛选：当天有数据、未来日期为空。
 - 非法日期范围返回 400。
 
+v0.4 新增验证：
+
+- external RestClient 统计接口路径、查询参数和系统用户 header。
+- `ExternalShortLinkStatsAdapter` 在 external stats 开启且 domain 匹配时读取外部统计。
+- 外部统计接口失败时回退本地统计。
+- internal 模式和 domain 不匹配时不调用外部统计。
+- 本地服务级联调覆盖外部短链创建、外部 302、五行本地业务绑定和后台 `statSource=external`。
+
 ## 12. 面试表达重点
 
 可以这样讲：
@@ -347,6 +385,7 @@ v0.3 新增验证：
 7. Docker Compose 把 MySQL、Redis、后端、Nginx 组织成单机部署方案，并已跑通过容器验收。
 8. v0.2 把短链模块抽象成 Provider 适配层，体现从 MVP 到可服务化集成的演进能力。
 9. v0.3 把 external 模式推进到可联调状态，并用日期筛选增强后台数据分析能力。
+10. v0.4 完成 external 服务级联调，并让后台短链列表能够读取外部 PV、UV、UIP。
 
 ## 13. 后续学习建议
 
@@ -358,6 +397,7 @@ v0.3 新增验证：
 4. `service/shortlink/InternalShortLinkProvider`：理解内置短链如何作为默认 Provider。
 5. `service/shortlink/ExternalShortLinkProvider`：理解外部服务接入、业务绑定和失败降级。
 6. `service/shortlink/RestExternalShortLinkClient`：理解真实 HTTP client 如何对齐外部服务协议。
-7. `VisitEventService`：理解 PV/UV/UIP 和隐私。
-8. `AdminStatService`：理解后台聚合和日期筛选。
-9. `frontend/src/api/request.ts` 和 `tracker.ts`：理解前端如何把匿名 ID 和埋点接入后端。
+7. `service/shortlink/ExternalShortLinkStatsAdapter`：理解外部统计读取、domain 防误调和失败回退。
+8. `VisitEventService`：理解 PV/UV/UIP 和隐私。
+9. `AdminStatService`：理解后台聚合、日期筛选和统计来源切换。
+10. `frontend/src/api/request.ts` 和 `tracker.ts`：理解前端如何把匿名 ID 和埋点接入后端。

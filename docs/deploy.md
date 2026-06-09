@@ -1,6 +1,6 @@
 # 部署说明
 
-当前状态：Docker Compose 初版已配置，并已完成容器运行验收。MySQL、Redis、backend、nginx 均可启动，Nginx 入口可完成 API、短链 302 和后台统计验证。
+当前状态：Docker Compose 初版已配置，并已完成容器运行验收。MySQL、Redis、backend、nginx 均可启动，Nginx 入口可完成 API、短链 302 和后台统计验证。v0.4 已补齐 external 短链创建和统计配置，默认仍使用 `internal` 模式。
 
 ## 1. 部署架构
 
@@ -14,9 +14,10 @@
 Spring Boot
   -> MySQL
   -> Redis
+  -> optional external shortlink service
 ```
 
-第一版短链接内置在五行后端，后续接入独立短链服务时再增加 `shortlink` 服务和 Nginx rewrite。
+默认短链接内置在五行后端。切换 `SHORT_LINK_MODE=external` 后，五行后端会优先调用独立短链服务创建短链；`SHORT_LINK_EXTERNAL_STATS_ENABLED=true` 时，后台短链列表会读取独立短链服务的 PV / UV / UIP。
 
 ## 2. Compose 服务
 
@@ -65,6 +66,8 @@ HASH_SALT=<strong-random-salt>
 - `SHORT_LINK_EXTERNAL_DOMAIN` 对应外部短链项目 `short-link.domain.default`，例如 `nurl.ink:8003`。
 - `SHORT_LINK_EXTERNAL_FALLBACK_TO_INTERNAL` 默认为 `true`，外部服务不可用时自动降级到内置短链。
 - `SHORT_LINK_EXTERNAL_CONNECT_TIMEOUT_MILLIS` 和 `SHORT_LINK_EXTERNAL_READ_TIMEOUT_MILLIS` 用于限制外部短链调用等待时间。
+- `SHORT_LINK_EXTERNAL_STATS_ENABLED` 默认为 `false`，开启后后台短链列表会尝试读取外部短链 PV / UV / UIP。
+- `SHORT_LINK_EXTERNAL_STATS_ENABLE_STATUS` 对应外部短链统计接口的 `enableStatus`，默认 `0`。
 - `BACKEND_MAVEN_IMAGE`、`BACKEND_RUNTIME_IMAGE`、`FRONTEND_NODE_IMAGE`、`FRONTEND_NGINX_IMAGE` 是可选基础镜像参数。默认使用官方镜像，Docker Hub 不稳定时可临时切换到可信镜像源。
 
 ## 4. 启动命令
@@ -116,7 +119,7 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.yml down
 /admin         -> Vue H5 后台路由
 ```
 
-如果后续接入独立短链服务，同域路径可改成：
+v0.4 已完成外部短链服务级联调。若生产接入独立短链服务，同域路径可改成：
 
 ```nginx
 location /s/ {
@@ -132,7 +135,16 @@ your-domain.com   -> 五行 H5 和 API
 s.your-domain.com -> 独立短链服务
 ```
 
-v0.2 后端已经支持短链 Provider 配置切换。只验证“外部创建短链 + 失败降级”时，可以先保持 Nginx `/s/**` 指向五行后端；等独立短链服务稳定后，再把 `/s/**` 或短链子域名切到短链服务。
+只验证“外部创建短链 + 外部统计读取 + 失败降级”时，可以先保持 Nginx `/s/**` 指向五行后端；等独立短链服务稳定后，再把 `/s/**` 或短链子域名切到短链服务。
+
+external 模式建议配置：
+
+```text
+SHORT_LINK_MODE=external
+SHORT_LINK_EXTERNAL_BASE_URL=http://shortlink:8003
+SHORT_LINK_EXTERNAL_DOMAIN=s.your-domain.com
+SHORT_LINK_EXTERNAL_STATS_ENABLED=true
+```
 
 ## 6. 验证清单
 

@@ -91,6 +91,8 @@ public class AppProperties {
         private String systemRealName = "wuxing-system";
         private int connectTimeoutMillis = 2000;
         private int readTimeoutMillis = 3000;
+        private boolean statsEnabled = false;
+        private int statsEnableStatus = 0;
 
         public String getBaseUrl() {
             return baseUrl;
@@ -162,6 +164,22 @@ public class AppProperties {
 
         public void setReadTimeoutMillis(int readTimeoutMillis) {
             this.readTimeoutMillis = readTimeoutMillis;
+        }
+
+        public boolean isStatsEnabled() {
+            return statsEnabled;
+        }
+
+        public void setStatsEnabled(boolean statsEnabled) {
+            this.statsEnabled = statsEnabled;
+        }
+
+        public int getStatsEnableStatus() {
+            return statsEnableStatus;
+        }
+
+        public void setStatsEnableStatus(int statsEnableStatus) {
+            this.statsEnableStatus = statsEnableStatus;
         }
 
         private static String trimTrailingSlashValue(String value, String defaultValue) {

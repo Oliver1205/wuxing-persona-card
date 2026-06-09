@@ -12,13 +12,14 @@
 
 | 项 | 说明 |
 | --- | --- |
-| 当前版本 | `v0.3.0-external-shortlink-and-analytics` |
-| 当前分支 | `feature/v0.3-external-shortlink-and-analytics` |
+| 当前版本 | `v0.4.0-external-shortlink-service-integration` |
+| 当前分支 | `feature/v0.4-external-shortlink-service-integration` |
 | MVP 状态 | v0.1 已完成完整单人测算闭环 |
 | v0.2 状态 | 已完成短链接 Provider 适配层，可配置 `internal` / `external` 模式 |
 | v0.3 状态 | 已增强 external 真实 HTTP 联调配置，并为后台总览、短链列表、访问日志增加日期筛选 |
-| 最新自评 | 98 / 100，详见 [quality-scorecard.md](docs/quality-scorecard.md) |
-| GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics` |
+| v0.4 状态 | 已完成外部短链服务级联调，后台短链列表可读取外部 PV / UV / UIP |
+| 最新自评 | 99 / 100，详见 [quality-scorecard.md](docs/quality-scorecard.md) |
+| GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics`、`v0.4.0-external-shortlink-service-integration` |
 
 ## 核心亮点
 
@@ -26,7 +27,8 @@
 - **完整访问统计**：记录并展示 PV、UV、UIP、提交量、短链访问量。
 - **隐私克制**：不做登录注册，不收集昵称和性别，clientId、IP、User-Agent 均 hash 后入库。
 - **Redis 缓存闭环**：结果详情缓存、短链解析缓存、无效短码空值缓存均已落地。
-- **可切换短链架构**：v0.2 将短链模块升级为 Provider 适配层，默认内置实现，预留外部短链服务。
+- **可切换短链架构**：v0.2 将短链模块升级为 Provider 适配层，默认内置实现，external 模式可接入独立短链服务。
+- **外部短链服务级联调**：v0.4 已跑通本地独立短链项目创建短链、302 跳转和外部 PV / UV / UIP 读取。
 - **后台日期分析**：v0.3 支持按日期查看总览指标、短链列表和单条短链访问日志。
 - **可部署验证**：Docker Compose 管理 MySQL、Redis、后端和 Nginx，已完成本地容器验收。
 - **教学沉淀**：项目计划、质量评分、短链集成方案、教学手册均已文档化。
@@ -97,8 +99,12 @@ flowchart LR
   Nginx --> Frontend["Vue H5 静态资源"]
   Nginx --> Api["Spring Boot API"]
   Nginx --> ShortEntry["/s/{shortCode}"]
-  Api --> MySQL["MySQL"]
-  Api --> Redis["Redis"]
+  Api --> MySQL["五行 MySQL"]
+  Api --> Redis["五行 Redis"]
+  Api --> Provider["ShortLinkProvider"]
+  Provider --> Internal["Internal Provider"]
+  Provider --> External["External Provider"]
+  External -. external mode .-> Shortlink["独立短链服务"]
 ```
 
 ## 核心流程图
@@ -121,6 +127,7 @@ flowchart LR
 - 结果生成：出生年月、可选日期和时段、5 道价值题、五行主副比例、星官、关键词和三段正向文案。
 - 短链接：每个结果生成一个 6 位 Base62 短码，访问 `/s/{shortCode}` 后 302 跳回同一个结果页。
 - 短链适配层：默认使用内置短链，也可通过配置切换到外部短链服务创建模式，外部失败时可降级到内置实现。
+- 外部短链统计：external 模式下可从独立短链服务读取短链列表 PV / UV / UIP，并在后台显示统计来源。
 - Redis 缓存：结果详情缓存、短链解析缓存、无效短码空值缓存。
 - 访问统计：匿名 clientId、IP、User-Agent 均 hash 后入库，统计 PV、UV、UIP。
 - 数据中台：总览指标、热门组合、热门星官、最近结果、短链列表、单条短链访问日志，并支持日期筛选。
@@ -148,6 +155,14 @@ ResultService
 
 `external` 模式会优先调用已克隆的独立短链项目 `/Users/linyuxiang/JavaBackend/01_Projects/shortlink` 的创建接口，并将返回的 `fullShortUrl` 解析成本地业务绑定。外部服务不可用时，默认降级到内置短链，避免测算主流程中断。
 
+v0.4 已完成本地服务级联调：
+
+- 五行 `POST /api/results` 调用外部短链服务创建短链。
+- 外部短链服务访问 `/{shortCode}` 后 302 到五行结果页。
+- 五行本地继续保存 `resultId -> shortCode -> shortUrl` 业务绑定。
+- 后台短链列表可在 `SHORT_LINK_EXTERNAL_STATS_ENABLED=true` 时读取外部 PV / UV / UIP。
+- 外部统计失败时保留本地统计，`statSource` 显示为 `local`。
+
 切换配置：
 
 ```text
@@ -158,7 +173,11 @@ SHORT_LINK_EXTERNAL_DOMAIN=nurl.ink:8003
 SHORT_LINK_EXTERNAL_FALLBACK_TO_INTERNAL=true
 SHORT_LINK_EXTERNAL_CONNECT_TIMEOUT_MILLIS=2000
 SHORT_LINK_EXTERNAL_READ_TIMEOUT_MILLIS=3000
+SHORT_LINK_EXTERNAL_STATS_ENABLED=true
+SHORT_LINK_EXTERNAL_STATS_ENABLE_STATUS=0
 ```
+
+生产路由建议使用短链子域名，例如 `s.your-domain.com/{shortCode}`。若必须同域 `/s/{shortCode}`，可在 Nginx 将 `/s/**` rewrite 到独立短链服务；五行后端的 `/s/**` 仍保留为 internal 模式和本地兼容入口。
 
 ## 数据统计说明
 
@@ -175,6 +194,11 @@ GET /api/admin/overview?startDate=2026-06-09&endDate=2026-06-09
 GET /api/admin/short-links?page=1&pageSize=20&startDate=2026-06-09&endDate=2026-06-09
 GET /api/admin/short-links/{shortCode}/visits?startDate=2026-06-09&endDate=2026-06-09
 ```
+
+短链列表返回 `statSource`：
+
+- `local`：使用五行本地 `visit_event` 和 `short_link` 统计。
+- `external`：使用独立短链服务 `/api/short-link/v1/stats` 返回的 PV / UV / UIP。
 
 ## 数据库表说明
 
@@ -263,13 +287,25 @@ docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml up --
 - `cd backend && mvn -q test`
 - `cd frontend && npm run build`
 - `docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml config`
+- v0.4 external 服务级联调：外部短链创建、外部短链 302、五行本地业务绑定、后台 `statSource=external`
 - 本地浏览器验收：`/admin` 日期筛选控件显示正常，按日期应用筛选后接口正常返回
 - Docker Compose 容器全链路验收：MySQL、Redis、backend、nginx 均启动成功，本机验证入口 `http://127.0.0.1:8088`
 - 文案边界关键词扫描无命中
 - 本地 H2 演示模式浏览器验收：首页、测试页、结果页、短链 302、后台总览、短链详情
 - Docker 版 API 验收：健康检查、题目接口、创建结果、查询结果、短链 302、后台总览、短链列表、访问日志
 
-后端测试覆盖：创建结果、查询结果、短链跳转、短链列表、访问详情、非法参数、非法事件、后台 token、无效短码、后台日期筛选、短链复用、短码冲突重试、空值缓存、短链统计计数更新、Redis key/TTL/序列化、异常降级、Provider 默认模式、Provider 配置切换、外部短链创建成功、失败降级，以及 external RestClient 的路径、请求体和系统用户 header。
+v0.4 外部联调样例：
+
+```text
+resultId: R20260609153410726802
+shortCode: 1cgeMu
+shortUrl: http://127.0.0.1:8003/1cgeMu
+external short link Location: http://127.0.0.1:4173/result/R20260609153410726802
+admin statSource: external
+admin pv/uv/uip: 1/1/1
+```
+
+后端测试覆盖：创建结果、查询结果、短链跳转、短链列表、访问详情、非法参数、非法事件、后台 token、无效短码、后台日期筛选、短链复用、短码冲突重试、空值缓存、短链统计计数更新、Redis key/TTL/序列化、异常降级、Provider 默认模式、Provider 配置切换、外部短链创建成功、失败降级，以及 external RestClient 的创建和统计接口路径、请求体、查询参数和系统用户 header。
 
 浏览器验收截图：
 
@@ -284,6 +320,23 @@ docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml up --
 ## 开发进度记录
 
 <details open>
+<summary><strong>2026-06-09｜v0.4 外部短链服务级联调与统计适配</strong></summary>
+
+- 新建分支：`feature/v0.4-external-shortlink-service-integration`。
+- 启动并验证本地独立短链项目 `/Users/linyuxiang/JavaBackend/01_Projects/shortlink` 的 `aggregation` 服务。
+- 五行 external 模式跑通 `POST /api/results -> 外部短链创建 -> 保存本地业务绑定`。
+- 访问外部短链 `/{shortCode}` 可 302 到五行结果页。
+- 新增外部短链统计适配，后台短链列表可读取外部 PV / UV / UIP。
+- 后台短链列表新增 `statSource`，区分 `local` 和 `external` 统计来源。
+- 补齐 `SHORT_LINK_EXTERNAL_STATS_ENABLED`、`SHORT_LINK_EXTERNAL_STATS_ENABLE_STATUS` 配置和 Compose 透传。
+- 新增 [v0.4 外部短链服务级联调与统计适配文档](docs/v0.4-external-shortlink-service-integration.md)。
+- 验证通过：外部服务级联调、`mvn test`、前端构建、Compose 配置校验。
+- Git 提交：`feat: integrate external shortlink service stats`。
+- Git 标签：`v0.4.0-external-shortlink-service-integration`。
+
+</details>
+
+<details>
 <summary><strong>2026-06-09｜v0.3 external 短链联调准备与后台日期统计</strong></summary>
 
 - 新建分支：`feature/v0.3-external-shortlink-and-analytics`。
@@ -352,9 +405,9 @@ docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml up --
 
 ## 后续迭代计划
 
-1. 启动独立短链服务，完成 `SHORT_LINK_MODE=external` 的本地服务级联调。
-2. 后台统计增强：从外部短链服务读取单条短链 PV/UV/UIP 和访问记录。
-3. 管理后台增强：增加趋势图和短链详情聚合。
+1. 生产路由完善：确定短链子域名或同域 `/s/**` rewrite，并补 Nginx 上线配置。
+2. 外部短链访问明细：接入 `/api/short-link/v1/stats/access-record`，让后台详情也支持 external 来源。
+3. 管理后台增强：增加趋势图和短链详情聚合，但保持轻量数据中台边界。
 4. 部署完善：域名、HTTPS、Nginx Basic Auth 或更强后台保护。
 5. 压测与观测：补充短链高频访问、无效短码攻击和 Redis 降级场景。
 

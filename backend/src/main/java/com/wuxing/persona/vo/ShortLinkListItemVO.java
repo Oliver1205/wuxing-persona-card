@@ -13,6 +13,7 @@ public class ShortLinkListItemVO {
     private long pv;
     private long uv;
     private long uip;
+    private String statSource;
     private LocalDateTime lastVisitAt;
 
     public String getShortCode() {
@@ -85,6 +86,14 @@ public class ShortLinkListItemVO {
 
     public void setUip(long uip) {
         this.uip = uip;
+    }
+
+    public String getStatSource() {
+        return statSource;
+    }
+
+    public void setStatSource(String statSource) {
+        this.statSource = statSource;
     }
 
     public LocalDateTime getLastVisitAt() {
