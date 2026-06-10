@@ -1,17 +1,26 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { fetchAdminOverview, fetchAdminShortLinks } from '../api/admin';
+import {
+  exportAdminShortLinks,
+  fetchAdminOverview,
+  fetchAdminShortLinks,
+  fetchExternalShortLinkRuntime,
+} from '../api/admin';
 import type { AdminDateFilter } from '../api/admin';
-import type { AdminOverview, PageResult, ShortLinkListItem } from '../api/types';
+import type { AdminOverview, ExternalShortLinkRuntime, PageResult, ShortLinkListItem } from '../api/types';
 import StatCard from '../components/StatCard.vue';
 
 const token = ref(localStorage.getItem('wuxing_admin_token') || '');
 const startDate = ref('');
 const endDate = ref('');
+const keyword = ref('');
+const statSource = ref<'local' | 'external' | ''>('');
 const overview = ref<AdminOverview | null>(null);
 const shortLinks = ref<PageResult<ShortLinkListItem> | null>(null);
+const runtime = ref<ExternalShortLinkRuntime | null>(null);
 const error = ref('');
 const loading = ref(false);
+const exporting = ref(false);
 
 onMounted(() => {
   if (token.value) {
@@ -25,7 +34,8 @@ async function load() {
   try {
     localStorage.setItem('wuxing_admin_token', token.value);
     overview.value = await fetchAdminOverview(token.value, dateFilter());
-    shortLinks.value = await fetchAdminShortLinks(token.value, 1, 20, dateFilter());
+    shortLinks.value = await fetchAdminShortLinks(token.value, 1, 20, shortLinkFilter());
+    runtime.value = await fetchExternalShortLinkRuntime(token.value, false);
   } catch (err) {
     error.value = err instanceof Error ? err.message : '后台数据加载失败';
   } finally {
@@ -36,13 +46,55 @@ async function load() {
 function clearDateFilter() {
   startDate.value = '';
   endDate.value = '';
+  keyword.value = '';
+  statSource.value = '';
   load();
+}
+
+async function checkExternalRuntime() {
+  error.value = '';
+  loading.value = true;
+  try {
+    runtime.value = await fetchExternalShortLinkRuntime(token.value, true);
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '外部短链状态检查失败';
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function exportCsv() {
+  error.value = '';
+  exporting.value = true;
+  try {
+    const blob = await exportAdminShortLinks(token.value, shortLinkFilter());
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `wuxing-short-links-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '短链导出失败';
+  } finally {
+    exporting.value = false;
+  }
 }
 
 function dateFilter(): AdminDateFilter {
   return {
     startDate: startDate.value || undefined,
     endDate: endDate.value || undefined,
+  };
+}
+
+function shortLinkFilter() {
+  return {
+    ...dateFilter(),
+    keyword: keyword.value.trim() || undefined,
+    statSource: statSource.value || undefined,
   };
 }
 
@@ -59,6 +111,16 @@ function detailQuery() {
 
 function statSourceLabel(source: ShortLinkListItem['statSource']) {
   return source === 'external' ? '外部' : '本地';
+}
+
+function runtimeReachableLabel(value: boolean | null) {
+  if (value === true) {
+    return '可达';
+  }
+  if (value === false) {
+    return '不可达';
+  }
+  return '未探测';
 }
 
 function formatDateTime(value: string | null) {
@@ -84,13 +146,45 @@ function formatDateTime(value: string | null) {
             结束日期
             <input v-model="endDate" type="date" />
           </label>
+          <label>
+            短码 / 结果
+            <input v-model="keyword" type="search" placeholder="输入短码或 resultId" />
+          </label>
+          <label>
+            来源
+            <select v-model="statSource">
+              <option value="">全部</option>
+              <option value="local">本地</option>
+              <option value="external">外部</option>
+            </select>
+          </label>
           <button type="button" @click="load">应用筛选</button>
           <button class="secondary" type="button" @click="clearDateFilter">清空</button>
+          <button class="secondary" type="button" :disabled="exporting || !shortLinks" @click="exportCsv">
+            {{ exporting ? '导出中...' : '导出 CSV' }}
+          </button>
         </div>
         <p v-if="error" class="error-text">{{ error }}</p>
       </div>
 
       <template v-if="overview">
+        <div v-if="runtime" class="panel stack">
+          <div class="section-head">
+            <h2>外部短链状态</h2>
+            <button class="secondary" type="button" :disabled="loading" @click="checkExternalRuntime">检查</button>
+          </div>
+          <div class="runtime-grid">
+            <span>模式：{{ runtime.mode }}</span>
+            <span>统计：{{ runtime.statsEnabled ? '开启' : '关闭' }}</span>
+            <span>降级：{{ runtime.fallbackToInternal ? '开启' : '关闭' }}</span>
+            <span>可达性：{{ runtimeReachableLabel(runtime.reachable) }}</span>
+            <span>域名：{{ runtime.domain }}</span>
+            <span>分组：{{ runtime.groupId }}</span>
+            <span>状态码：{{ runtime.httpStatus ?? '-' }}</span>
+            <span>信息：{{ runtime.message }}</span>
+          </div>
+        </div>
+
         <div class="stats-grid">
           <StatCard label="总 PV" :value="overview.totalPv" />
           <StatCard label="总 UV" :value="overview.totalUv" />
@@ -204,6 +298,7 @@ function formatDateTime(value: string | null) {
 
         <div class="panel stack">
           <h2>短链列表</h2>
+          <p class="muted">当前筛选共 {{ shortLinks?.total ?? 0 }} 条，来源筛选最多扫描最近 500 条短链。</p>
           <div class="table-wrap">
             <table>
               <thead>

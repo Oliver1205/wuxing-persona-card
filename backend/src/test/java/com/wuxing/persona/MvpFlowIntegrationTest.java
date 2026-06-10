@@ -2,8 +2,10 @@ package com.wuxing.persona;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -89,6 +91,7 @@ class MvpFlowIntegrationTest {
     void shouldReturnShortLinkListAndVisitDetailStats() throws Exception {
         JsonNode data = createValidResult("client-a");
         String shortCode = data.get("shortCode").asText();
+        String resultId = data.get("resultId").asText();
 
         mockMvc.perform(get("/s/" + shortCode).header("X-Client-Id", "same-client"))
                 .andExpect(status().is3xxRedirection());
@@ -105,6 +108,26 @@ class MvpFlowIntegrationTest {
                 .andExpect(jsonPath("$.data.records[0].pv").value(2))
                 .andExpect(jsonPath("$.data.records[0].uv").value(1))
                 .andExpect(jsonPath("$.data.records[0].uip").value(1));
+
+        mockMvc.perform(get("/api/admin/short-links")
+                        .header("X-Admin-Token", "test-token")
+                        .param("keyword", resultId)
+                        .param("statSource", "local")
+                        .param("page", "1")
+                        .param("pageSize", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.total").value(1))
+                .andExpect(jsonPath("$.data.records[0].resultId").value(resultId))
+                .andExpect(jsonPath("$.data.records[0].statSource").value("local"));
+
+        mockMvc.perform(get("/api/admin/short-links/export")
+                        .header("X-Admin-Token", "test-token")
+                        .param("keyword", shortCode)
+                        .param("statSource", "local"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", containsString("wuxing-short-links")))
+                .andExpect(content().string(containsString(shortCode)))
+                .andExpect(content().string(containsString(resultId)));
 
         mockMvc.perform(get("/api/admin/short-links/" + shortCode + "/visits")
                         .header("X-Admin-Token", "test-token"))
@@ -237,6 +260,18 @@ class MvpFlowIntegrationTest {
         mockMvc.perform(get("/api/admin/overview"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value(401));
+    }
+
+    @Test
+    void shouldReturnExternalShortLinkRuntimeStatusAndSecurityHeaders() throws Exception {
+        mockMvc.perform(get("/api/admin/external-shortlink/status")
+                        .header("X-Admin-Token", "test-token"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("X-Frame-Options", "DENY"))
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                .andExpect(jsonPath("$.data.mode").value("internal"))
+                .andExpect(jsonPath("$.data.externalMode").value(false))
+                .andExpect(jsonPath("$.data.message").value("probe skipped"));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.wuxing.persona.service;
 
+import com.wuxing.persona.common.BusinessException;
 import com.wuxing.persona.entity.ShortLinkEntity;
 import com.wuxing.persona.entity.UserResultEntity;
 import com.wuxing.persona.entity.VisitEventEntity;
@@ -12,6 +13,7 @@ import com.wuxing.persona.service.shortlink.ExternalShortLinkStatsAdapter;
 import com.wuxing.persona.service.shortlink.ExternalShortLinkStatsSnapshot;
 import com.wuxing.persona.service.shortlink.ShortLinkCodeUtils;
 import com.wuxing.persona.vo.AdminOverviewVO;
+import com.wuxing.persona.vo.AdminShortLinkExportVO;
 import com.wuxing.persona.vo.DailyMetricVO;
 import com.wuxing.persona.vo.NameCountVO;
 import com.wuxing.persona.vo.PageVO;
@@ -30,6 +32,8 @@ public class AdminStatService {
 
     private static final int DEFAULT_TREND_DAYS = 7;
     private static final int MAX_TREND_DAYS = 14;
+    private static final int SOURCE_FILTER_SCAN_LIMIT = 500;
+    private static final int EXPORT_LIMIT = 500;
 
     private final UserResultMapper userResultMapper;
     private final ShortLinkMapper shortLinkMapper;
@@ -77,16 +81,52 @@ public class AdminStatService {
     }
 
     public PageVO<ShortLinkListItemVO> listShortLinks(long page, long pageSize, AdminDateRange range) {
+        return listShortLinks(page, pageSize, range, null, null);
+    }
+
+    public PageVO<ShortLinkListItemVO> listShortLinks(long page,
+                                                      long pageSize,
+                                                      AdminDateRange range,
+                                                      String keyword,
+                                                      String statSource) {
         long normalizedPage = Math.max(1, page);
         long normalizedPageSize = Math.min(100, Math.max(1, pageSize));
+        String normalizedKeyword = normalizeKeyword(keyword);
+        String normalizedSource = normalizeStatSource(statSource);
+        if (normalizedSource != null) {
+            return listShortLinksByComputedSource(normalizedPage, normalizedPageSize, range,
+                    normalizedKeyword, normalizedSource);
+        }
         long offset = (normalizedPage - 1) * normalizedPageSize;
         return new PageVO<>(
                 normalizedPage,
                 normalizedPageSize,
-                shortLinkMapper.countAllBetween(range.getStartAt(), range.getEndExclusive()),
-                toShortLinkItems(shortLinkMapper.listPageBetween(offset, normalizedPageSize,
-                        range.getStartAt(), range.getEndExclusive()), range)
+                shortLinkMapper.countAllBetweenFiltered(range.getStartAt(), range.getEndExclusive(),
+                        normalizedKeyword),
+                toShortLinkItems(shortLinkMapper.listPageBetweenFiltered(offset, normalizedPageSize,
+                        range.getStartAt(), range.getEndExclusive(), normalizedKeyword), range)
         );
+    }
+
+    public AdminShortLinkExportVO exportShortLinks(AdminDateRange range, String keyword, String statSource) {
+        PageVO<ShortLinkListItemVO> page = listShortLinks(1, EXPORT_LIMIT, range, keyword, statSource);
+        StringBuilder csv = new StringBuilder("\uFEFF");
+        csv.append("shortCode,resultId,shortUrl,elementCombo,starOfficerName,pv,uv,uip,statSource,createdAt,lastVisitAt\n");
+        for (ShortLinkListItemVO item : page.getRecords()) {
+            csv.append(csv(item.getShortCode())).append(',')
+                    .append(csv(item.getResultId())).append(',')
+                    .append(csv(item.getShortUrl())).append(',')
+                    .append(csv(item.getElementCombo())).append(',')
+                    .append(csv(item.getStarOfficerName())).append(',')
+                    .append(item.getPv()).append(',')
+                    .append(item.getUv()).append(',')
+                    .append(item.getUip()).append(',')
+                    .append(csv(item.getStatSource())).append(',')
+                    .append(csv(item.getCreatedAt() == null ? null : item.getCreatedAt().toString())).append(',')
+                    .append(csv(item.getLastVisitAt() == null ? null : item.getLastVisitAt().toString()))
+                    .append('\n');
+        }
+        return new AdminShortLinkExportVO("wuxing-short-links-" + LocalDate.now() + ".csv", csv.toString());
     }
 
     public PageVO<ShortLinkVisitVO> listShortLinkVisits(String shortCode, long page, long pageSize, AdminDateRange range) {
@@ -140,6 +180,24 @@ public class AdminStatService {
             cursor = cursor.plusDays(1);
         }
         return trends;
+    }
+
+    private PageVO<ShortLinkListItemVO> listShortLinksByComputedSource(long page,
+                                                                       long pageSize,
+                                                                       AdminDateRange range,
+                                                                       String keyword,
+                                                                       String source) {
+        List<ShortLinkListItemVO> filtered = toShortLinkItems(shortLinkMapper.listPageBetweenFiltered(0,
+                        SOURCE_FILTER_SCAN_LIMIT, range.getStartAt(), range.getEndExclusive(), keyword), range)
+                .stream()
+                .filter(item -> source.equals(item.getStatSource()))
+                .toList();
+        long offset = (page - 1) * pageSize;
+        List<ShortLinkListItemVO> pageRecords = filtered.stream()
+                .skip(offset)
+                .limit(pageSize)
+                .toList();
+        return new PageVO<>(page, pageSize, filtered.size(), pageRecords);
     }
 
     private List<NameCountVO> toElementCombos(List<Map<String, Object>> rows) {
@@ -229,6 +287,36 @@ public class AdminStatService {
             return number.longValue();
         }
         return Long.parseLong(value.toString());
+    }
+
+    private String normalizeKeyword(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return null;
+        }
+        String value = keyword.trim();
+        if (value.length() > 64) {
+            throw new BusinessException("keyword must be at most 64 characters");
+        }
+        return value;
+    }
+
+    private String normalizeStatSource(String statSource) {
+        if (statSource == null || statSource.isBlank()) {
+            return null;
+        }
+        String value = statSource.trim().toLowerCase(java.util.Locale.ROOT);
+        if (!"local".equals(value) && !"external".equals(value)) {
+            throw new BusinessException("statSource must be local or external");
+        }
+        return value;
+    }
+
+    private String csv(String value) {
+        String normalized = value == null ? "" : value.replace('\r', ' ').replace('\n', ' ').trim();
+        if (!normalized.isEmpty() && "=+-@".indexOf(normalized.charAt(0)) >= 0) {
+            normalized = "'" + normalized;
+        }
+        return "\"" + normalized.replace("\"", "\"\"") + "\"";
     }
 
     private Object value(Map<String, Object> row, String... expectedKeys) {

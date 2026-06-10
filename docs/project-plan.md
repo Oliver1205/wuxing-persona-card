@@ -2,7 +2,7 @@
 
 规划日期：2026-06-08
 
-当前状态：第一版 MVP 主链路已实现，并通过本地构建、后端集成测试、H2 演示模式浏览器验收和 Docker Compose 容器全链路验收。v0.2 已新增短链 Provider 适配层，v0.3 已补 external 模式真实 HTTP 联调配置和后台日期筛选统计，v0.4 已完成外部短链服务级联调和外部 PV / UV / UIP 统计适配，v0.5 已接入外部短链访问明细，v0.6 已建立 v1.0 前的统一质量门禁，v0.7 已完成生产路由与部署预检，v0.8 已增强后台运营可读性，v0.9 已完成稳定性与隐私审计加固，v1.0 已完成稳定版收口，v1.1 已推进 external 生产接入准备。
+当前状态：第一版 MVP 主链路已实现，并通过本地构建、后端集成测试、H2 演示模式浏览器验收和 Docker Compose 容器全链路验收。v0.2 已新增短链 Provider 适配层，v0.3 已补 external 模式真实 HTTP 联调配置和后台日期筛选统计，v0.4 已完成外部短链服务级联调和外部 PV / UV / UIP 统计适配，v0.5 已接入外部短链访问明细，v0.6 已建立 v1.0 前的统一质量门禁，v0.7 已完成生产路由与部署预检，v0.8 已增强后台运营可读性，v0.9 已完成稳定性与隐私审计加固，v1.0 已完成稳定版收口，v1.1 已推进 external 生产接入准备，v1.2-v1.4 已完成生产质量增强包。
 
 关联文档：
 
@@ -20,6 +20,7 @@
 - v0.9 稳定性与隐私审计：`docs/v0.9-stability-privacy-audit.md`
 - v1.0 稳定版发布检查表：`docs/v1.0-release-checklist.md`
 - v1.1 外部短链生产级接入增强：`docs/v1.1-external-shortlink-production-readiness.md`
+- v1.2-v1.4 生产质量增强包：`docs/v1.2-v1.4-production-quality-suite.md`
 - 外部短链服务对接说明：`docs/external-shortlink-integration-guide.md`
 - 外部短链接入隐私审计报告：`docs/external-shortlink-privacy-audit.md`
 - 教学手册：`docs/teaching-manual.md`
@@ -271,6 +272,17 @@ flowchart LR
 - 新增 v1.1 阶段文档、外部短链服务对接说明和外部短链接入隐私审计报告。
 - 更新 README、部署说明、短链集成评估、教学手册和质量评分。
 - 不执行服务器真实部署，保留明天部署时的 probe 和 smoke 验证步骤。
+
+### 阶段 19：v1.2-v1.4 生产质量增强
+
+- 新增 GitHub Actions 质量门禁，PR 和 feature 分支 push 自动执行本地同款质量脚本。
+- 新增可选 Testcontainers job，使用真实 MySQL schema 验证主链路。
+- 新增 `scripts/docker-smoke-test.sh`，用于容器启动后的主链路 smoke。
+- 后台新增 external 短链运行态状态接口和前端状态面板。
+- 短链列表新增关键词筛选、来源筛选和 CSV 导出。
+- 后端新增基础安全响应头和后台 token 常量时间比较。
+- 结果页新增 Canvas 分享图下载。
+- 补充后端集成测试、前端构建验证和阶段文档。
 
 ## 5. 当前验证
 

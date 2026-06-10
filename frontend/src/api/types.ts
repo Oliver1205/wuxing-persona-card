@@ -63,6 +63,20 @@ export interface AdminOverview {
   recentShortLinks: ShortLinkListItem[];
 }
 
+export interface ExternalShortLinkRuntime {
+  mode: string;
+  externalMode: boolean;
+  statsEnabled: boolean;
+  fallbackToInternal: boolean;
+  baseUrl: string;
+  domain: string;
+  groupId: string;
+  reachable: boolean | null;
+  httpStatus: number | null;
+  message: string;
+  checkedAt: string;
+}
+
 export interface DailyMetric {
   date: string;
   pv: number;
