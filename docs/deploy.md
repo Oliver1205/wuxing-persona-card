@@ -1,6 +1,6 @@
 # 部署说明
 
-当前状态：Docker Compose 初版已配置，并已完成容器运行验收。MySQL、Redis、backend、nginx 均可启动，Nginx 入口可完成 API、短链 302 和后台统计验证。v0.4 已补齐 external 短链创建和统计配置，v0.7 已补生产短链路由示例和部署预检脚本，v1.0 已补稳定版发布检查表，v1.1 已新增 external 模式 Compose overlay、环境样例、预检脚本和 smoke 联调脚本。默认仍使用 `internal` 模式。
+当前状态：Docker Compose 初版已配置，并已完成容器运行验收。MySQL、Redis、backend、nginx 均可启动，Nginx 入口可完成 API、短链 302 和后台统计验证。v0.4 已补齐 external 短链创建和统计配置，v0.7 已补生产短链路由示例和部署预检脚本，v1.0 已补稳定版发布检查表，v1.1 已新增 external 模式 Compose overlay、环境样例、预检脚本和 smoke 联调脚本，v1.2-v1.4 已新增 GitHub Actions、Docker smoke 脚本和 Testcontainers profile。默认仍使用 `internal` 模式。
 
 ## 1. 部署架构
 
@@ -231,6 +231,14 @@ curl http://localhost/api/health
 curl http://localhost/api/questions
 ```
 
+容器主链路 smoke：
+
+```bash
+BASE_URL=http://127.0.0.1:8088 \
+ADMIN_TOKEN=<your-admin-token> \
+scripts/docker-smoke-test.sh
+```
+
 external smoke 联调：
 
 ```bash
@@ -249,7 +257,28 @@ scripts/external-shortlink-smoke-test.sh
 - 复制短链接并打开。
 - 进入 `http://localhost/admin`，输入 `ADMIN_TOKEN` 后查看统计。
 
-## 7. 无 Docker 本地演示
+## 7. CI/CD 与容器集成测试
+
+GitHub Actions：
+
+```text
+.github/workflows/quality-gate.yml
+```
+
+包含：
+
+- `quality`：运行 `scripts/quality-check.sh`。
+- `container-integration`：运行 `mvn -q -f backend/pom.xml -Pcontainer-it verify`。
+
+本地可选运行 Testcontainers：
+
+```bash
+mvn -q -f backend/pom.xml -Pcontainer-it verify
+```
+
+该 profile 使用真实 MySQL 容器验证主链路，不会被默认 `mvn test` 自动触发。
+
+## 8. 无 Docker 本地演示
 
 当 Docker daemon 未启动，但需要演示完整 H5 流程时，可以使用 H2 内存库启动后端：
 

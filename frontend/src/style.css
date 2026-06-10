@@ -160,9 +160,24 @@ select {
 
 .filter-bar {
   display: grid;
-  grid-template-columns: repeat(2, minmax(160px, 1fr)) repeat(2, auto);
+  grid-template-columns: repeat(4, minmax(140px, 1fr)) repeat(3, auto);
   gap: 12px;
   align-items: end;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.runtime-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  color: #40514e;
+  font-size: 14px;
 }
 
 .stats-grid {
@@ -239,6 +254,10 @@ td a {
   }
 
   .insight-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .runtime-grid {
     grid-template-columns: 1fr;
   }
 }

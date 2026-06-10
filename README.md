@@ -12,9 +12,9 @@
 
 | 项 | 说明 |
 | --- | --- |
-| 当前版本 | `v1.1.0-external-shortlink-production-readiness` |
+| 当前版本 | `v1.4.0-production-quality-suite` |
 | 稳定分支 | `main` |
-| 当前开发分支 | `feature/v1.1-external-shortlink-production-readiness` |
+| 当前开发分支 | `feature/v1.2-v1.4-production-quality-suite` |
 | MVP 状态 | v0.1 已完成完整单人测算闭环 |
 | v0.2 状态 | 已完成短链接 Provider 适配层，可配置 `internal` / `external` 模式 |
 | v0.3 状态 | 已增强 external 真实 HTTP 联调配置，并为后台总览、短链列表、访问日志增加日期筛选 |
@@ -26,8 +26,9 @@
 | v0.9 状态 | 已完成短码校验、Referer 隐私收敛和 external 空记录稳定性加固 |
 | v1.0 状态 | 稳定版收口，README、发布检查表、质量评分和版本记录已完成 |
 | v1.1 状态 | 已补 external 生产接入 overlay、预检脚本、联调脚本、失败测试、对接说明和隐私审计 |
+| v1.2-v1.4 状态 | 已补 CI/CD、运行态治理、后台工具、安全加固、Testcontainers 能力和分享图 |
 | 最新自评 | 99 / 100，详见 [quality-scorecard.md](docs/quality-scorecard.md) |
-| GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics`、`v0.4.0-external-shortlink-service-integration`、`v0.5.0-external-shortlink-access-records`、`v0.6.0-quality-gates-and-roadmap`、`v0.7.0-production-routing-hardening`、`v0.8.0-admin-operational-insights`、`v0.9.0-stability-privacy-audit`、`v1.0.0-stable`、`v1.1.0-external-shortlink-production-readiness` |
+| GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics`、`v0.4.0-external-shortlink-service-integration`、`v0.5.0-external-shortlink-access-records`、`v0.6.0-quality-gates-and-roadmap`、`v0.7.0-production-routing-hardening`、`v0.8.0-admin-operational-insights`、`v0.9.0-stability-privacy-audit`、`v1.0.0-stable`、`v1.1.0-external-shortlink-production-readiness`、`v1.4.0-production-quality-suite` |
 
 ## 核心亮点
 
@@ -46,6 +47,7 @@
 - **稳定性与隐私审计**：v0.9 统一后台短码校验，Referer 去 query / fragment，external 空访问记录稳定返回。
 - **稳定版交付**：v1.0 收口 README、部署检查表、质量评分和版本记录，作为可演示 MVP 基线。
 - **external 生产接入准备**：v1.1 补充 external 模式 Compose overlay、环境样例、预检脚本、联调脚本、失败测试、对接说明和隐私审计报告。
+- **生产质量增强**：v1.2-v1.4 补齐 GitHub Actions、Docker smoke、external 运行态状态、后台筛选导出、安全响应头、Testcontainers 和分享图。
 - **教学沉淀**：项目计划、质量评分、短链集成方案、教学手册均已文档化。
 
 ## 目录
@@ -83,6 +85,7 @@
 ```text
 .
 ├── AGENTS.md
+├── .github/workflows/
 ├── README.md
 ├── docs/
 ├── frontend/
@@ -109,6 +112,7 @@
     └── .env.external.example
 └── scripts/
     ├── deploy-preflight.sh
+    ├── docker-smoke-test.sh
     ├── external-shortlink-preflight.sh
     ├── external-shortlink-smoke-test.sh
     └── quality-check.sh
@@ -154,9 +158,12 @@ flowchart LR
 - Redis 缓存：结果详情缓存、短链解析缓存、无效短码空值缓存。
 - 访问统计：匿名 clientId、IP、User-Agent 均 hash 后入库，统计 PV、UV、UIP。
 - 数据中台：总览指标、日趋势、热门组合、热门星官、最近结果、最近短链、短链列表、单条短链访问日志，并支持日期筛选。
+- 后台运营工具：短链列表支持短码 / resultId 关键词筛选、`local` / `external` 来源筛选、CSV 导出和 external 运行态状态检查。
 - 外部访问明细：external 模式且统计开关开启时，短链详情页优先读取独立短链服务访问记录，失败时回退本地日志。
 - 隐私加固：访问事件只保存 hash 后的 clientId / IP / User-Agent，Referer 入库前会去掉 query 和 fragment。
+- 安全加固：后端统一返回基础安全响应头，后台 token 使用常量时间比较。
 - 管理保护：后台接口要求 `X-Admin-Token`。
+- 分享体验：结果页可生成 PNG 分享图，同时保留专属短链复制能力。
 
 ## 短链接接入说明
 
@@ -363,6 +370,7 @@ scripts/quality-check.sh
 - 前端构建：`npm run build`
 - Compose 配置：`docker compose config`
 - external 预检和 smoke 脚本语法检查
+- Docker smoke 脚本语法检查
 - external Compose overlay 配置检查
 
 v1.0 路线和质量要求详见 [v1.0-roadmap-and-quality-gates.md](docs/v1.0-roadmap-and-quality-gates.md)。
@@ -371,6 +379,28 @@ v1.0 路线和质量要求详见 [v1.0-roadmap-and-quality-gates.md](docs/v1.0-r
 
 ```bash
 scripts/deploy-preflight.sh deploy/.env
+```
+
+v1.2-v1.4 新增 GitHub Actions：
+
+```text
+.github/workflows/quality-gate.yml
+```
+
+Pull Request 和 feature 分支 push 会执行本地同款质量门禁，另有可选 Testcontainers job 使用真实 MySQL schema 验证主链路。
+
+容器启动后的主链路 smoke：
+
+```bash
+BASE_URL=http://127.0.0.1:8088 \
+ADMIN_TOKEN=<your-admin-token> \
+scripts/docker-smoke-test.sh
+```
+
+可选 Testcontainers 集成测试：
+
+```bash
+mvn -q -f backend/pom.xml -Pcontainer-it verify
 ```
 
 ## 验证结果
@@ -396,6 +426,8 @@ scripts/deploy-preflight.sh deploy/.env
 - v1.0 发布检查表已补充，详见 [v1.0-release-checklist.md](docs/v1.0-release-checklist.md)
 - v1.1 后端测试覆盖 external 业务错误码、统计空数据、访问明细错误码、外部短码冲突降级和关闭降级后的明确错误
 - v1.1 新增 external 预检脚本、smoke 联调脚本、Compose overlay、环境样例、对接说明和隐私审计报告
+- v1.2-v1.4 后端测试覆盖后台短链关键词筛选、来源筛选、CSV 导出、external runtime 状态和安全响应头
+- v1.2-v1.4 前端构建覆盖后台筛选导出、external 状态面板和结果页 Canvas 分享图
 
 v0.4 外部联调样例：
 
@@ -423,6 +455,22 @@ admin pv/uv/uip: 1/1/1
 ## 开发进度记录
 
 <details open>
+<summary><strong>2026-06-10｜v1.2-v1.4 生产质量增强包</strong></summary>
+
+- 新建分支：`feature/v1.2-v1.4-production-quality-suite`。
+- 新增 GitHub Actions 质量门禁：`quality` 与 `container-integration` 两个 job。
+- 新增 `scripts/docker-smoke-test.sh`，用于容器启动后的主链路 smoke 验证。
+- 后台新增 external 短链运行态状态接口和状态面板。
+- 后台短链列表新增关键词筛选、来源筛选和 CSV 导出。
+- 后端新增安全响应头和后台 token 常量时间比较。
+- 新增 Testcontainers MySQL 集成测试 profile：`mvn -q -f backend/pom.xml -Pcontainer-it verify`。
+- 结果页新增 Canvas PNG 分享图生成能力。
+- 新增 [v1.2-v1.4 生产质量增强包](docs/v1.2-v1.4-production-quality-suite.md)。
+- 验证通过：后端测试、前端构建和统一质量门禁。
+
+</details>
+
+<details>
 <summary><strong>2026-06-10｜v1.1 外部短链生产级接入增强</strong></summary>
 
 - 新建分支：`feature/v1.1-external-shortlink-production-readiness`。

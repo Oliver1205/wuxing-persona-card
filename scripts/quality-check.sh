@@ -16,6 +16,7 @@ run git diff --check
 
 run bash -n scripts/quality-check.sh
 run bash -n scripts/deploy-preflight.sh
+run bash -n scripts/docker-smoke-test.sh
 run bash -n scripts/external-shortlink-preflight.sh
 run bash -n scripts/external-shortlink-smoke-test.sh
 
