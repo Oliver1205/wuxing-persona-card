@@ -27,7 +27,7 @@ public class ElementCalculateService {
         if (request.getBirthDay() != null) {
             add(scores, elementByMod(request.getBirthDay() % 5), 6);
         }
-        BirthTimeRange timeRange = BirthTimeRange.fromNullable(request.getBirthTimeRange());
+        BirthTimeRange timeRange = parseBirthTimeRange(request.getBirthTimeRange());
         if (timeRange != null) {
             addTimeWeight(scores, timeRange);
         }
@@ -87,6 +87,14 @@ public class ElementCalculateService {
             return ElementType.fromCode(code);
         } catch (IllegalArgumentException ex) {
             throw new BusinessException("optionCode must be a valid element");
+        }
+    }
+
+    private BirthTimeRange parseBirthTimeRange(String code) {
+        try {
+            return BirthTimeRange.fromNullable(code);
+        } catch (IllegalArgumentException ex) {
+            throw new BusinessException("birthTimeRange must be a valid value");
         }
     }
 

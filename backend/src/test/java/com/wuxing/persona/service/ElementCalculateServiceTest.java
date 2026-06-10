@@ -38,6 +38,16 @@ class ElementCalculateServiceTest {
         assertThrows(BusinessException.class, () -> service.calculate(request));
     }
 
+    @Test
+    void calculateShouldRejectInvalidBirthTimeRange() {
+        CreateResultRequest request = requestWithAnswers("WOOD");
+        request.setBirthTimeRange("MIDNIGHT");
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.calculate(request));
+
+        assertEquals("birthTimeRange must be a valid value", exception.getMessage());
+    }
+
     private CreateResultRequest requestWithAnswers(String optionCode) {
         CreateResultRequest request = new CreateResultRequest();
         request.setBirthYear(2002);

@@ -4,6 +4,7 @@ import type { Question } from '../api/types';
 defineProps<{
   question: Question;
   modelValue?: string;
+  questionIndex?: number;
 }>();
 
 const emit = defineEmits<{
@@ -13,17 +14,20 @@ const emit = defineEmits<{
 
 <template>
   <section class="question-card">
-    <h3>{{ question.questionCode }}. {{ question.title }}</h3>
+    <div class="question-head">
+      <span class="question-number">{{ questionIndex ?? question.questionCode }}</span>
+      <h3>{{ question.title }}</h3>
+    </div>
     <div class="options">
       <button
-        v-for="option in question.options"
+        v-for="(option, optionIndex) in question.options"
         :key="option.optionCode"
         type="button"
         class="option"
         :class="{ active: modelValue === option.optionCode }"
         @click="emit('update:modelValue', option.optionCode)"
       >
-        <span class="element">{{ option.elementName }}</span>
+        <span class="option-mark">{{ String.fromCharCode(65 + optionIndex) }}</span>
         <span>{{ option.optionText }}</span>
       </button>
     </div>
@@ -33,7 +37,25 @@ const emit = defineEmits<{
 <style scoped>
 .question-card {
   display: grid;
+  gap: 16px;
+}
+
+.question-head {
+  display: grid;
+  grid-template-columns: 42px 1fr;
   gap: 12px;
+  align-items: start;
+}
+
+.question-number {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #24302f;
+  color: #fff;
+  font-weight: 900;
 }
 
 h3 {
@@ -51,30 +73,37 @@ h3 {
 
 .option {
   justify-content: flex-start;
-  min-height: 52px;
-  border: 1px solid rgba(36, 48, 47, 0.12);
-  background: #fff;
+  min-height: 58px;
+  border: 1px solid rgba(36, 48, 47, 0.14);
+  background: rgba(255, 255, 255, 0.92);
   color: #263735;
   text-align: left;
-  font-weight: 500;
+  font-weight: 650;
 }
 
 .option.active {
   border-color: #2f6f5e;
-  background: #e8f3ef;
+  background: linear-gradient(135deg, #e8f3ef, #f7efe0);
   color: #173d34;
+  box-shadow: 0 10px 28px rgba(47, 111, 94, 0.14);
 }
 
-.element {
+.option-mark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
   margin-right: 10px;
   border-radius: 50%;
   background: #f1eadc;
-  color: #7a5a2e;
+  color: #6d4f29;
   font-weight: 800;
+}
+
+.option.active .option-mark {
+  background: #2f6f5e;
+  color: #fff;
 }
 </style>

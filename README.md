@@ -12,9 +12,9 @@
 
 | 项 | 说明 |
 | --- | --- |
-| 当前版本 | `v1.4.0-production-quality-suite` |
+| 当前版本 | `v2.0-commercial-product-system` |
 | 稳定分支 | `main` |
-| 当前开发分支 | `feature/v1.2-v1.4-production-quality-suite` |
+| 当前开发分支 | `codex/v2-commercial-product-system` |
 | MVP 状态 | v0.1 已完成完整单人测算闭环 |
 | v0.2 状态 | 已完成短链接 Provider 适配层，可配置 `internal` / `external` 模式 |
 | v0.3 状态 | 已增强 external 真实 HTTP 联调配置，并为后台总览、短链列表、访问日志增加日期筛选 |
@@ -27,7 +27,8 @@
 | v1.0 状态 | 稳定版收口，README、发布检查表、质量评分和版本记录已完成 |
 | v1.1 状态 | 已补 external 生产接入 overlay、预检脚本、联调脚本、失败测试、对接说明和隐私审计 |
 | v1.2-v1.4 状态 | 已补 CI/CD、运行态治理、后台工具、安全加固、Testcontainers 能力和分享图 |
-| 最新自评 | 99 / 100，详见 [quality-scorecard.md](docs/quality-scorecard.md) |
+| v2.0 状态 | 商业级产品化基线启动，已升级首页、测试流、结果页分享体验和增长埋点 |
+| 最新自评 | MVP 工程基线 99 / 100；v2.0 商业化初评 88 / 100，详见 [quality-scorecard.md](docs/quality-scorecard.md) |
 | GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics`、`v0.4.0-external-shortlink-service-integration`、`v0.5.0-external-shortlink-access-records`、`v0.6.0-quality-gates-and-roadmap`、`v0.7.0-production-routing-hardening`、`v0.8.0-admin-operational-insights`、`v0.9.0-stability-privacy-audit`、`v1.0.0-stable`、`v1.1.0-external-shortlink-production-readiness`、`v1.4.0-production-quality-suite` |
 
 ## 核心亮点
@@ -48,6 +49,8 @@
 - **稳定版交付**：v1.0 收口 README、部署检查表、质量评分和版本记录，作为可演示 MVP 基线。
 - **external 生产接入准备**：v1.1 补充 external 模式 Compose overlay、环境样例、预检脚本、联调脚本、失败测试、对接说明和隐私审计报告。
 - **生产质量增强**：v1.2-v1.4 补齐 GitHub Actions、Docker smoke、external 运行态状态、后台筛选导出、安全响应头、Testcontainers 和分享图。
+- **商业级产品化基线**：v2.0 以“愿意测、感觉被看见、愿意分享、朋友继续测”为主循环，重做首页承诺、答题进度、结果身份表达、完整五行分布和分享面板。
+- **增长漏斗埋点**：新增测试开始、答题选择、提交尝试、分享面板、原生分享、保存分享图、二次测试等事件，为后续渠道、留存和传播分析预留数据口径。
 - **教学沉淀**：项目计划、质量评分、短链集成方案、教学手册均已文档化。
 
 ## 目录
@@ -69,7 +72,7 @@
 
 ## 在线地址
 
-暂未部署。上线后在这里补充公网访问地址。
+生产地址按实际部署环境填写。当前仓库重点保留可复现的本地、Docker Compose 和云服务器单机部署能力。
 
 ## 技术栈
 
@@ -428,6 +431,8 @@ mvn -q -f backend/pom.xml -Pcontainer-it verify
 - v1.1 新增 external 预检脚本、smoke 联调脚本、Compose overlay、环境样例、对接说明和隐私审计报告
 - v1.2-v1.4 后端测试覆盖后台短链关键词筛选、来源筛选、CSV 导出、external runtime 状态和安全响应头
 - v1.2-v1.4 前端构建覆盖后台筛选导出、external 状态面板和结果页 Canvas 分享图
+- v2.0 后端测试覆盖非法出生时段业务异常，前端构建覆盖新版首页、测试页、结果页、分享面板和五行分布组件
+- v2.0 本地浏览器验收覆盖首页首屏、测试页答题进度、创建结果、结果页分享区域和 `/s/{shortCode}` 302
 
 v0.4 外部联调样例：
 
@@ -455,6 +460,24 @@ admin pv/uv/uip: 1/1/1
 ## 开发进度记录
 
 <details open>
+<summary><strong>2026-06-11｜v2.0 商业级产品化基线</strong></summary>
+
+- 新建分支：`codex/v2-commercial-product-system`。
+- 采用产品经理、架构师、前端体验、后端工程、增长分析和质量治理多角色协作方式，重新定义 v2.0 主目标。
+- 产品目标从“功能可用”升级为“用户愿意测、结果有身份感、愿意分享、朋友继续测”的传播闭环。
+- 首页升级为商业化首屏：明确 90 秒、5 道题、结果可分享，并增加人格卡样例。
+- 测试页升级为轻测评体验：增加答题进度、完成度反馈、出生信息隐私说明和移动端 sticky CTA。
+- 答题选项隐藏五行元素标签，降低用户按结果倒推选择的自我引导。
+- 结果页升级为分享优先：新增人格身份标题、完整五行分布、保存分享图、重新测试和“我也要测”入口。
+- 分享面板支持原生分享，并对分享面板、原生分享、保存分享图等增长事件补充埋点。
+- 修复 Vite 开发代理 `/s` 误拦截 `/src/**` 的白屏问题，改为只代理 `^/s/`。
+- 后端补强非法出生时段校验，将错误收敛为明确业务异常，并补充单元测试。
+- 新增 [v2.0 商业级产品化方案](docs/v2.0-commercial-product-system.md)，沉淀产品漏斗、前端体验、后端架构和运维路线。
+- 验证通过：后端测试、前端构建、Compose config、本地 H2 + Vite 浏览器主流程和短链 302。
+
+</details>
+
+<details>
 <summary><strong>2026-06-10｜v1.2-v1.4 生产质量增强包</strong></summary>
 
 - 新建分支：`feature/v1.2-v1.4-production-quality-suite`。
@@ -641,10 +664,10 @@ admin pv/uv/uip: 1/1/1
 
 ## 后续建议
 
-1. 生产上线前使用真实 `deploy/.env` 执行 `scripts/deploy-preflight.sh deploy/.env`。
-2. 在目标服务器补一次标准 `docker compose up --build -d` 全链路验收。
-3. 若正式接入独立短链服务，优先使用短链子域名并单独审计外部短链项目隐私存储。
-4. v1.1 可补 GitHub Actions CI；v2.0 以后再考虑朋友匹配、登录或付费等扩展功能。
+1. 先完成 v2.0 产品化闭环验收：移动端首屏、答题进度、结果页分享、短链回流和后台漏斗事件均可解释。
+2. v2.1 优先补渠道参数、分享来源、会话标识和日聚合表，让后台从“看访问量”升级为“看增长路径”。
+3. v2.2 优先补 Playwright 移动端 E2E、线上 smoke、备份恢复、回滚脚本、HTTPS、限流和告警。
+4. v2.3 再评估商业化功能，例如多套卡片、运营活动页、轻量报告增强；登录、付费、AI 深度解读和朋友匹配必须单独立项。
 
 ## 娱乐声明与隐私说明
 

@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
+import { track } from '../utils/tracker';
 
 const props = defineProps<{
   shortUrl: string;
+  resultId?: string;
+  shortCode?: string;
 }>();
 
 const emit = defineEmits<{
@@ -10,16 +13,40 @@ const emit = defineEmits<{
 }>();
 
 const copied = ref(false);
+const message = ref('');
+
+onMounted(() => {
+  track('SHARE_PANEL_VIEW', undefined, props.resultId, props.shortCode);
+});
 
 async function copy() {
+  message.value = '';
   try {
     await navigator.clipboard.writeText(props.shortUrl);
     copied.value = true;
+    message.value = '短链接已复制，发给朋友看看吧';
     emit('copied');
   } catch {
-    const selection = window.getSelection();
-    selection?.removeAllRanges();
     copied.value = false;
+    message.value = '当前浏览器不支持自动复制，请长按链接手动复制';
+  }
+}
+
+async function nativeShare() {
+  message.value = '';
+  if (!navigator.share) {
+    message.value = '当前浏览器不支持系统分享，可以先复制短链接';
+    return;
+  }
+  try {
+    await navigator.share({
+      title: '我的五行人格卡',
+      text: '我刚生成了一张五行人格卡，看看像不像我。',
+      url: props.shortUrl,
+    });
+    track('NATIVE_SHARE_SUCCESS', undefined, props.resultId, props.shortCode);
+  } catch {
+    message.value = '分享已取消';
   }
 }
 </script>
@@ -30,8 +57,11 @@ async function copy() {
       <p class="label">专属短链接</p>
       <p class="url">{{ shortUrl }}</p>
     </div>
-    <button type="button" @click="copy">复制</button>
-    <p v-if="copied" class="tip">短链接已复制，发给朋友看看吧</p>
+    <div class="share-actions">
+      <button type="button" @click="copy">{{ copied ? '已复制' : '复制' }}</button>
+      <button class="secondary" type="button" @click="nativeShare">分享</button>
+    </div>
+    <p v-if="message" class="tip">{{ message }}</p>
   </section>
 </template>
 
@@ -45,6 +75,11 @@ async function copy() {
   border-radius: 8px;
   padding: 14px;
   background: #fff;
+}
+
+.share-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .label {
@@ -66,5 +101,16 @@ async function copy() {
   color: #2f6f5e;
   font-size: 14px;
   font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .share-box {
+    grid-template-columns: 1fr;
+  }
+
+  .share-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
 }
 </style>

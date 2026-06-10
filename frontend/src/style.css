@@ -79,7 +79,7 @@ button.secondary {
 
 h1 {
   margin: 0;
-  font-size: clamp(34px, 10vw, 54px);
+  font-size: 52px;
   line-height: 1.08;
   letter-spacing: 0;
 }
@@ -243,6 +243,10 @@ td a {
 }
 
 @media (max-width: 760px) {
+  h1 {
+    font-size: 36px;
+  }
+
   .form-grid,
   .admin-token,
   .filter-bar {
