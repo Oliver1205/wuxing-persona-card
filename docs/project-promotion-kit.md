@@ -64,6 +64,7 @@ flowchart LR
 | 问答卡片 | `/test` | 展示一题一屏、步骤条、选中态 |
 | 结果首屏 | `/result/{resultId}` | 展示身份名、关键词、主副五行 |
 | 分享模块 | `/result/{resultId}` | 展示保存分享图、我也要测、短链复制 |
+| 结果分享图 | 点击“保存分享图” | 展示五行配色、人格身份、短链和朋友回流提示 |
 | 朋友回流 | `/result/{resultId}?sc={shortCode}` | 展示“朋友分享给你的五行人格卡”提示 |
 | 后台总览 | `/admin` | 展示 PV / UV / UIP、漏斗和 Top Channel |
 | 短链详情 | `/admin/short-links/{shortCode}` | 展示访问明细、来源和设备类型 |

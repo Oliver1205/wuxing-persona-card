@@ -96,3 +96,9 @@ multi-role review support. The main outcomes are:
 - Documentation priority: turn the requested multi-role agent strategy into a repeatable review matrix.
 - Documentation change: added `docs/role-review-matrix.md`, covering product manager, ordinary visitor, art director, frontend developer, senior architect, backend developer, and big-tech interviewer perspectives.
 - Workflow value: later UX/backend/documentation changes can be checked against role-specific acceptance criteria instead of relying on a single engineering viewpoint.
+
+### Phase 7
+
+- Visual/product priority: make the generated result share image feel closer to a real spreadable asset.
+- Frontend change: upgraded `frontend/src/utils/shareCard.ts` with element-aware colors, stronger result identity hierarchy, clearer short-link copy, and a friend-return prompt.
+- Promotion value: the share image now better matches the project poster and can be used as a screenshot target in the promotion kit.
