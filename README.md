@@ -343,6 +343,16 @@ npm run preview -- --host 127.0.0.1 --port 4173
 
 访问 `http://127.0.0.1:4173/`，本地后台 token 为 `dev-token`。
 
+如果本机 `8080` 已被占用，可把后端临时启动到其他端口，并让 Vite 代理跟随：
+
+```bash
+cd backend
+SERVER_PORT=18080 APP_BASE_URL=http://127.0.0.1:4173 mvn spring-boot:run -Dspring-boot.run.profiles=local
+
+cd frontend
+BACKEND_PROXY_TARGET=http://127.0.0.1:18080 npm run preview -- --host 127.0.0.1 --port 4173
+```
+
 ## Docker 部署方式
 
 ```bash
