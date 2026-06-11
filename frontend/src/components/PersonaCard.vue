@@ -20,8 +20,10 @@ defineProps<{
 
     <ElementRatioCard
       :primary-name="result.primaryElementName"
+      :primary-element="result.primaryElement"
       :primary-percent="result.primaryPercent"
       :secondary-name="result.secondaryElementName"
+      :secondary-element="result.secondaryElement"
       :secondary-percent="result.secondaryPercent"
     />
 

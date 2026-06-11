@@ -1,10 +1,27 @@
 <script setup lang="ts">
-defineProps<{
+const elementColors: Record<string, string> = {
+  METAL: '#5c6670',
+  WOOD: '#5e8d63',
+  WATER: '#486f92',
+  FIRE: '#b66045',
+  EARTH: '#9d7a42',
+};
+
+const props = defineProps<{
   primaryName: string;
+  primaryElement: string;
   primaryPercent: number;
   secondaryName: string;
+  secondaryElement: string;
   secondaryPercent: number;
 }>();
+
+function barStyle(element: string, percent: number) {
+  return {
+    width: `${percent}%`,
+    backgroundColor: elementColors[element] ?? '#2f6f5e',
+  };
+}
 </script>
 
 <template>
@@ -14,8 +31,8 @@ defineProps<{
       <span>{{ secondaryName }} {{ secondaryPercent }}%</span>
     </div>
     <div class="bar" aria-hidden="true">
-      <div class="primary" :style="{ width: `${primaryPercent}%` }"></div>
-      <div class="secondary" :style="{ width: `${secondaryPercent}%` }"></div>
+      <div class="primary" :style="barStyle(props.primaryElement, primaryPercent)"></div>
+      <div class="secondary" :style="barStyle(props.secondaryElement, secondaryPercent)"></div>
     </div>
   </section>
 </template>
@@ -43,11 +60,7 @@ defineProps<{
   background: #e8e1d2;
 }
 
-.primary {
-  background: #2f6f5e;
-}
-
 .secondary {
-  background: #d89a43;
+  opacity: 0.9;
 }
 </style>

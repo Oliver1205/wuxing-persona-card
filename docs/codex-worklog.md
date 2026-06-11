@@ -328,3 +328,15 @@ multi-role review support. The main outcomes are:
 - Backend evidence priority: make "high peak, low latency" claims auditable instead of vague.
 - Documentation change: added `docs/production-load-alert-runbook.md` with layered pressure-test order, performance smoke thresholds, async queue/runtime evidence, alert drills, and a fixed report template.
 - Interview value: README, quality scorecard, and learning manual now point to the runbook and explicitly separate smoke evidence from unverified production QPS claims.
+
+### Phase 45
+
+- Orchestration priority: turn the requested multi-role eight-hour workflow into live, auditable agent assignments.
+- Documentation change: updated `docs/agent-workflow-orchestration.md` with the current role allocation, each role's input scope, expected output, and eight-hour timeboxes.
+- Workflow value: role agents stay read-only while the main thread owns integration, verification, commits, and honest release notes, reducing the risk of parallel edits colliding.
+
+### Phase 46
+
+- Visual priority: make the result card's primary/secondary ratio bar reflect the actual five-elements identity instead of a fixed two-color bar.
+- Backend priority: keep high-frequency result page reads from waiting on non-critical analytics writes.
+- Code change: `ElementRatioCard` now uses the real primary/secondary element colors passed by `PersonaCard`, and `ResultService#getByResultId` records `RESULT_VIEW` through the async visit-event queue.

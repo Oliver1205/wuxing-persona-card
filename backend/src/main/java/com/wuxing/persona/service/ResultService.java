@@ -96,7 +96,7 @@ public class ResultService {
     public ResultDetailVO getByResultId(String resultId, String clientId, HttpServletRequest request) {
         ResultDetailVO cached = redisCacheService.getResult(resultId);
         if (cached != null) {
-            visitEventService.record(EventType.RESULT_VIEW, "/result/" + resultId, resultId, cached.getShortCode(), clientId, request);
+            visitEventService.recordAsync(EventType.RESULT_VIEW, "/result/" + resultId, resultId, cached.getShortCode(), clientId, request);
             return cached;
         }
         UserResultEntity entity = userResultMapper.selectByResultId(resultId);
@@ -106,7 +106,7 @@ public class ResultService {
         ShortLinkEntity shortLink = shortLinkService.getByResultId(resultId);
         ResultDetailVO detail = toDetail(entity, shortLink);
         redisCacheService.setResult(resultId, detail);
-        visitEventService.record(EventType.RESULT_VIEW, "/result/" + resultId, resultId, detail.getShortCode(), clientId, request);
+        visitEventService.recordAsync(EventType.RESULT_VIEW, "/result/" + resultId, resultId, detail.getShortCode(), clientId, request);
         return detail;
     }
 
