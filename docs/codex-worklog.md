@@ -389,3 +389,9 @@ multi-role review support. The main outcomes are:
 - Reliability priority: prove the async visit-event queue does not hide low-latency success behind invisible event drops.
 - Test change: `VisitEventServiceTest` now forces a queue capacity of one and blocks the worker so the third async event must increment `droppedAsyncEvents`.
 - Tooling change: `scripts/performance-smoke-test.sh` now requires the async worker to be alive, prints queue threshold settings, and supports optional `MAX_ASYNC_QUEUE_SIZE` / `MAX_ASYNC_DROPPED_EVENTS` guards.
+
+### Phase 55
+
+- Product priority: make the docs-site "try the H5" path direct enough for portfolio visitors.
+- Docs-site change: the experience section now links to the local `/test` route, names the H2 local profile path, and shows the backend/frontend preview commands in the same panel.
+- Verification value: the documentation site no longer sends a visitor through README first just to find the working local demo URL.

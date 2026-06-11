@@ -409,6 +409,32 @@ h3 {
   overflow-wrap: anywhere;
 }
 
+.experience-grid a {
+  color: inherit;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.experience-commands {
+  margin-top: 18px;
+  overflow: auto;
+  border: 1px solid #d8e0dc;
+  border-radius: 14px;
+  background: #172522;
+}
+
+.experience-commands pre {
+  margin: 0;
+  padding: 18px;
+}
+
+.experience-commands code {
+  color: #e6f2ec;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
 .flow {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
