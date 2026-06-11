@@ -76,6 +76,7 @@ HASH_SALT=<strong-random-salt>
 - `SHORT_LINK_EXTERNAL_CONNECT_TIMEOUT_MILLIS` 和 `SHORT_LINK_EXTERNAL_READ_TIMEOUT_MILLIS` 用于限制外部短链调用等待时间。
 - `SHORT_LINK_EXTERNAL_STATS_ENABLED` 默认为 `false`，开启后后台短链列表会尝试读取外部短链 PV / UV / UIP。
 - `SHORT_LINK_EXTERNAL_STATS_ENABLE_STATUS` 对应外部短链统计接口的 `enableStatus`，默认 `0`。
+- `SHORT_LINK_EXTERNAL_STATS_CACHE_TTL_SECONDS` 控制后台短链列表 external PV / UV / UIP 的本地短缓存，默认 `60` 秒；设置为 `0` 可关闭缓存。
 - `BACKEND_MAVEN_IMAGE`、`BACKEND_RUNTIME_IMAGE`、`FRONTEND_NODE_IMAGE`、`FRONTEND_NGINX_IMAGE` 是可选基础镜像参数。默认使用官方镜像，Docker Hub 不稳定时可临时切换到可信镜像源。
 
 上线前执行预检：

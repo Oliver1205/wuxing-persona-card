@@ -47,7 +47,7 @@
 暂缓项：
 
 - Redis 热计数需要先明确 PV/UV/UIP 的最终一致性口径，适合在日聚合链路稳定后做。
-- external 统计缓存适合和 external mock 测试一起做，避免只做缓存没有可验证证据。
+- external 统计缓存已在 Phase 24 落地，适合后续再扩展为 external mock 慢响应场景的集成测试。
 - Flyway/Liquibase 迁移治理价值很高，但会影响启动和部署方式，适合作为独立生产化任务。
 
 ## 5. 待补充审视

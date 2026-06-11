@@ -18,6 +18,7 @@ SHORT_LINK_EXTERNAL_DOMAIN=s.example.com
 SHORT_LINK_EXTERNAL_FALLBACK_TO_INTERNAL=true
 SHORT_LINK_EXTERNAL_STATS_ENABLED=true
 SHORT_LINK_EXTERNAL_STATS_ENABLE_STATUS=0
+SHORT_LINK_EXTERNAL_STATS_CACHE_TTL_SECONDS=60
 ```
 
 外部 aggregation 默认配置重点：
@@ -32,6 +33,7 @@ short-link.goto-domain.white-list.enable=false
 生产要求：
 
 - `SHORT_LINK_EXTERNAL_DOMAIN` 必须等于外部服务生成短链时使用的 `domain`。
+- `SHORT_LINK_EXTERNAL_STATS_CACHE_TTL_SECONDS` 默认 `60`，用于降低后台短链列表重复刷新时的外部统计 HTTP 调用；设为 `0` 可关闭。
 - 如果短链服务对外使用 `s.example.com`，不要继续使用本地默认 `nurl.ink:8003`。
 - 五行 `APP_BASE_URL` 必须是用户可访问的 H5 域名，否则外部短链 302 会跳到不可访问地址。
 

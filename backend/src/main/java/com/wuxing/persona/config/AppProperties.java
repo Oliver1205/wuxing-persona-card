@@ -93,6 +93,7 @@ public class AppProperties {
         private int readTimeoutMillis = 3000;
         private boolean statsEnabled = false;
         private int statsEnableStatus = 0;
+        private int statsCacheTtlSeconds = 60;
 
         public String getBaseUrl() {
             return baseUrl;
@@ -180,6 +181,14 @@ public class AppProperties {
 
         public void setStatsEnableStatus(int statsEnableStatus) {
             this.statsEnableStatus = statsEnableStatus;
+        }
+
+        public int getStatsCacheTtlSeconds() {
+            return statsCacheTtlSeconds;
+        }
+
+        public void setStatsCacheTtlSeconds(int statsCacheTtlSeconds) {
+            this.statsCacheTtlSeconds = Math.max(0, statsCacheTtlSeconds);
         }
 
         private static String trimTrailingSlashValue(String value, String defaultValue) {

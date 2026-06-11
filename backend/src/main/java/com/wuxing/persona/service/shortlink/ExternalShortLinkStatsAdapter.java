@@ -7,10 +7,14 @@ import com.wuxing.persona.service.AdminDateRange;
 import com.wuxing.persona.util.HashUtils;
 import com.wuxing.persona.vo.PageVO;
 import com.wuxing.persona.vo.ShortLinkVisitVO;
+import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -22,6 +26,7 @@ public class ExternalShortLinkStatsAdapter {
 
     private final AppProperties appProperties;
     private final ExternalShortLinkClient externalShortLinkClient;
+    private final ConcurrentMap<String, CachedStats> statsCache = new ConcurrentHashMap<>();
 
     public ExternalShortLinkStatsAdapter(AppProperties appProperties, ExternalShortLinkClient externalShortLinkClient) {
         this.appProperties = appProperties;
@@ -39,12 +44,18 @@ public class ExternalShortLinkStatsAdapter {
         }
         try {
             ExternalShortLinkStatsRequest request = buildRequest(shortLink, range, external, fullShortUrl);
+            Optional<ExternalShortLinkStatsSnapshot> cached = readStatsCache(request, external);
+            if (cached.isPresent()) {
+                return cached;
+            }
             ExternalShortLinkStatsResponse response = externalShortLinkClient.stats(request);
-            return Optional.of(new ExternalShortLinkStatsSnapshot(
+            ExternalShortLinkStatsSnapshot snapshot = new ExternalShortLinkStatsSnapshot(
                     nullToZero(response.getPv()),
                     nullToZero(response.getUv()),
                     nullToZero(response.getUip())
-            ));
+            );
+            writeStatsCache(request, external, snapshot);
+            return Optional.of(snapshot);
         } catch (BusinessException ex) {
             log.warn("External short link stats unavailable, fallback to local stats, shortCode={}", shortLink.getShortCode());
             return Optional.empty();
@@ -104,6 +115,42 @@ public class ExternalShortLinkStatsAdapter {
         // The external shortlink service uses endDate as a timestamp boundary in access-log queries.
         request.setEndDate(endDate.plusDays(1).toString());
         return request;
+    }
+
+    private Optional<ExternalShortLinkStatsSnapshot> readStatsCache(ExternalShortLinkStatsRequest request,
+                                                                    AppProperties.ExternalShortLinkProperties external) {
+        long ttlSeconds = external.getStatsCacheTtlSeconds();
+        if (ttlSeconds <= 0) {
+            return Optional.empty();
+        }
+        String key = statsCacheKey(request);
+        CachedStats cached = statsCache.get(key);
+        if (cached == null) {
+            return Optional.empty();
+        }
+        if (Duration.between(cached.cachedAt(), LocalDateTime.now()).getSeconds() >= ttlSeconds) {
+            statsCache.remove(key, cached);
+            return Optional.empty();
+        }
+        return Optional.of(cached.snapshot());
+    }
+
+    private void writeStatsCache(ExternalShortLinkStatsRequest request,
+                                 AppProperties.ExternalShortLinkProperties external,
+                                 ExternalShortLinkStatsSnapshot snapshot) {
+        if (external.getStatsCacheTtlSeconds() <= 0) {
+            return;
+        }
+        statsCache.put(statsCacheKey(request), new CachedStats(snapshot, LocalDateTime.now()));
+    }
+
+    private String statsCacheKey(ExternalShortLinkStatsRequest request) {
+        return String.join("|",
+                request.getFullShortUrl(),
+                request.getGid(),
+                String.valueOf(request.getEnableStatus()),
+                request.getStartDate(),
+                request.getEndDate());
     }
 
     private ExternalShortLinkAccessRecordRequest buildAccessRecordRequest(ShortLinkEntity shortLink,
@@ -226,5 +273,8 @@ public class ExternalShortLinkStatsAdapter {
 
     private long firstNonNull(Long value, long fallback) {
         return value == null ? fallback : value;
+    }
+
+    private record CachedStats(ExternalShortLinkStatsSnapshot snapshot, LocalDateTime cachedAt) {
     }
 }

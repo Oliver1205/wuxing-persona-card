@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -71,6 +72,42 @@ class ExternalShortLinkStatsAdapterTest {
         assertEquals(0, request.getEnableStatus());
         assertEquals("2026-06-08", request.getStartDate());
         assertEquals("2026-06-10", request.getEndDate());
+    }
+
+    @Test
+    void shouldCacheExternalStatsWithinTtlForSameRange() {
+        ExternalShortLinkStatsResponse response = new ExternalShortLinkStatsResponse();
+        response.setPv(9L);
+        response.setUv(4L);
+        response.setUip(3L);
+        when(externalShortLinkClient.stats(any(ExternalShortLinkStatsRequest.class))).thenReturn(response);
+        ShortLinkEntity shortLink = shortLink("abc123", "http://nurl.ink:8003/abc123");
+        AdminDateRange range = AdminDateRange.of(LocalDate.of(2026, 6, 8), LocalDate.of(2026, 6, 9));
+
+        Optional<ExternalShortLinkStatsSnapshot> first = adapter.fetchStats(shortLink, range);
+        Optional<ExternalShortLinkStatsSnapshot> second = adapter.fetchStats(shortLink, range);
+
+        assertTrue(first.isPresent());
+        assertTrue(second.isPresent());
+        assertEquals(9L, second.get().getPv());
+        verify(externalShortLinkClient, times(1)).stats(any(ExternalShortLinkStatsRequest.class));
+    }
+
+    @Test
+    void shouldBypassExternalStatsCacheWhenTtlIsZero() {
+        appProperties.getShortLink().getExternal().setStatsCacheTtlSeconds(0);
+        ExternalShortLinkStatsResponse response = new ExternalShortLinkStatsResponse();
+        response.setPv(9L);
+        response.setUv(4L);
+        response.setUip(3L);
+        when(externalShortLinkClient.stats(any(ExternalShortLinkStatsRequest.class))).thenReturn(response);
+        ShortLinkEntity shortLink = shortLink("abc123", "http://nurl.ink:8003/abc123");
+        AdminDateRange range = AdminDateRange.of(LocalDate.of(2026, 6, 8), LocalDate.of(2026, 6, 9));
+
+        adapter.fetchStats(shortLink, range);
+        adapter.fetchStats(shortLink, range);
+
+        verify(externalShortLinkClient, times(2)).stats(any(ExternalShortLinkStatsRequest.class));
     }
 
     @Test

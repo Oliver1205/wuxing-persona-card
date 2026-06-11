@@ -48,3 +48,4 @@ app:
       read-timeout-millis: ${SHORT_LINK_EXTERNAL_READ_TIMEOUT_MILLIS:3000}
       stats-enabled: ${SHORT_LINK_EXTERNAL_STATS_ENABLED:false}
       stats-enable-status: ${SHORT_LINK_EXTERNAL_STATS_ENABLE_STATUS:0}
+      stats-cache-ttl-seconds: ${SHORT_LINK_EXTERNAL_STATS_CACHE_TTL_SECONDS:60}

@@ -200,3 +200,9 @@ multi-role review support. The main outcomes are:
 - Backend priority: keep historical admin short-link list queries from scanning the full visit-event detail table.
 - Backend change: when the selected date range is fully before today, short-link list PV/UV/UIP now comes from `short_link_daily_metric`; today and open-ended ranges still use live visit events.
 - Verification value: the analytics aggregation integration test now verifies that a closed-date short-link list returns the same local PV/UV/UIP from daily metrics.
+
+### Phase 24
+
+- Backend priority: avoid repeated external stats HTTP calls when admins refresh the short-link list.
+- Backend change: external PV/UV/UIP snapshots now use a configurable local TTL cache keyed by short URL, group, enable status, and date range.
+- Verification value: adapter tests cover cache hits and `SHORT_LINK_EXTERNAL_STATS_CACHE_TTL_SECONDS=0` bypass behavior.
