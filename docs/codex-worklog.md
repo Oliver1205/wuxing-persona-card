@@ -291,3 +291,9 @@ multi-role review support. The main outcomes are:
 - Observability priority: make async event drops visible when using the performance smoke script as low-latency evidence.
 - Backend change: added an admin-protected visit-event runtime endpoint that reports async queue size, capacity, drain limit, cumulative dropped events, and worker liveness.
 - Tooling value: `scripts/performance-smoke-test.sh` now prints `asyncQueueSize`, `asyncDroppedEvents`, and `asyncWorkerAlive`, so a fast short-link result can be checked against event queue health.
+
+### Phase 39
+
+- Visual evidence priority: make the showcase screenshot workflow useful for product, ordinary-user, and art-manager review rather than a single mobile viewport.
+- Tooling change: the Playwright showcase spec now captures the full product flow for iPhone SE and wide Android mobile viewports, plus the desktop admin overview.
+- Documentation value: the promotion kit, role matrix, and completion audit now distinguish "multi-viewport screenshot script exists" from "real generated screenshot artifacts still need to be archived."

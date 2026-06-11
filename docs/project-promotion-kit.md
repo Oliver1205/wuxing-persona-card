@@ -86,6 +86,14 @@ scripts/capture-showcase-screenshots.sh
 
 脚本会在 Playwright 可用时生成首页、出生信息卡、问答卡、结果页、分享回流页和后台总览截图，默认输出到 `docs/screenshots/showcase/`。如果本机尚未安装 Playwright，脚本会给出安装提示并退出，不影响默认质量门禁。
 
+当前脚本会覆盖三类展示视口：
+
+| 视口 | 输出文件前缀 | 用途 |
+| --- | --- | --- |
+| iPhone SE 小屏 | `iphone-se-*` | 检查最窄常见手机下按钮、卡片和文字是否拥挤 |
+| 安卓宽屏手机 | `android-wide-*` | 检查常见大屏手机下结果页和分享区的视觉节奏 |
+| 桌面后台 | `desktop-*` | 展示后台 KPI、漏斗和运营信息层级 |
+
 ## 已有视觉资产
 
 - [五行人格卡项目主视觉](assets/wuxing-promo-poster.svg)：16:9 SVG，可用于 README、作品集、答辩 PPT 和项目介绍页。
