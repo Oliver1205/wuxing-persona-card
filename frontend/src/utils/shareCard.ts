@@ -4,6 +4,7 @@ const CARD_WIDTH = 900;
 const CARD_HEIGHT = 1200;
 const CONTENT_X = 88;
 const CONTENT_WIDTH = CARD_WIDTH - CONTENT_X * 2;
+const POSTER_RIGHT_X = 608;
 
 type ElementPalette = {
   primary: string;
@@ -40,6 +41,7 @@ export function downloadResultShareCard(result: ResultDetail) {
   drawTitle(ctx, result);
   drawElementBlock(ctx, result);
   drawKeywords(ctx, result);
+  drawElementSpectrum(ctx, result);
   drawTexts(ctx, result);
   drawFooter(ctx, result);
 
@@ -77,7 +79,7 @@ function drawTitle(ctx: CanvasRenderingContext2D, result: ResultDetail) {
   ctx.fillText('五行人格卡 · 传统文化元素人格测试', CONTENT_X, 126);
 
   ctx.fillStyle = '#24302f';
-  ctx.font = '900 60px sans-serif';
+  ctx.font = '900 58px sans-serif';
   drawSingleLineText(ctx, `${result.primaryElementName}${result.secondaryElementName}型${result.keywords[0] ?? '人格'}`, CONTENT_X, 210, CONTENT_WIDTH);
 
   ctx.fillStyle = '#596764';
@@ -87,16 +89,16 @@ function drawTitle(ctx: CanvasRenderingContext2D, result: ResultDetail) {
 
 function drawElementBlock(ctx: CanvasRenderingContext2D, result: ResultDetail) {
   const palette = getPalette(result.primaryElement);
-  const gradient = ctx.createLinearGradient(CONTENT_X, 300, CONTENT_X + CONTENT_WIDTH, 500);
+  const gradient = ctx.createLinearGradient(CONTENT_X, 300, CONTENT_X + CONTENT_WIDTH, 540);
   gradient.addColorStop(0, '#24302f');
   gradient.addColorStop(1, palette.primary);
   ctx.fillStyle = gradient;
-  roundRect(ctx, CONTENT_X, 300, CONTENT_WIDTH, 220, 26);
+  roundRect(ctx, CONTENT_X, 300, CONTENT_WIDTH, 248, 30);
   ctx.fill();
 
   ctx.fillStyle = '#ffffff';
-  ctx.font = '900 96px sans-serif';
-  ctx.fillText(result.primaryElementName, 138, 436);
+  ctx.font = '900 104px sans-serif';
+  ctx.fillText(result.primaryElementName, 132, 438);
 
   ctx.font = '800 34px sans-serif';
   ctx.fillText(`${result.primaryPercent}% ${result.primaryElementName}`, 318, 374);
@@ -104,26 +106,36 @@ function drawElementBlock(ctx: CanvasRenderingContext2D, result: ResultDetail) {
   ctx.fillText(`${result.secondaryPercent}% ${result.secondaryElementName}`, 318, 430);
 
   ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
-  roundRect(ctx, 138, 468, 624, 18, 9);
+  roundRect(ctx, 132, 484, 620, 18, 9);
   ctx.fill();
   ctx.fillStyle = '#ffffff';
-  roundRect(ctx, 138, 468, Math.max(24, Math.round(624 * result.primaryPercent / 100)), 18, 9);
+  roundRect(ctx, 132, 484, Math.max(24, Math.round(620 * result.primaryPercent / 100)), 18, 9);
   ctx.fill();
 
   ctx.fillStyle = palette.soft;
-  roundRect(ctx, 600, 330, 150, 52, 26);
+  roundRect(ctx, POSTER_RIGHT_X, 330, 154, 52, 26);
   ctx.fill();
   ctx.fillStyle = palette.ink;
   ctx.font = '800 22px sans-serif';
-  ctx.fillText('主五行', 638, 364);
+  ctx.fillText('主五行', POSTER_RIGHT_X + 40, 364);
+
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.14)';
+  roundRect(ctx, POSTER_RIGHT_X, 408, 154, 82, 22);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 28px sans-serif';
+  ctx.fillText(result.shortCode, POSTER_RIGHT_X + 26, 442);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.76)';
+  ctx.font = '700 18px sans-serif';
+  ctx.fillText('专属短码', POSTER_RIGHT_X + 38, 470);
 }
 
 function drawKeywords(ctx: CanvasRenderingContext2D, result: ResultDetail) {
   let x = CONTENT_X;
-  let y = 590;
+  let y = 626;
   const palette = getPalette(result.primaryElement);
   ctx.font = '800 26px sans-serif';
-  for (const keyword of result.keywords) {
+  for (const keyword of result.keywords.slice(0, 4)) {
     const width = ctx.measureText(keyword).width + 42;
     if (x + width > CONTENT_X + CONTENT_WIDTH) {
       x = CONTENT_X;
@@ -138,36 +150,67 @@ function drawKeywords(ctx: CanvasRenderingContext2D, result: ResultDetail) {
   }
 }
 
-function drawTexts(ctx: CanvasRenderingContext2D, result: ResultDetail) {
-  const startY = 704;
-  ctx.fillStyle = '#24302f';
-  ctx.font = '800 30px sans-serif';
-  ctx.fillText('性格亮点', CONTENT_X, startY);
-  drawWrappedText(ctx, result.strengthText, CONTENT_X, startY + 48, CONTENT_WIDTH, 34, 3);
+function drawElementSpectrum(ctx: CanvasRenderingContext2D, result: ResultDetail) {
+  const entries = Object.entries(result.allElementScores)
+    .sort((first, second) => second[1] - first[1])
+    .slice(0, 5);
+  const maxScore = Math.max(...entries.map(([, score]) => score), 1);
+  const startY = 700;
 
-  ctx.font = '800 30px sans-serif';
-  ctx.fillText('相处优势', CONTENT_X, startY + 190);
-  drawWrappedText(ctx, result.relationshipText, CONTENT_X, startY + 238, CONTENT_WIDTH, 34, 3);
+  ctx.fillStyle = '#24302f';
+  ctx.font = '800 28px sans-serif';
+  ctx.fillText('五行能量分布', CONTENT_X, startY);
+
+  entries.forEach(([elementCode, score], index) => {
+    const palette = getPalette(elementCode);
+    const y = startY + 42 + index * 42;
+    const barWidth = Math.max(28, Math.round((score / maxScore) * 420));
+    const label = elementName(elementCode);
+
+    ctx.fillStyle = '#596764';
+    ctx.font = '800 20px sans-serif';
+    ctx.fillText(label, CONTENT_X, y + 19);
+
+    ctx.fillStyle = '#eef2ed';
+    roundRect(ctx, CONTENT_X + 78, y, 430, 18, 9);
+    ctx.fill();
+    ctx.fillStyle = palette.primary;
+    roundRect(ctx, CONTENT_X + 78, y, barWidth, 18, 9);
+    ctx.fill();
+
+    ctx.fillStyle = '#596764';
+    ctx.font = '700 18px sans-serif';
+    ctx.fillText(String(score), CONTENT_X + 528, y + 18);
+  });
+}
+
+function drawTexts(ctx: CanvasRenderingContext2D, result: ResultDetail) {
+  const startY = 956;
+  ctx.fillStyle = '#24302f';
+  ctx.font = '800 28px sans-serif';
+  ctx.fillText('性格亮点', CONTENT_X, startY);
+  drawWrappedText(ctx, result.strengthText, CONTENT_X, startY + 42, CONTENT_WIDTH, 32, 2);
 }
 
 function drawFooter(ctx: CanvasRenderingContext2D, result: ResultDetail) {
   const palette = getPalette(result.primaryElement);
+  const footerY = 1060;
+  const markX = CONTENT_X + CONTENT_WIDTH - 86;
   ctx.fillStyle = '#fff7e8';
-  roundRect(ctx, CONTENT_X, 1036, CONTENT_WIDTH, 72, 20);
+  roundRect(ctx, CONTENT_X, footerY, CONTENT_WIDTH, 94, 20);
   ctx.fill();
 
   ctx.fillStyle = '#6d4f29';
-  ctx.font = '800 23px sans-serif';
-  ctx.fillText('保存分享图发朋友圈，复制短链发私聊', CONTENT_X + 26, 1081);
+  ctx.font = '800 22px sans-serif';
+  drawSingleLineText(ctx, '保存分享图发朋友圈', CONTENT_X + 24, footerY + 38, CONTENT_WIDTH - 130);
   ctx.fillStyle = palette.primary;
-  ctx.font = '900 23px sans-serif';
-  ctx.fillText('朋友打开也能测一张', 576, 1081);
+  ctx.font = '900 22px sans-serif';
+  drawSingleLineText(ctx, '复制短链发私聊，朋友打开也能测一张', CONTENT_X + 24, footerY + 70, CONTENT_WIDTH - 130);
 
   ctx.fillStyle = '#596764';
-  ctx.font = '600 18px sans-serif';
-  drawSingleLineText(ctx, result.shortUrl, CONTENT_X, 1144, CONTENT_WIDTH);
-  ctx.font = '500 18px sans-serif';
-  drawSingleLineText(ctx, '娱乐性人格解读，不构成现实决策建议。', CONTENT_X, 1174, CONTENT_WIDTH);
+  ctx.font = '600 17px sans-serif';
+  drawSingleLineText(ctx, result.shortUrl, CONTENT_X, 1184, CONTENT_WIDTH);
+  drawShareMark(ctx, result.shortCode, markX, footerY + 10, palette);
 }
 
 function drawWrappedText(
@@ -184,12 +227,13 @@ function drawWrappedText(
   for (const char of text) {
     const nextLine = line + char;
     if (ctx.measureText(nextLine).width > maxWidth && line) {
+      if (lineCount === maxLines - 1) {
+        drawSingleLineText(ctx, `${line}...`, x, y + lineCount * lineHeight, maxWidth);
+        return;
+      }
       ctx.fillText(line, x, y + lineCount * lineHeight);
       line = char;
       lineCount += 1;
-      if (lineCount >= maxLines) {
-        return;
-      }
     } else {
       line = nextLine;
     }
@@ -216,6 +260,35 @@ function drawSingleLineText(
     clipped = clipped.slice(0, -1);
   }
   ctx.fillText(`${clipped}...`, x, y);
+}
+
+function drawShareMark(ctx: CanvasRenderingContext2D, shortCode: string, x: number, y: number, palette: ElementPalette) {
+  ctx.fillStyle = '#ffffff';
+  roundRect(ctx, x, y, 74, 74, 14);
+  ctx.fill();
+
+  ctx.fillStyle = palette.primary;
+  const chars = shortCode || 'WUXING';
+  for (let row = 0; row < 5; row += 1) {
+    for (let col = 0; col < 5; col += 1) {
+      const code = chars.charCodeAt((row * 5 + col) % chars.length);
+      if ((code + row + col) % 3 !== 0) {
+        roundRect(ctx, x + 11 + col * 11, y + 11 + row * 11, 7, 7, 2);
+        ctx.fill();
+      }
+    }
+  }
+}
+
+function elementName(elementCode: string) {
+  const names: Record<string, string> = {
+    METAL: '金',
+    WOOD: '木',
+    WATER: '水',
+    FIRE: '火',
+    EARTH: '土',
+  };
+  return names[elementCode] ?? elementCode;
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {
