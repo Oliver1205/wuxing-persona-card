@@ -23,7 +23,7 @@ const copyLabel = computed(() => {
   if (copying.value) {
     return '复制中';
   }
-  return copied.value ? '已复制' : '复制';
+  return copied.value ? '分享链接已复制' : '复制分享链接';
 });
 
 onMounted(() => {
@@ -100,7 +100,7 @@ function selectShareUrl() {
     <div class="share-actions">
       <button type="button" :disabled="copying" @click="copy">{{ copyLabel }}</button>
       <button class="secondary" type="button" :disabled="sharing" @click="nativeShare">
-        {{ sharing ? '分享中' : '分享' }}
+        {{ sharing ? '分享中' : '系统分享' }}
       </button>
     </div>
     <p v-if="message" class="tip">{{ message }}</p>

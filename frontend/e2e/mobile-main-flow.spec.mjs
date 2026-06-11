@@ -9,7 +9,7 @@ test.use({
   hasTouch: true,
 });
 
-test('mobile user flow creates result, shares short link, and admin sees metrics', async ({ page }) => {
+test('mobile user flow creates result, shares link, and admin sees metrics', async ({ page }) => {
   await page.goto(baseUrl);
   await expect(page.getByRole('heading', { name: '生成你的五行人格卡' })).toBeVisible();
   await page.getByRole('link', { name: '开始测试' }).click();
@@ -36,6 +36,8 @@ test('mobile user flow creates result, shares short link, and admin sees metrics
   expect(resultUrl).toContain('/result/');
   const shortUrlText = await page.locator('.share-box .url').innerText();
   expect(shortUrlText).toContain('/s/');
+  await expect(page.getByRole('button', { name: '复制分享链接' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '系统分享' })).toBeVisible();
 
   await page.goto(shortUrlText);
   await page.waitForURL(/\/result\/.+sc=/);

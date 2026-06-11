@@ -431,3 +431,9 @@ multi-role review support. The main outcomes are:
 - UX copy priority: keep technical "short link" language out of the ordinary visitor flow.
 - Frontend change: homepage, result loading state, share link box, and generated share-card copy now say "分享链接" instead of "短链/短链接".
 - Validation value: the real-user checklist now asks users to find the share image or share-link entry, while backend/admin docs keep the engineering short-link terminology.
+
+### Phase 62
+
+- UX action priority: make the result-page share buttons describe the action without relying on surrounding helper text.
+- Frontend change: the share box now says "复制分享链接" and "系统分享" instead of the shorter "复制" and "分享".
+- Validation value: ordinary visitors can distinguish copying a private-chat link from invoking the browser or WeChat system share sheet.
