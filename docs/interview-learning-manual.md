@@ -369,6 +369,24 @@ sequenceDiagram
 | 7 | `backend/.../RedisCacheService.java` | 结果缓存、短码缓存、空值缓存、降级 |
 | 8 | `scripts/performance-smoke-test.sh` | 如何用脚本证明短链热点链路没有明显退化 |
 
+### 代码阅读任务卡
+
+这组任务卡用于把“我看过代码”变成“我能被追问”。每张卡都要做到三件事：找到入口、跑一次验证、用一句话讲清取舍。
+
+| 任务 | 精确文件 | 验证命令 | 面试必须能说出的句子 |
+| --- | --- | --- | --- |
+| 移动端问答体验 | `frontend/src/pages/TestPage.vue` | `npm --prefix frontend run build` | 测试页从长表单变成逐题卡片流，默认出生年份也算有效选择，选中答案后保留确认反馈再进入下一题。 |
+| 结果页分享闭环 | `frontend/src/pages/ResultPage.vue` | `E2E_BASE_URL=http://127.0.0.1:5174 E2E_ADMIN_TOKEN=dev-token scripts/mobile-e2e.sh` | 结果页不只展示文案，还承担保存分享图、复制短链、朋友回流和二次测试入口。 |
+| 创建结果链路 | `backend/src/main/java/com/wuxing/persona/service/ResultService.java` | `mvn -q -f backend/pom.xml -Dtest=MvpFlowIntegrationTest test` | 创建结果是强业务链路，结果、短链和关键事件要一起形成可恢复的业务证据。 |
+| 短链门面和适配 | `backend/src/main/java/com/wuxing/persona/service/ShortLinkService.java` | `mvn -q -f backend/pom.xml -Dtest=ExternalShortLinkProviderTest,InternalShortLinkProviderTest test` | Provider 让结果生成不用关心短链来自 internal 还是 external，外部失败时可以降级。 |
+| 短链热路径 | `backend/src/main/java/com/wuxing/persona/service/shortlink/InternalShortLinkProvider.java` | `mvn -q -f backend/pom.xml -Dtest=InternalShortLinkProviderTest test` | `/s/{shortCode}` 是传播峰值入口，Redis 命中时直接拿 resultId 做 302，不同步做统计聚合。 |
+| 异步访问事件 | `backend/src/main/java/com/wuxing/persona/service/VisitEventService.java` | `mvn -q -f backend/pom.xml -Dtest=VisitEventServiceTest test` | 访问事件是统计事实来源，但不该卡住用户跳转，所以进入有界队列并后台批量写库。 |
+| 后台统计和缓存 | `backend/src/main/java/com/wuxing/persona/service/AdminStatService.java`、`backend/src/main/java/com/wuxing/persona/service/RedisCacheService.java` | `mvn -q -f backend/pom.xml -Dtest=MvpFlowIntegrationTest test` | 后台 overview 可以接受 45 秒短缓存，运营刷新不应该反复触发昂贵聚合。 |
+| 可观测证据 | `scripts/performance-smoke-test.sh`、`backend/src/main/java/com/wuxing/persona/vo/VisitEventRuntimeVO.java` | `BASE_URL=http://127.0.0.1:48081 ADMIN_TOKEN=dev-token scripts/performance-smoke-test.sh` | 性能 smoke 看 avg / P95，也看 async queue 和 dropped events，避免只看快不看数据丢失。 |
+| 视觉与作品集证据 | `scripts/capture-showcase-screenshots.sh`、`docs/screenshots/showcase/`、`docs-site/showcase.html` | `E2E_BASE_URL=http://127.0.0.1:5174 E2E_ADMIN_TOKEN=dev-token scripts/capture-showcase-screenshots.sh` | 项目展示不只靠文字，已经有 iPhone SE、安卓宽屏和桌面后台三类可复现截图。 |
+
+学习时建议每读完一张卡，就用自己的话录 30 秒音频。如果说到一半卡住，说明还不是代码没看懂，而是“入口、取舍、证据”三者没有串起来。
+
 前端体验追问可以这样回答：
 
 > 答题页的核心不是把按钮做多，而是降低犹豫和误操作。出生年份如果界面已经显示默认值，就应该同步作为有效选择；选中答案后不立刻硬切页面，而是给一个短确认反馈再自动进入下一题；移动端底部 sticky 操作条要留出安全区，不能挡住最后一个选项。

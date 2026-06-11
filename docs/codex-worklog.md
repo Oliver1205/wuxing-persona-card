@@ -316,3 +316,9 @@ multi-role review support. The main outcomes are:
 - Visual evidence priority: replace "screenshot script exists" with actual archived multi-viewport assets.
 - Tooling fix: `scripts/capture-showcase-screenshots.sh` now resolves relative `SHOWCASE_SCREENSHOT_DIR` values from the repository root before changing into `frontend`.
 - Verification value: local H2 backend plus Vite frontend passed `scripts/mobile-e2e.sh` and `scripts/capture-showcase-screenshots.sh`; 11 showcase screenshots were generated under `docs/screenshots/showcase/`.
+
+### Phase 43
+
+- Promotion priority: turn the screenshot archive into a direct portfolio artifact.
+- Documentation change: added `docs-site/showcase.html`, a zero-dependency portfolio page combining real screenshots, product story, backend hot-path explanation, and the five-minute interview thread.
+- Learning value: the interview manual now includes task cards with exact file paths, verification commands, and the one-sentence explanation each module should support in an interview.
