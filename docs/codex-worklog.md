@@ -310,3 +310,9 @@ multi-role review support. The main outcomes are:
 - Workflow plan: drafted a `browser-e2e` job that starts the backend in local H2 mode, starts Vite against that backend, installs Chromium, runs mobile E2E, captures showcase screenshots, and uploads logs plus screenshots as artifacts.
 - Permission note: pushing `.github/workflows/quality-gate.yml` was blocked because the current GitHub credential lacks `workflow` scope, so the ready-to-apply job is documented in `docs/ci-browser-e2e-plan.md`.
 - Documentation value: README, role matrix, quality scorecard, audit, and learning manual now distinguish prepared CI browser coverage from the remaining workflow-scope, real-device, WeChat, online pressure-test, and alerting evidence gaps.
+
+### Phase 42
+
+- Visual evidence priority: replace "screenshot script exists" with actual archived multi-viewport assets.
+- Tooling fix: `scripts/capture-showcase-screenshots.sh` now resolves relative `SHOWCASE_SCREENSHOT_DIR` values from the repository root before changing into `frontend`.
+- Verification value: local H2 backend plus Vite frontend passed `scripts/mobile-e2e.sh` and `scripts/capture-showcase-screenshots.sh`; 11 showcase screenshots were generated under `docs/screenshots/showcase/`.

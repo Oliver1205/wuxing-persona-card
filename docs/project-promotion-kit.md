@@ -86,6 +86,20 @@ scripts/capture-showcase-screenshots.sh
 
 脚本会在 Playwright 可用时生成首页、出生信息卡、问答卡、结果页、分享回流页和后台总览截图，默认输出到 `docs/screenshots/showcase/`。`@playwright/test` 已纳入前端依赖；新机器需要先执行 `npm install` 和 `npx playwright install chromium`。`docs/ci-browser-e2e-plan.md` 已整理 GitHub Actions `browser-e2e` 方案，待具备 `workflow` scope 的凭据启用后，可自动运行同一组截图流程并上传 artifact。
 
+当前已归档 11 张自动化 showcase 截图，覆盖 iPhone SE、安卓宽屏和桌面后台：
+
+- `docs/screenshots/showcase/iphone-se-01-home.png`
+- `docs/screenshots/showcase/iphone-se-02-test-birth-card.png`
+- `docs/screenshots/showcase/iphone-se-03-test-question-card.png`
+- `docs/screenshots/showcase/iphone-se-04-result.png`
+- `docs/screenshots/showcase/iphone-se-05-shared-result.png`
+- `docs/screenshots/showcase/android-wide-01-home.png`
+- `docs/screenshots/showcase/android-wide-02-test-birth-card.png`
+- `docs/screenshots/showcase/android-wide-03-test-question-card.png`
+- `docs/screenshots/showcase/android-wide-04-result.png`
+- `docs/screenshots/showcase/android-wide-05-shared-result.png`
+- `docs/screenshots/showcase/desktop-06-admin-overview.png`
+
 当前脚本会覆盖三类展示视口：
 
 | 视口 | 输出文件前缀 | 用途 |

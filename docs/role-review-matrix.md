@@ -50,7 +50,7 @@
 
 ## 5. 后续推进优先级
 
-1. 启用 `browser-e2e` 后观察 artifact，归档 iPhone SE、安卓宽屏和桌面后台 showcase 精选截图。
+1. 从 `docs/screenshots/showcase/` 挑选 iPhone SE、安卓宽屏和桌面后台 showcase 精选截图，用于作品集长图。
 2. 继续观察真实手机和微信内置浏览器下的结果页、复制短链和保存图展示。
 3. 根据后台指标说明，补一版面试口头讲解练习。
 4. 观察性能 smoke 结果，如果短链平均耗时明显上升，再回到热路径查 DB、Redis、日志写入。

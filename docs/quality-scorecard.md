@@ -355,7 +355,7 @@
 
 - 尚未在真实线上域名下做持续压测、告警触发和恢复演练。
 - Playwright 移动端 E2E 与 showcase 截图的 GitHub Actions 方案已整理；当前推送凭据缺少 `workflow` scope，尚未真正启用。
-- 多机型真实设备截图和真实普通用户访谈样本仍未补齐。
+- 自动化多视口 showcase 截图已归档到 `docs/screenshots/showcase/`；真实设备截图和真实普通用户访谈样本仍未补齐。
 
 风险项：
 

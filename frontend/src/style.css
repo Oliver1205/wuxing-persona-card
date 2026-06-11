@@ -177,6 +177,11 @@ select:disabled {
   align-items: end;
 }
 
+.filter-bar button {
+  min-width: 88px;
+  white-space: nowrap;
+}
+
 .admin-busy {
   margin: 0;
   font-size: 13px;

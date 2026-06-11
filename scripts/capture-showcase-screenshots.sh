@@ -6,7 +6,14 @@ cd "$ROOT_DIR/frontend"
 
 E2E_BASE_URL="${E2E_BASE_URL:-http://127.0.0.1:5174}"
 E2E_ADMIN_TOKEN="${E2E_ADMIN_TOKEN:-dev-token}"
-SHOWCASE_SCREENSHOT_DIR="${SHOWCASE_SCREENSHOT_DIR:-$ROOT_DIR/docs/screenshots/showcase}"
+if [[ -n "${SHOWCASE_SCREENSHOT_DIR:-}" ]]; then
+  case "$SHOWCASE_SCREENSHOT_DIR" in
+    /*) ;;
+    *) SHOWCASE_SCREENSHOT_DIR="$ROOT_DIR/$SHOWCASE_SCREENSHOT_DIR" ;;
+  esac
+else
+  SHOWCASE_SCREENSHOT_DIR="$ROOT_DIR/docs/screenshots/showcase"
+fi
 
 export E2E_BASE_URL
 export E2E_ADMIN_TOKEN
