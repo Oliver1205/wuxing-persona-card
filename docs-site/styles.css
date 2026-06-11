@@ -459,6 +459,27 @@ h3 {
   padding: 20px;
 }
 
+.promo-figure {
+  margin: 22px 0 0;
+}
+
+.promo-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #f7f4ed;
+  box-shadow: 0 16px 42px rgb(42 54 47 / 10%);
+}
+
+.promo-figure figcaption {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .material-board {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

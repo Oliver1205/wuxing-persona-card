@@ -70,6 +70,10 @@ flowchart LR
 | 文档站 | `docs-site/index.html` | 展示项目结构化文档站 |
 | 性能烟测输出 | `scripts/performance-smoke-test.sh` | 展示短链连续访问和后台总览缓存的耗时证据 |
 
+## 已有视觉资产
+
+- [五行人格卡项目主视觉](assets/wuxing-promo-poster.svg)：16:9 SVG，可用于 README、作品集、答辩 PPT 和项目介绍页。
+
 ## 宣传图建议
 
 - 主视觉：手机中的结果人格卡，旁边用短句标注“90 秒生成可分享人格卡”。
