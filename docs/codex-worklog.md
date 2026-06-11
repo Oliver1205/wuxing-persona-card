@@ -83,6 +83,7 @@ multi-role review support. The main outcomes are:
 - Verification priority: make the burst-traffic story repeatable without introducing heavy benchmark infrastructure.
 - Tooling change: added `scripts/performance-smoke-test.sh` to create a real result, read the result, repeatedly hit the same short link, and repeat admin overview reads.
 - Interview value: the script output gives concrete `shortlinkAvgMs` and `adminAvgMs` values for explaining why short-link redirects and admin aggregate refreshes were optimized separately.
+- Local smoke result: with `BASE_URL=http://127.0.0.1:18080`, `SHORTLINK_HITS=30`, and `ADMIN_HITS=2`, the script passed with `shortlinkAvgMs=17` and `adminAvgMs=37` on the local H2 profile.
 
 ### Phase 5
 
