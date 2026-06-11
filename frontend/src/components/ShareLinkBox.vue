@@ -13,15 +13,28 @@ const emit = defineEmits<{
   copied: [];
 }>();
 
+const urlEl = ref<HTMLElement | null>(null);
 const copied = ref(false);
+const copying = ref(false);
+const sharing = ref(false);
 const message = ref('');
 const shareUrl = computed(() => withShareAttribution(props.shortUrl));
+const copyLabel = computed(() => {
+  if (copying.value) {
+    return '复制中';
+  }
+  return copied.value ? '已复制' : '复制';
+});
 
 onMounted(() => {
   track('SHARE_PANEL_VIEW', undefined, props.resultId, props.shortCode);
 });
 
 async function copy() {
+  if (copying.value) {
+    return;
+  }
+  copying.value = true;
   message.value = '';
   try {
     await navigator.clipboard.writeText(shareUrl.value);
@@ -30,16 +43,23 @@ async function copy() {
     emit('copied');
   } catch {
     copied.value = false;
+    selectShareUrl();
     message.value = '当前浏览器不支持自动复制，请长按链接手动复制';
+  } finally {
+    copying.value = false;
   }
 }
 
 async function nativeShare() {
+  if (sharing.value) {
+    return;
+  }
   message.value = '';
   if (!navigator.share) {
     message.value = '当前浏览器不支持系统分享，可以先复制短链接';
     return;
   }
+  sharing.value = true;
   try {
     await navigator.share({
       title: '我的五行人格卡',
@@ -49,7 +69,21 @@ async function nativeShare() {
     track('NATIVE_SHARE_SUCCESS', undefined, props.resultId, props.shortCode);
   } catch {
     message.value = '分享已取消';
+  } finally {
+    sharing.value = false;
   }
+}
+
+function selectShareUrl() {
+  const el = urlEl.value;
+  if (!el) {
+    return;
+  }
+  const selection = window.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  selection?.removeAllRanges();
+  selection?.addRange(range);
 }
 </script>
 
@@ -57,15 +91,17 @@ async function nativeShare() {
   <section class="share-box">
     <div>
       <p class="label">专属短链接</p>
-      <p class="url">{{ shareUrl }}</p>
+      <p ref="urlEl" class="url" tabindex="0" @click="selectShareUrl">{{ shareUrl }}</p>
       <div class="share-note">
         <span>打开即达结果</span>
         <span>适合私聊分享</span>
       </div>
     </div>
     <div class="share-actions">
-      <button type="button" @click="copy">{{ copied ? '已复制' : '复制' }}</button>
-      <button class="secondary" type="button" @click="nativeShare">分享</button>
+      <button type="button" :disabled="copying" @click="copy">{{ copyLabel }}</button>
+      <button class="secondary" type="button" :disabled="sharing" @click="nativeShare">
+        {{ sharing ? '分享中' : '分享' }}
+      </button>
     </div>
     <p v-if="message" class="tip">{{ message }}</p>
   </section>
@@ -97,8 +133,14 @@ async function nativeShare() {
 .url {
   margin: 0;
   overflow-wrap: anywhere;
+  border-radius: 6px;
   color: #263735;
   font-weight: 700;
+  outline: none;
+}
+
+.url:focus {
+  box-shadow: 0 0 0 3px rgba(47, 111, 94, 0.14);
 }
 
 .share-note {
