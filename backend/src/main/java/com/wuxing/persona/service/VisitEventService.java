@@ -20,6 +20,9 @@ import org.springframework.stereotype.Service;
 public class VisitEventService {
 
     private static final Logger log = LoggerFactory.getLogger(VisitEventService.class);
+    private static final int MAX_PAGE_PATH_LENGTH = 255;
+    private static final int MAX_RESULT_ID_LENGTH = 64;
+    private static final int MAX_SHORT_CODE_LENGTH = 32;
     private static final int MAX_REFERER_LENGTH = 255;
     private static final int MAX_ATTRIBUTION_LENGTH = 64;
 
@@ -51,9 +54,9 @@ public class VisitEventService {
                        String campaign) {
         VisitEventEntity entity = new VisitEventEntity();
         entity.setEventType(eventType.name());
-        entity.setPagePath(pagePath);
-        entity.setResultId(resultId);
-        entity.setShortCode(shortCode);
+        entity.setPagePath(truncate(pagePath, MAX_PAGE_PATH_LENGTH));
+        entity.setResultId(truncate(resultId, MAX_RESULT_ID_LENGTH));
+        entity.setShortCode(truncate(shortCode, MAX_SHORT_CODE_LENGTH));
         String ip = IpUtils.actualIp(request);
         String userAgent = request.getHeader("User-Agent");
         String clientHashSource = clientId;
@@ -151,9 +154,9 @@ public class VisitEventService {
             if (sanitized == null || sanitized.isBlank()) {
                 return null;
             }
-            return truncate(sanitized);
+            return truncate(sanitized, MAX_REFERER_LENGTH);
         } catch (URISyntaxException ex) {
-            return truncate(stripQueryAndFragment(trimmed));
+            return truncate(stripQueryAndFragment(trimmed), MAX_REFERER_LENGTH);
         }
     }
 
@@ -187,11 +190,11 @@ public class VisitEventService {
         return cutIndex >= 0 ? value.substring(0, cutIndex) : value;
     }
 
-    private String truncate(String value) {
+    private String truncate(String value, int maxLength) {
         if (value == null || value.isBlank()) {
             return null;
         }
         String trimmed = value.trim();
-        return trimmed.length() <= MAX_REFERER_LENGTH ? trimmed : trimmed.substring(0, MAX_REFERER_LENGTH);
+        return trimmed.length() <= maxLength ? trimmed : trimmed.substring(0, maxLength);
     }
 }

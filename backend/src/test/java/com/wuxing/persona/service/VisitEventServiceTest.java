@@ -67,6 +67,19 @@ class VisitEventServiceTest {
                 service.record(EventType.SHORT_LINK_VISIT, "/s/abc123", "R1", "abc123", "client-a", request));
     }
 
+    @Test
+    void recordShouldTrimEventDimensionsToDatabaseBounds() {
+        stubRequest("/result/R1");
+
+        service.record(EventType.SHARE_PANEL_VIEW, " /result/" + "x".repeat(300),
+                "R" + "1".repeat(100), "a".repeat(80), "client-a", request);
+
+        VisitEventEntity entity = capturedEntity();
+        assertEquals(255, entity.getPagePath().length());
+        assertEquals(64, entity.getResultId().length());
+        assertEquals(32, entity.getShortCode().length());
+    }
+
     private void stubRequest(String referer) {
         when(request.getRemoteAddr()).thenReturn("127.0.0.1");
         when(request.getHeader(anyString())).thenAnswer(invocation -> switch (invocation.getArgument(0, String.class)) {
