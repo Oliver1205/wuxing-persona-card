@@ -121,3 +121,9 @@ multi-role review support. The main outcomes are:
 - Backend priority: keep the admin short-link list responsive as rows grow.
 - Backend change: the list now batches result lookups and local PV/UV/UIP aggregation for all short codes on the page instead of running per-row result and distinct-count queries.
 - Verification value: added a two-short-link integration test to prove batched stats still map back to the correct list item.
+
+### Phase 11
+
+- Visitor priority: make the question flow feel calmer and more predictable on mobile.
+- Frontend change: the displayed default birth year is now also the selected birth year, answer auto-advance pauses long enough to show a confirmation state, and the mobile question stage has enough bottom safe area for the sticky action bar.
+- Verification value: browser-checked `/test` with local backend and frontend preview; selecting a month now unlocks the first question, selecting an answer shows the confirmation state, and the final option remains reachable above the sticky controls after scrolling.

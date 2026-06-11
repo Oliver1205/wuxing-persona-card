@@ -8,6 +8,7 @@ import QuestionCard from '../components/QuestionCard.vue';
 import { track } from '../utils/tracker';
 
 const router = useRouter();
+const AUTO_ADVANCE_DELAY_MS = 650;
 const questions = ref<Question[]>([]);
 const activeStepIndex = ref(0);
 const loading = ref(true);
@@ -15,6 +16,10 @@ const submitting = ref(false);
 const error = ref('');
 const formStarted = ref(false);
 const autoAdvanceTimer = ref<number | null>(null);
+const autoAdvanceQuestionCode = ref<string | null>(null);
+const currentYear = new Date().getFullYear();
+const minBirthYear = 1900;
+const defaultBirthYear = Math.min(currentYear, 2002);
 
 const form = reactive<{
   birthYear: number | null;
@@ -23,16 +28,14 @@ const form = reactive<{
   birthTimeRange: string | null;
   answers: Record<string, string>;
 }>({
-  birthYear: null,
+  birthYear: defaultBirthYear,
   birthMonth: null,
   birthDay: null,
   birthTimeRange: null,
   answers: {},
 });
 
-const currentYear = new Date().getFullYear();
-const minBirthYear = 1900;
-const yearDraft = ref(Math.min(currentYear, 2002));
+const yearDraft = ref(defaultBirthYear);
 const yearPickerValue = computed(() => form.birthYear ?? yearDraft.value);
 const quickYears = computed(() => [2008, 2005, 2002, 1999, 1996, 1993].filter((year) => year <= currentYear));
 const yearScale = computed(() => [minBirthYear, 1970, 1990, 2000, 2010, currentYear]
@@ -83,6 +86,11 @@ const activeQuestionAnswered = computed(() => {
   return Boolean(question && form.answers[question.questionCode]);
 });
 const isLastQuestion = computed(() => activeStepIndex.value === questions.value.length);
+const autoAdvancePending = computed(() => Boolean(
+  autoAdvanceTimer.value !== null
+  && activeQuestion.value
+  && autoAdvanceQuestionCode.value === activeQuestion.value.questionCode,
+));
 const primaryActionText = computed(() => {
   if (submitting.value) {
     return '生成中...';
@@ -97,6 +105,18 @@ const stepCaption = computed(() => {
     return '先完成基础信息';
   }
   return `第 ${activeQuestionIndex.value + 1} / ${questions.value.length} 题`;
+});
+const actionSummaryText = computed(() => {
+  if (isBirthStep.value) {
+    return birthInfoComplete.value ? '可以进入问答卡片' : '出生年月是必填项';
+  }
+  if (!activeQuestionAnswered.value) {
+    return '按第一反应选择一个答案';
+  }
+  if (isLastQuestion.value) {
+    return '确认无误后生成卡片';
+  }
+  return autoAdvancePending.value ? '已选择，正在进入下一题' : '已选择，可以进入下一题';
 });
 
 onMounted(async () => {
@@ -160,11 +180,12 @@ function selectAnswer(questionCode: string, optionCode: string) {
   track('QUESTION_ANSWER_SELECT', '/test');
 
   if (!isLastQuestion.value) {
+    autoAdvanceQuestionCode.value = questionCode;
     autoAdvanceTimer.value = window.setTimeout(() => {
       if (form.answers[questionCode] === optionCode && activeQuestion.value?.questionCode === questionCode) {
         goNext();
       }
-    }, 320);
+    }, AUTO_ADVANCE_DELAY_MS);
   }
 }
 
@@ -280,6 +301,7 @@ function clearAutoAdvance() {
   }
   window.clearTimeout(autoAdvanceTimer.value);
   autoAdvanceTimer.value = null;
+  autoAdvanceQuestionCode.value = null;
 }
 </script>
 
@@ -491,8 +513,9 @@ function clearAutoAdvance() {
       <div class="sticky-action">
         <div class="action-summary">
           <strong>{{ stepCaption }}</strong>
-          <span>
-            {{ isBirthStep ? (birthInfoComplete ? '可以进入问答卡片' : '出生年月是必填项') : (activeQuestionAnswered ? (isLastQuestion ? '确认无误后生成卡片' : '已选择，即将进入下一题') : '按第一反应选择一个答案') }}
+          <span>{{ actionSummaryText }}</span>
+          <span class="auto-advance-track" :class="{ active: autoAdvancePending }" aria-hidden="true">
+            <i></i>
           </span>
         </div>
         <button type="button" class="secondary nav-button" :disabled="activeStepIndex === 0 || submitting" @click="goPrevious">
@@ -966,9 +989,49 @@ function clearAutoAdvance() {
   font-size: 13px;
 }
 
+.auto-advance-track {
+  display: block;
+  overflow: hidden;
+  width: min(220px, 100%);
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(47, 111, 94, 0.08);
+  opacity: 0;
+}
+
+.auto-advance-track i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: #2f6f5e;
+  transform: translateX(-100%);
+}
+
+.auto-advance-track.active {
+  opacity: 1;
+}
+
+.auto-advance-track.active i {
+  animation: autoAdvanceFill 650ms linear forwards;
+}
+
+@keyframes autoAdvanceFill {
+  to {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auto-advance-track.active i {
+    animation: none;
+    transform: translateX(0);
+  }
+}
+
 @media (max-width: 760px) {
   .test-shell {
-    padding-bottom: 118px;
+    padding-bottom: 218px;
   }
 
   .birth-panel-head {
@@ -989,6 +1052,7 @@ function clearAutoAdvance() {
 
   .flow-stage {
     min-height: 610px;
+    padding-bottom: 178px;
   }
 
   .step-pill {
