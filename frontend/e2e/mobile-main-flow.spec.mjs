@@ -15,13 +15,21 @@ test('mobile user flow creates result, shares short link, and admin sees metrics
   await page.getByRole('link', { name: '开始测试' }).click();
 
   await page.getByTestId('birth-year-quick-2002').click();
+  await page.getByTestId('birth-year-plus').click();
+  await page.getByTestId('birth-year-minus').click();
   await page.getByTestId('birth-month-8').click();
+  await page.getByRole('button', { name: '进入第 1 题' }).click();
+
   await page.getByText('标准、边界和清晰判断').click();
+  await page.getByRole('button', { name: '下一题' }).click();
   await page.getByText('提出计划和方向的人').click();
+  await page.getByRole('button', { name: '下一题' }).click();
   await page.getByText('先感受和观察，再慢慢调整').click();
+  await page.getByRole('button', { name: '下一题' }).click();
   await page.getByText('热情表达和感染他人').click();
+  await page.getByRole('button', { name: '下一题' }).click();
   await page.getByText('资源统筹、稳定执行、兜底收尾').click();
-  await page.getByRole('button', { name: '生成人格卡' }).click();
+  await page.getByRole('button', { name: '生成我的人格卡' }).click();
 
   await expect(page.getByText('你的五行人格身份')).toBeVisible();
   const resultUrl = page.url();

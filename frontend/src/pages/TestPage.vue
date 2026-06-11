@@ -9,6 +9,7 @@ import { track } from '../utils/tracker';
 
 const router = useRouter();
 const questions = ref<Question[]>([]);
+const activeStepIndex = ref(0);
 const loading = ref(true);
 const submitting = ref(false);
 const error = ref('');
@@ -69,6 +70,33 @@ const progressPercent = computed(() => {
   }
   return Math.round((completedProgressUnits.value / totalProgressUnits.value) * 100);
 });
+const displayQuestions = computed<Question[]>(() => questions.value.map((question) => ({
+  ...question,
+  options: [...question.options].sort((left, right) => optionRank(question.questionCode, left.optionCode) - optionRank(question.questionCode, right.optionCode)),
+})));
+const isBirthStep = computed(() => activeStepIndex.value === 0);
+const activeQuestionIndex = computed(() => Math.max(0, activeStepIndex.value - 1));
+const activeQuestion = computed(() => displayQuestions.value[activeQuestionIndex.value]);
+const activeQuestionAnswered = computed(() => {
+  const question = activeQuestion.value;
+  return Boolean(question && form.answers[question.questionCode]);
+});
+const isLastQuestion = computed(() => activeStepIndex.value === questions.value.length);
+const primaryActionText = computed(() => {
+  if (submitting.value) {
+    return '生成中...';
+  }
+  if (isBirthStep.value) {
+    return '进入第 1 题';
+  }
+  return isLastQuestion.value ? '生成我的人格卡' : '下一题';
+});
+const stepCaption = computed(() => {
+  if (isBirthStep.value) {
+    return '先完成基础信息';
+  }
+  return `第 ${activeQuestionIndex.value + 1} / ${questions.value.length} 题`;
+});
 
 onMounted(async () => {
   try {
@@ -127,14 +155,38 @@ function selectAnswer(questionCode: string, optionCode: string) {
 }
 
 function selectBirthYear(year: number) {
-  yearDraft.value = year;
-  form.birthYear = year;
+  const normalizedYear = clampBirthYear(year);
+  yearDraft.value = normalizedYear;
+  form.birthYear = normalizedYear;
   markFormStart();
 }
 
 function updateBirthYear(event: Event) {
   const target = event.target as HTMLInputElement;
   selectBirthYear(Number(target.value));
+}
+
+function updateBirthYearManual(event: Event) {
+  const target = event.target as HTMLInputElement;
+  const rawValue = target.value.trim();
+  if (!rawValue) {
+    form.birthYear = null;
+    return;
+  }
+  const year = Number(rawValue);
+  if (!Number.isFinite(year)) {
+    return;
+  }
+  selectBirthYear(year);
+  target.value = String(form.birthYear ?? '');
+}
+
+function adjustBirthYear(delta: number) {
+  selectBirthYear((form.birthYear ?? yearDraft.value) + delta);
+}
+
+function clampBirthYear(year: number) {
+  return Math.min(currentYear, Math.max(minBirthYear, Math.trunc(year)));
 }
 
 function selectBirthMonth(month: number) {
@@ -150,6 +202,59 @@ function selectBirthDay(day: number | null) {
 function selectBirthTime(value: string | null) {
   form.birthTimeRange = value;
   markFormStart();
+}
+
+function optionRank(questionCode: string, optionCode: string) {
+  const seed = `${questionCode}:${optionCode}:wuxing-v2.6`;
+  return Array.from(seed).reduce((sum, char) => (sum * 31 + char.charCodeAt(0)) % 1000003, 7);
+}
+
+function goPrevious() {
+  error.value = '';
+  activeStepIndex.value = Math.max(0, activeStepIndex.value - 1);
+}
+
+function goNext() {
+  error.value = '';
+  if (isBirthStep.value) {
+    if (!birthInfoComplete.value) {
+      error.value = '请先选择出生年份和月份';
+      return;
+    }
+    activeStepIndex.value = Math.min(questions.value.length, activeStepIndex.value + 1);
+    return;
+  }
+
+  if (!activeQuestionAnswered.value) {
+    error.value = '先选一个最接近你的答案，再进入下一题';
+    return;
+  }
+
+  if (isLastQuestion.value) {
+    void submit();
+    return;
+  }
+
+  activeStepIndex.value = Math.min(questions.value.length, activeStepIndex.value + 1);
+}
+
+function canOpenStep(index: number) {
+  if (index <= activeStepIndex.value) {
+    return true;
+  }
+  if (index === 1) {
+    return birthInfoComplete.value;
+  }
+  const previousQuestion = questions.value[index - 2];
+  return Boolean(previousQuestion && form.answers[previousQuestion.questionCode]);
+}
+
+function goToStep(index: number) {
+  if (!canOpenStep(index)) {
+    return;
+  }
+  error.value = '';
+  activeStepIndex.value = index;
 }
 </script>
 
@@ -171,155 +276,205 @@ function selectBirthTime(value: string | null) {
         </div>
       </div>
 
-      <div class="panel stack birth-panel input-panel">
-        <div class="birth-panel-head">
-          <div>
-            <p class="section-kicker">STEP 01</p>
-            <h2>出生信息</h2>
-            <p class="muted">用于生成娱乐化五行倾向，不保存明文 IP，也不要求昵称和性别。</p>
-          </div>
-          <div class="birth-status" :class="{ active: birthInfoComplete }">
-            <span>{{ birthInfoComplete ? '已完成' : '待选择' }}</span>
-            <strong>{{ form.birthYear ?? '年份' }} / {{ form.birthMonth ? `${form.birthMonth}月` : '月份' }}</strong>
-          </div>
-        </div>
-
-        <div class="input-stack">
-          <section class="field-block year-field" aria-labelledby="birth-year-label">
-            <div class="field-head">
-              <span id="birth-year-label">出生年份</span>
-              <strong>{{ form.birthYear ? `${form.birthYear} 年` : '拖动选择' }}</strong>
-            </div>
-            <div class="year-picker">
-              <div class="year-display">
-                <strong>{{ yearPickerValue }}</strong>
-                <span>{{ form.birthYear ? '你的年份刻度' : '滑动下方刻度选择' }}</span>
-              </div>
-              <input
-                class="year-range"
-                data-testid="birth-year-range"
-                type="range"
-                :min="minBirthYear"
-                :max="currentYear"
-                :value="yearPickerValue"
-                aria-label="出生年份"
-                @input="updateBirthYear"
-              >
-              <div class="year-scale" aria-hidden="true">
-                <span v-for="year in yearScale" :key="year">{{ year }}</span>
-              </div>
-              <div class="quick-row" aria-label="常用年份">
-                <button
-                  v-for="year in quickYears"
-                  :key="year"
-                  type="button"
-                  class="quick-chip"
-                  :class="{ active: form.birthYear === year }"
-                  :data-testid="`birth-year-quick-${year}`"
-                  @click="selectBirthYear(year)"
-                >
-                  {{ year }} 年
-                </button>
-              </div>
-            </div>
-          </section>
-
-          <section class="field-block" aria-labelledby="birth-month-label">
-            <div class="field-head">
-              <span id="birth-month-label">出生月份</span>
-              <strong>{{ form.birthMonth ? `${form.birthMonth} 月` : '请选择' }}</strong>
-            </div>
-            <div class="choice-rail month-rail" role="list" aria-label="出生月份">
-              <button
-                v-for="month in 12"
-                :key="month"
-                type="button"
-                class="choice-chip month-chip"
-                :class="{ active: form.birthMonth === month }"
-                :data-testid="`birth-month-${month}`"
-                @click="selectBirthMonth(month)"
-              >
-                <strong>{{ month }} 月</strong>
-                <span>{{ monthHints[month - 1] }}</span>
-              </button>
-            </div>
-          </section>
-
-          <section class="field-block" aria-labelledby="birth-day-label">
-            <div class="field-head">
-              <span id="birth-day-label">出生日期</span>
-              <strong>{{ form.birthDay ? `${form.birthDay} 日` : '可不透露' }}</strong>
-            </div>
-            <div class="choice-rail day-rail" role="list" aria-label="出生日期">
-              <button
-                type="button"
-                class="choice-chip day-chip optional"
-                :class="{ active: form.birthDay === null }"
-                data-testid="birth-day-none"
-                @click="selectBirthDay(null)"
-              >
-                <strong>不透露</strong>
-                <span>默认</span>
-              </button>
-              <button
-                v-for="day in days"
-                :key="day"
-                type="button"
-                class="choice-chip day-chip"
-                :class="{ active: form.birthDay === day }"
-                :data-testid="`birth-day-${day}`"
-                @click="selectBirthDay(day)"
-              >
-                <strong>{{ day }}</strong>
-                <span>日</span>
-              </button>
-            </div>
-          </section>
-
-          <section class="field-block" aria-labelledby="birth-time-label">
-            <div class="field-head">
-              <span id="birth-time-label">出生时段</span>
-              <strong>{{ timeOptions.find((item) => item.value === form.birthTimeRange)?.label ?? '不透露' }}</strong>
-            </div>
-            <div class="time-grid" aria-label="出生时段">
-              <button
-                v-for="option in timeOptions"
-                :key="option.label"
-                type="button"
-                class="time-chip"
-                :class="{ active: form.birthTimeRange === option.value }"
-                :data-testid="`birth-time-${option.value ?? 'NONE'}`"
-                @click="selectBirthTime(option.value)"
-              >
-                <strong>{{ option.label }}</strong>
-                <span>{{ option.hint }}</span>
-              </button>
-            </div>
-          </section>
-        </div>
+      <div class="step-strip" aria-label="测试步骤">
+        <button type="button" class="step-pill" :class="{ active: activeStepIndex === 0, done: birthInfoComplete }" @click="goToStep(0)">
+          基础
+        </button>
+        <button
+          v-for="(question, index) in questions"
+          :key="question.questionCode"
+          type="button"
+          class="step-pill"
+          :class="{ active: activeStepIndex === index + 1, done: Boolean(form.answers[question.questionCode]) }"
+          :disabled="!canOpenStep(index + 1)"
+          @click="goToStep(index + 1)"
+        >
+          {{ index + 1 }}
+        </button>
       </div>
 
-      <div v-if="loading" class="panel">题目加载中...</div>
-      <QuestionCard
-        v-for="(question, index) in questions"
-        v-else
-        :key="question.questionCode"
-        class="panel"
-        :model-value="form.answers[question.questionCode]"
-        :question="question"
-        :question-index="index + 1"
-        @update:model-value="selectAnswer(question.questionCode, $event)"
-      />
+      <div class="flow-stage" :class="{ 'question-mode': !isBirthStep }">
+        <Transition name="card-slide" mode="out-in">
+          <div v-if="isBirthStep" key="birth" class="panel stack birth-panel input-panel flow-card">
+            <div class="birth-panel-head">
+              <div>
+                <p class="section-kicker">STEP 00</p>
+                <h2>先确认你的出生信息</h2>
+                <p class="muted">只需要出生年份和月份；日期、时段可以不透露。</p>
+              </div>
+              <div class="birth-status" :class="{ active: birthInfoComplete }">
+                <span>{{ birthInfoComplete ? '已完成' : '待选择' }}</span>
+                <strong>{{ form.birthYear ?? '年份' }} / {{ form.birthMonth ? form.birthMonth + '月' : '月份' }}</strong>
+              </div>
+            </div>
+
+            <div class="input-stack">
+              <section class="field-block year-field" aria-labelledby="birth-year-label">
+                <div class="field-head">
+                  <span id="birth-year-label">出生年份</span>
+                  <strong>{{ form.birthYear ? form.birthYear + ' 年' : '拖动或输入' }}</strong>
+                </div>
+                <div class="year-picker">
+                  <div class="year-display">
+                    <strong>{{ yearPickerValue }}</strong>
+                    <span>{{ form.birthYear ? '已锁定年份' : '滑动刻度、微调或直接输入' }}</span>
+                  </div>
+                  <div class="year-control-row" aria-label="出生年份精确调节">
+                    <button type="button" class="year-step-button" data-testid="birth-year-minus" @click="adjustBirthYear(-1)">
+                      -1
+                    </button>
+                    <input
+                      class="year-manual-input"
+                      data-testid="birth-year-input"
+                      inputmode="numeric"
+                      type="number"
+                      :min="minBirthYear"
+                      :max="currentYear"
+                      :value="form.birthYear ?? ''"
+                      placeholder="输入年份"
+                      aria-label="手动输入出生年份"
+                      @change="updateBirthYearManual"
+                      @blur="updateBirthYearManual"
+                    >
+                    <button type="button" class="year-step-button" data-testid="birth-year-plus" @click="adjustBirthYear(1)">
+                      +1
+                    </button>
+                  </div>
+                  <input
+                    class="year-range"
+                    data-testid="birth-year-range"
+                    type="range"
+                    :min="minBirthYear"
+                    :max="currentYear"
+                    :value="yearPickerValue"
+                    aria-label="出生年份"
+                    @input="updateBirthYear"
+                  >
+                  <div class="year-scale" aria-hidden="true">
+                    <span v-for="year in yearScale" :key="year">{{ year }}</span>
+                  </div>
+                  <div class="quick-row" aria-label="常用年份">
+                    <button
+                      v-for="year in quickYears"
+                      :key="year"
+                      type="button"
+                      class="quick-chip"
+                      :class="{ active: form.birthYear === year }"
+                      :data-testid="'birth-year-quick-' + year"
+                      @click="selectBirthYear(year)"
+                    >
+                      {{ year }} 年
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              <section class="field-block" aria-labelledby="birth-month-label">
+                <div class="field-head">
+                  <span id="birth-month-label">出生月份</span>
+                  <strong>{{ form.birthMonth ? form.birthMonth + ' 月' : '请选择' }}</strong>
+                </div>
+                <div class="choice-rail month-rail" role="list" aria-label="出生月份">
+                  <button
+                    v-for="month in 12"
+                    :key="month"
+                    type="button"
+                    class="choice-chip month-chip"
+                    :class="{ active: form.birthMonth === month }"
+                    :data-testid="'birth-month-' + month"
+                    @click="selectBirthMonth(month)"
+                  >
+                    <strong>{{ month }} 月</strong>
+                    <span>{{ monthHints[month - 1] }}</span>
+                  </button>
+                </div>
+              </section>
+
+              <section class="field-block" aria-labelledby="birth-day-label">
+                <div class="field-head">
+                  <span id="birth-day-label">出生日期</span>
+                  <strong>{{ form.birthDay ? form.birthDay + ' 日' : '可不透露' }}</strong>
+                </div>
+                <div class="choice-rail day-rail" role="list" aria-label="出生日期">
+                  <button
+                    type="button"
+                    class="choice-chip day-chip optional"
+                    :class="{ active: form.birthDay === null }"
+                    data-testid="birth-day-none"
+                    @click="selectBirthDay(null)"
+                  >
+                    <strong>不透露</strong>
+                    <span>默认</span>
+                  </button>
+                  <button
+                    v-for="day in days"
+                    :key="day"
+                    type="button"
+                    class="choice-chip day-chip"
+                    :class="{ active: form.birthDay === day }"
+                    :data-testid="'birth-day-' + day"
+                    @click="selectBirthDay(day)"
+                  >
+                    <strong>{{ day }}</strong>
+                    <span>日</span>
+                  </button>
+                </div>
+              </section>
+
+              <section class="field-block" aria-labelledby="birth-time-label">
+                <div class="field-head">
+                  <span id="birth-time-label">出生时段</span>
+                  <strong>{{ timeOptions.find((item) => item.value === form.birthTimeRange)?.label ?? '不透露' }}</strong>
+                </div>
+                <div class="time-grid" aria-label="出生时段">
+                  <button
+                    v-for="option in timeOptions"
+                    :key="option.label"
+                    type="button"
+                    class="time-chip"
+                    :class="{ active: form.birthTimeRange === option.value }"
+                    :data-testid="'birth-time-' + (option.value ?? 'NONE')"
+                    @click="selectBirthTime(option.value)"
+                  >
+                    <strong>{{ option.label }}</strong>
+                    <span>{{ option.hint }}</span>
+                  </button>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div v-else-if="loading" key="loading" class="panel flow-card">
+            题目加载中...
+          </div>
+
+          <QuestionCard
+            v-else-if="activeQuestion"
+            :key="activeQuestion.questionCode"
+            class="panel flow-card question-panel"
+            :model-value="form.answers[activeQuestion.questionCode]"
+            :question="activeQuestion"
+            :question-index="activeQuestionIndex + 1"
+            :total-questions="questions.length"
+            @update:model-value="selectAnswer(activeQuestion.questionCode, $event)"
+          />
+        </Transition>
+      </div>
 
       <p v-if="error" class="error-text">{{ error }}</p>
 
       <div class="sticky-action">
         <div>
-          <strong>{{ answeredCount }}/{{ questions.length }} 题已完成</strong>
-          <span>{{ birthInfoComplete ? '出生年月已填写' : '请先填写出生年月' }}</span>
+          <strong>{{ stepCaption }}</strong>
+          <span>
+            {{ isBirthStep ? (birthInfoComplete ? '可以进入问答卡片' : '出生年月是必填项') : (activeQuestionAnswered ? '已选择，继续下一张' : '按第一反应选择一个答案') }}
+          </span>
         </div>
-        <button type="button" :disabled="submitting" @click="submit">
-          {{ submitting ? '生成中...' : '生成人格卡' }}
+        <button type="button" class="secondary nav-button" :disabled="activeStepIndex === 0 || submitting" @click="goPrevious">
+          上一张
+        </button>
+        <button type="button" :disabled="submitting || loading" @click="goNext">
+          {{ primaryActionText }}
         </button>
         <RouterLink class="button-link secondary" to="/">返回首页</RouterLink>
       </div>
@@ -388,6 +543,78 @@ function selectBirthTime(value: string | null) {
   border-radius: inherit;
   background: linear-gradient(90deg, #2f6f5e, #d79b43);
   transition: width 180ms ease;
+}
+
+.step-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 2px 6px;
+  scrollbar-width: none;
+}
+
+.step-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.step-pill {
+  flex: 0 0 auto;
+  min-width: 48px;
+  min-height: 40px;
+  border: 1px solid rgba(36, 48, 47, 0.12);
+  border-radius: 999px;
+  padding: 0 14px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #596764;
+  font-size: 13px;
+  font-weight: 950;
+  box-shadow: none;
+}
+
+.step-pill.done {
+  border-color: rgba(47, 111, 94, 0.28);
+  color: #2f6f5e;
+}
+
+.step-pill.active {
+  border-color: #24302f;
+  background: #24302f;
+  color: #fff;
+  box-shadow: 0 12px 24px rgba(36, 48, 47, 0.16);
+}
+
+.step-pill:disabled {
+  opacity: 0.42;
+}
+
+.flow-stage {
+  position: relative;
+  min-height: 580px;
+  overflow: hidden;
+}
+
+.flow-card {
+  width: 100%;
+}
+
+.question-mode {
+  display: grid;
+  align-items: start;
+}
+
+.card-slide-enter-active,
+.card-slide-leave-active {
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.card-slide-enter-from {
+  opacity: 0;
+  transform: translateX(26px) scale(0.985);
+}
+
+.card-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-26px) scale(0.985);
 }
 
 .birth-panel {
@@ -488,6 +715,35 @@ function selectBirthTime(value: string | null) {
   color: #697674;
   font-size: 13px;
   font-weight: 850;
+}
+
+.year-control-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.year-step-button {
+  min-width: 50px;
+  min-height: 44px;
+  border: 1px solid rgba(36, 48, 47, 0.12);
+  background: #24302f;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.year-manual-input {
+  min-height: 44px;
+  border: 1px solid rgba(36, 48, 47, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #24302f;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 900;
+  text-align: center;
 }
 
 .year-range {
@@ -665,7 +921,7 @@ function selectBirthTime(value: string | null) {
   bottom: 14px;
   z-index: 5;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
   gap: 12px;
   align-items: center;
   border: 1px solid rgba(36, 48, 47, 0.14);
@@ -704,6 +960,18 @@ function selectBirthTime(value: string | null) {
 
   .time-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .flow-stage {
+    min-height: 610px;
+  }
+
+  .step-pill {
+    min-width: 44px;
+  }
+
+  .year-control-row {
+    grid-template-columns: 48px minmax(0, 1fr) 48px;
   }
 
   .sticky-action {

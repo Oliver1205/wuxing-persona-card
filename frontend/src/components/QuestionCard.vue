@@ -5,6 +5,7 @@ defineProps<{
   question: Question;
   modelValue?: string;
   questionIndex?: number;
+  totalQuestions?: number;
 }>();
 
 const emit = defineEmits<{
@@ -16,7 +17,11 @@ const emit = defineEmits<{
   <section class="question-card">
     <div class="question-head">
       <span class="question-number">{{ questionIndex ?? question.questionCode }}</span>
-      <h3>{{ question.title }}</h3>
+      <div class="question-title-block">
+        <p v-if="totalQuestions" class="question-progress">第 {{ questionIndex }} / {{ totalQuestions }} 题</p>
+        <h3>{{ question.title }}</h3>
+        <p class="question-hint">不用猜结果，选更像你的那个。</p>
+      </div>
     </div>
     <div class="options">
       <button
@@ -31,7 +36,6 @@ const emit = defineEmits<{
         <span class="option-mark">{{ String.fromCharCode(65 + optionIndex) }}</span>
         <span class="option-body">
           <span class="option-title">{{ option.optionText }}</span>
-          <span class="option-meta">{{ option.elementName }}系倾向</span>
         </span>
         <span class="option-state">{{ modelValue === option.optionCode ? '已选' : '选择' }}</span>
       </button>
@@ -66,12 +70,31 @@ const emit = defineEmits<{
   box-shadow: 0 10px 22px rgba(36, 48, 47, 0.16);
 }
 
+.question-title-block {
+  display: grid;
+  gap: 5px;
+}
+
+.question-progress {
+  margin: 0;
+  color: #9b6d32;
+  font-size: 12px;
+  font-weight: 950;
+}
+
 h3 {
   margin: 0;
   color: #263735;
   font-size: 18px;
   line-height: 1.45;
   letter-spacing: 0;
+}
+
+.question-hint {
+  margin: 0;
+  color: #7a8582;
+  font-size: 13px;
+  font-weight: 750;
 }
 
 .options {
@@ -138,12 +161,6 @@ h3 {
   word-break: break-word;
 }
 
-.option-meta {
-  color: #7a8582;
-  font-size: 12px;
-  font-weight: 850;
-}
-
 .option-state {
   align-self: center;
   border: 1px solid rgba(36, 48, 47, 0.1);
@@ -161,7 +178,6 @@ h3 {
   color: #fff;
 }
 
-.option.active .option-meta,
 .option.active .option-state {
   color: #2f6f5e;
 }
