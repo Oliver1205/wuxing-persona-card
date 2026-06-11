@@ -113,6 +113,13 @@ class MvpFlowIntegrationTest {
                 .andExpect(jsonPath("$.data.funnelSteps[4].count").value(1))
                 .andExpect(jsonPath("$.data.topChannels[0].name").value("organic"))
                 .andExpect(jsonPath("$.data.topCampaigns[0].name").value("spring-launch"));
+
+        mockMvc.perform(get("/api/admin/visit-events/runtime").header("X-Admin-Token", "test-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.queueCapacity").value(2048))
+                .andExpect(jsonPath("$.data.drainLimit").value(64))
+                .andExpect(jsonPath("$.data.droppedAsyncEvents").value(0))
+                .andExpect(jsonPath("$.data.workerAlive").value(true));
     }
 
     @Test

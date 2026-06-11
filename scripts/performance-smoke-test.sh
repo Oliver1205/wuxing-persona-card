@@ -30,7 +30,12 @@ for part in value_path.split("."):
     value = value[int(part)] if isinstance(value, list) else value.get(part)
     if value is None:
         break
-print("" if value is None else value)
+if value is None:
+    print("")
+elif isinstance(value, bool):
+    print(str(value).lower())
+else:
+    print(value)
 PY
 }
 
@@ -82,9 +87,10 @@ create_response="$(mktemp)"
 result_response="$(mktemp)"
 headers_file="$(mktemp)"
 overview_response="$(mktemp)"
+runtime_response="$(mktemp)"
 short_timings_file="$(mktemp)"
 admin_timings_file="$(mktemp)"
-trap 'rm -f "$body_file" "$create_response" "$result_response" "$headers_file" "$overview_response" "$short_timings_file" "$admin_timings_file"' EXIT
+trap 'rm -f "$body_file" "$create_response" "$result_response" "$headers_file" "$overview_response" "$runtime_response" "$short_timings_file" "$admin_timings_file"' EXIT
 
 cat >"$body_file" <<'JSON'
 {
@@ -157,6 +163,15 @@ admin_p95_ms="$(p95_ms "$admin_timings_file")"
 
 result_created="$(json_get "$overview_response" data.resultCreated)"
 [[ "$result_created" -ge 1 ]] || fail "admin overview did not record result creation"
+curl -fsS \
+  -H "X-Admin-Token: ${ADMIN_TOKEN}" \
+  "$BASE_URL/api/admin/visit-events/runtime" \
+  -o "$runtime_response"
+async_queue_size="$(json_get "$runtime_response" data.queueSize)"
+async_queue_capacity="$(json_get "$runtime_response" data.queueCapacity)"
+async_drain_limit="$(json_get "$runtime_response" data.drainLimit)"
+async_dropped_events="$(json_get "$runtime_response" data.droppedAsyncEvents)"
+async_worker_alive="$(json_get "$runtime_response" data.workerAlive)"
 if [[ "$MAX_SHORTLINK_AVG_MS" -gt 0 && "$short_avg_ms" -gt "$MAX_SHORTLINK_AVG_MS" ]]; then
   fail "shortlink average ${short_avg_ms}ms exceeded MAX_SHORTLINK_AVG_MS=${MAX_SHORTLINK_AVG_MS}"
 fi
@@ -186,3 +201,8 @@ echo "adminAvgMs=${admin_avg_ms}"
 echo "adminP95Ms=${admin_p95_ms}"
 echo "maxAdminAvgMs=${MAX_ADMIN_AVG_MS}"
 echo "maxAdminP95Ms=${MAX_ADMIN_P95_MS}"
+echo "asyncQueueSize=${async_queue_size}"
+echo "asyncQueueCapacity=${async_queue_capacity}"
+echo "asyncDrainLimit=${async_drain_limit}"
+echo "asyncDroppedEvents=${async_dropped_events}"
+echo "asyncWorkerAlive=${async_worker_alive}"

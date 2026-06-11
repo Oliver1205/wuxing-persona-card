@@ -478,7 +478,7 @@ MAX_ADMIN_P95_MS=350 \
 scripts/performance-smoke-test.sh
 ```
 
-`MAX_*_AVG_MS` 和 `MAX_*_P95_MS` 为可选阈值，默认 `0` 表示只输出耗时不拦截；设置后平均耗时或 TP95 超标会让 smoke 失败。
+`MAX_*_AVG_MS` 和 `MAX_*_P95_MS` 为可选阈值，默认 `0` 表示只输出耗时不拦截；设置后平均耗时或 TP95 超标会让 smoke 失败。脚本还会输出 `asyncQueueSize`、`asyncDroppedEvents` 和 `asyncWorkerAlive`，用于判断低延迟是否伴随事件队列积压或丢弃。
 
 可选 Testcontainers 集成测试：
 

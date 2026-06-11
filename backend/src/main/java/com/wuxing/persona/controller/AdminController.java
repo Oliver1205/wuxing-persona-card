@@ -6,6 +6,7 @@ import com.wuxing.persona.config.AppProperties;
 import com.wuxing.persona.service.AnalyticsAggregationService;
 import com.wuxing.persona.service.AdminDateRange;
 import com.wuxing.persona.service.AdminStatService;
+import com.wuxing.persona.service.VisitEventService;
 import com.wuxing.persona.service.shortlink.ExternalShortLinkRuntimeService;
 import com.wuxing.persona.vo.AnalyticsAggregationVO;
 import com.wuxing.persona.vo.AdminShortLinkExportVO;
@@ -14,6 +15,7 @@ import com.wuxing.persona.vo.ExternalShortLinkRuntimeVO;
 import com.wuxing.persona.vo.PageVO;
 import com.wuxing.persona.vo.ShortLinkListItemVO;
 import com.wuxing.persona.vo.ShortLinkVisitVO;
+import com.wuxing.persona.vo.VisitEventRuntimeVO;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDate;
@@ -37,15 +39,18 @@ public class AdminController {
     private final AppProperties appProperties;
     private final ExternalShortLinkRuntimeService externalShortLinkRuntimeService;
     private final AnalyticsAggregationService analyticsAggregationService;
+    private final VisitEventService visitEventService;
 
     public AdminController(AdminStatService adminStatService,
                            AppProperties appProperties,
                            ExternalShortLinkRuntimeService externalShortLinkRuntimeService,
-                           AnalyticsAggregationService analyticsAggregationService) {
+                           AnalyticsAggregationService analyticsAggregationService,
+                           VisitEventService visitEventService) {
         this.adminStatService = adminStatService;
         this.appProperties = appProperties;
         this.externalShortLinkRuntimeService = externalShortLinkRuntimeService;
         this.analyticsAggregationService = analyticsAggregationService;
+        this.visitEventService = visitEventService;
     }
 
     @GetMapping("/overview")
@@ -110,6 +115,13 @@ public class AdminController {
             @RequestParam(defaultValue = "false") boolean probe) {
         checkToken(token);
         return ApiResponse.success(externalShortLinkRuntimeService.status(probe));
+    }
+
+    @GetMapping("/visit-events/runtime")
+    public ApiResponse<VisitEventRuntimeVO> visitEventRuntime(
+            @RequestHeader(value = "X-Admin-Token", required = false) String token) {
+        checkToken(token);
+        return ApiResponse.success(visitEventService.runtime());
     }
 
     @PostMapping("/analytics/aggregate")

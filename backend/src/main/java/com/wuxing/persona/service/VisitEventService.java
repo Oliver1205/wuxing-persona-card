@@ -6,6 +6,7 @@ import com.wuxing.persona.enums.EventType;
 import com.wuxing.persona.mapper.VisitEventMapper;
 import com.wuxing.persona.util.HashUtils;
 import com.wuxing.persona.util.IpUtils;
+import com.wuxing.persona.vo.VisitEventRuntimeVO;
 import jakarta.annotation.PreDestroy;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
@@ -98,6 +99,16 @@ public class VisitEventService {
             log.warn("Visit event async queue full, dropped={}, eventType={}, pagePath={}, resultId={}, shortCode={}",
                     dropped, eventType, pagePath, resultId, shortCode);
         }
+    }
+
+    public VisitEventRuntimeVO runtime() {
+        VisitEventRuntimeVO runtime = new VisitEventRuntimeVO();
+        runtime.setQueueSize(asyncQueue.size());
+        runtime.setQueueCapacity(ASYNC_QUEUE_CAPACITY);
+        runtime.setDrainLimit(ASYNC_DRAIN_LIMIT);
+        runtime.setDroppedAsyncEvents(droppedAsyncEvents.get());
+        runtime.setWorkerAlive(asyncWorker.isAlive());
+        return runtime;
     }
 
     @PreDestroy

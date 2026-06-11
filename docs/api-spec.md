@@ -203,6 +203,33 @@ X-Admin-Token: <admin-token>
 
 ## 10. 手动刷新增长聚合
 
+## 10. 访问事件异步队列状态
+
+```http
+GET /api/admin/visit-events/runtime
+X-Admin-Token: <admin-token>
+```
+
+返回：
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "queueSize": 0,
+    "queueCapacity": 2048,
+    "drainLimit": 64,
+    "droppedAsyncEvents": 0,
+    "workerAlive": true
+  }
+}
+```
+
+用于性能 smoke 和后台排查：确认短链访问事件队列是否积压、后台 writer 是否存活，以及低延迟是否以丢弃过多低价值事件为代价。
+
+## 11. 手动刷新增长聚合
+
 ```http
 POST /api/admin/analytics/aggregate?startDate=2026-06-10&endDate=2026-06-10
 X-Admin-Token: <admin-token>

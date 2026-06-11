@@ -40,8 +40,8 @@
 仓库证据：
 
 - `backend/src/main/java/com/wuxing/persona/service/VisitEventService.java`
-- `backend/src/test/java/com/wuxing/service/VisitEventServiceTest.java`
-- `backend/src/test/java/com/wuxing/service/InternalShortLinkProviderTest.java`
+- `backend/src/test/java/com/wuxing/persona/service/VisitEventServiceTest.java`
+- `backend/src/test/java/com/wuxing/persona/service/InternalShortLinkProviderTest.java`
 
 回答要点：
 
@@ -86,7 +86,7 @@
 仓库证据：
 
 - `backend/src/main/java/com/wuxing/persona/service/ExternalShortLinkStatsAdapter.java`
-- `backend/src/test/java/com/wuxing/service/ExternalShortLinkStatsAdapterTest.java`
+- `backend/src/test/java/com/wuxing/persona/service/ExternalShortLinkStatsAdapterTest.java`
 - `docs/external-shortlink-integration-guide.md`
 
 回答要点：
@@ -109,7 +109,7 @@
 仓库证据：
 
 - `backend/src/main/java/com/wuxing/persona/service/RedisCacheService.java`
-- `backend/src/test/java/com/wuxing/service/RedisCacheServiceTest.java`
+- `backend/src/test/java/com/wuxing/persona/service/RedisCacheServiceTest.java`
 - `backend/src/main/java/com/wuxing/persona/service/ResultService.java`
 
 回答要点：

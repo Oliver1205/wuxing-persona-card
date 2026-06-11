@@ -285,3 +285,9 @@ multi-role review support. The main outcomes are:
 - Performance priority: make low-latency smoke evidence enforceable when a target environment has agreed thresholds.
 - Tooling change: `scripts/performance-smoke-test.sh` now emits avg and TP95 timings, and accepts optional `MAX_SHORTLINK_AVG_MS`, `MAX_SHORTLINK_P95_MS`, `MAX_ADMIN_AVG_MS`, and `MAX_ADMIN_P95_MS` guards; the default `0` keeps observation-only behavior.
 - Learning value: interview docs now describe the current short-link path as Redis-first, async queued, and batch-written, and the code evidence paths match the actual `com/wuxing/persona` package layout.
+
+### Phase 38
+
+- Observability priority: make async event drops visible when using the performance smoke script as low-latency evidence.
+- Backend change: added an admin-protected visit-event runtime endpoint that reports async queue size, capacity, drain limit, cumulative dropped events, and worker liveness.
+- Tooling value: `scripts/performance-smoke-test.sh` now prints `asyncQueueSize`, `asyncDroppedEvents`, and `asyncWorkerAlive`, so a fast short-link result can be checked against event queue health.
