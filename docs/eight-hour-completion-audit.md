@@ -2,6 +2,8 @@
 
 审计日期：2026-06-11
 
+补充审计：2026-06-12
+
 本文档用于收束八小时工作流的阶段成果。它不替代 `docs/codex-worklog.md`，而是把用户体验、后端抗峰值、宣传材料和面试学习材料放到同一张证据表里，方便后续继续开发、路演展示和面试复盘。
 
 ## 1. 目标拆解
@@ -9,11 +11,11 @@
 | 目标 | 当前结论 | 证据 |
 | --- | --- | --- |
 | 多角色辅助开发 | 已建立评审矩阵，并按角色推动多轮改动 | `docs/role-review-matrix.md`、`docs/codex-worklog.md` |
-| 网页交互更自然、更符合直觉 | 已覆盖测试页、结果页、分享、后台查询和空状态 | `frontend/src/pages/TestPage.vue`、`frontend/src/pages/ResultPage.vue`、`frontend/src/components/ShareLinkBox.vue`、`frontend/src/pages/AdminDashboard.vue`、`frontend/src/pages/AdminShortLinkDetail.vue` |
-| 后端面向瞬时流量和低延迟演进 | 已完成热路径降压、短缓存、索引、批量统计和事件写入降级 | `InternalShortLinkProvider`、`AdminStatService`、`VisitEventService`、`scripts/performance-smoke-test.sh` |
+| 网页交互更自然、更符合直觉 | 已覆盖测试页、结果页、分享、后台查询和空状态；2026-06-12 继续收束出生步骤和结果页分享动作 | `frontend/src/pages/TestPage.vue`、`frontend/src/pages/ResultPage.vue`、`frontend/src/components/ShareLinkBox.vue`、`frontend/src/pages/AdminDashboard.vue`、`frontend/src/pages/AdminShortLinkDetail.vue` |
+| 后端面向瞬时流量和低延迟演进 | 已完成热路径降压、短缓存、索引、批量统计和事件写入降级；2026-06-12 补充生产压测/告警 Runbook，并将 `RESULT_VIEW` 改为异步事件 | `InternalShortLinkProvider`、`AdminStatService`、`VisitEventService`、`ResultService`、`scripts/performance-smoke-test.sh`、`docs/production-load-alert-runbook.md` |
 | 完成验证、提交和推送 | 阶段内多次通过质量门禁并推送到 `origin/main` | `scripts/quality-check.sh`、Git 提交历史 |
 | 项目宣传沉淀 | 已有宣传包、主视觉、架构图和静态文档站 | `docs/project-promotion-kit.md`、`docs/assets/wuxing-promo-poster.svg`、`docs/assets/wuxing-architecture-map.svg`、`docs-site/index.html` |
-| 面试学习沉淀 | 已有面试学习手册，覆盖架构、数据、缓存、性能、追问和学习路线 | `docs/interview-learning-manual.md` |
+| 面试学习沉淀 | 已有面试学习手册，覆盖架构、数据、缓存、性能、追问和学习路线；2026-06-12 补充短码冲突、迁移治理和异步事件丢失语义任务卡 | `docs/interview-learning-manual.md` |
 
 ## 2. 普通访问者情景审计
 
@@ -22,10 +24,10 @@
 | 访问阶段 | 用户心理 | 已落地体验 | 仍需观察 |
 | --- | --- | --- | --- |
 | 首次进入首页 | 想快速判断值不值得测 | README 和文档站已经把项目定位、在线地址、体验链路前置 | 真实线上首页首屏截图和移动端加载速度仍需归档 |
-| 填出生信息 | 怕麻烦、怕输错 | v2.5 使用年份滑杆、月份/日期/时段触控卡片，减少传统表单感 | 低端安卓机型触控回归还未系统记录 |
+| 填出生信息 | 怕麻烦、怕输错 | v2.5 使用年份滑杆、月份/日期/时段触控卡片，减少传统表单感；2026-06-12 移动端出生步骤操作区改为普通流式布局，未选月份时禁用继续按钮 | 低端安卓机型触控回归还未系统记录 |
 | 回答题目 | 希望少思考、少跳转 | v2.6 卡片式逐题问答，选中后有节奏推进 | 真实用户是否觉得题量合适，还需要访谈样本 |
 | 查看结果 | 希望结果有身份感 | 结果页补齐加载态、错误态、回流提示和分享入口 | 结果文案是否足够“像我”，后续可继续 A/B 文案 |
-| 分享给朋友 | 需要低摩擦复制 | 分享链接组件补齐复制中、已复制、手动复制兜底 | 微信内置浏览器真实剪贴板行为仍需设备验证 |
+| 分享给朋友 | 需要低摩擦复制 | 分享链接组件补齐复制中、已复制、手动复制兜底；2026-06-12 结果页动作收束为保存图、复制/分享链接、朋友回流 CTA 三条清晰路径 | 微信内置浏览器真实剪贴板行为仍需设备验证 |
 
 普通访问者视角的阶段结论：当前已经从“能完成测试”推进到“能比较自然地完成和分享”。后续不要再优先堆新玩法，而应先补真实手机截图、微信内测试和 3 到 5 个普通用户访谈记录。
 
@@ -41,6 +43,7 @@
 | 为什么需要批量统计 | 后台列表如果逐行查 PV/UV/UIP 会放大查询次数，所以改成批量聚合，降低 N+1 风险 | `AdminStatService` |
 | 怎么证明你真的验证过 | 本地质量门禁、后端测试、性能 smoke、浏览器验收和工作日志形成证据链 | `scripts/quality-check.sh`、`scripts/performance-smoke-test.sh`、`docs/codex-worklog.md` |
 | 当前还不是生产级的地方 | 没有夸大成完整 SRE 系统，仍缺真实线上压测、告警演练、HTTPS/HSTS 验证和多机型截图归档 | `docs/quality-scorecard.md` |
+| 高并发表述怎么说才安全 | 只能说已经完成单机阶段热路径优化、性能 smoke 和压测/告警演练模板，不能说已验证生产高并发 | `docs/production-load-alert-runbook.md`、`docs/interview-learning-manual.md` |
 
 面试官视角的阶段结论：这个项目可以按“可上线 MVP -> 产品化 H5 -> 短链增长与统计 -> 热路径性能优化 -> 生产化边界”来讲。最重要的是主动承认边界，因为边界讲清楚比泛泛说高并发更可信。
 
@@ -49,9 +52,9 @@
 | 方向 | 阶段成果 | 价值 |
 | --- | --- | --- |
 | H5 问答体验 | 出生信息触控化、逐题问答、底部操作条避让、结果页状态反馈 | 降低移动端完成成本 |
-| 分享闭环 | 复制状态、手动复制兜底、短链回流提示 | 提高传播链路稳定性 |
+| 分享闭环 | 复制状态、手动复制兜底、短链回流提示、结果页动作层级收束 | 提高传播链路稳定性 |
 | 后台体验 | 忙碌态、空状态、短链明细加载态 | 避免运营界面出现空白和重复操作 |
-| 热路径性能 | 短链跳转去实时聚合、last_visit_at 限频、访问事件失败降级 | 把峰值访问压力从同步链路移开 |
+| 热路径性能 | 短链跳转去实时聚合、last_visit_at 限频、访问事件失败降级、结果页浏览事件异步化 | 把峰值访问压力从同步链路移开 |
 | 统计查询 | 索引、短缓存、批量聚合、维度长度裁剪 | 降低后台查询和脏数据风险 |
 | 文档资产 | 宣传包、架构图、学习手册、静态文档站 | 支撑作品集展示和面试讲解 |
 
@@ -60,7 +63,7 @@
 | 缺口 | 影响 | 建议动作 |
 | --- | --- | --- |
 | 真实线上压测未执行 | 不能声称已验证生产峰值容量 | 选定线上环境后用固定并发、固定数据量、固定日志口径压测 |
-| HTTPS/HSTS 和告警演练未归档 | 生产安全与运维证据不足 | 补 Nginx/TLS 检查、健康检查、告警触发和恢复记录 |
+| HTTPS/HSTS 和告警演练未归档 | 生产安全与运维证据不足 | 已补 `docs/production-load-alert-runbook.md` 模板；仍需真实服务器执行健康检查、告警触发和恢复记录 |
 | 自动化多视口截图已归档，真实设备截图未覆盖 | 已生成 iPhone SE、安卓宽屏和桌面后台 showcase 截图；GitHub Actions 接入方案已整理但受 `workflow` scope 限制尚未启用 | 从 `docs/screenshots/showcase/` 中挑选作品集截图，并继续补真实设备截图 |
 | 真实普通用户访谈不足 | 交互“自然”还主要来自角色启发式评审 | 找 3 到 5 位普通用户记录首次使用卡点 |
 | 真实设备与微信环境未覆盖 | 自动化脚本覆盖 Chromium 移动视口，但不能替代 iOS / Android / 微信内置浏览器 | 用真实设备补复制短链、保存图和回流体验验收 |
@@ -71,5 +74,6 @@
 2. 选择一个可控线上环境做短链跳转压测，并记录 QPS、P95、错误率和数据库指标。
 3. 从 `docs/screenshots/showcase/` 挑选截图，把 `docs/project-promotion-kit.md` 里的分镜产出为真正的作品集长图。
 4. 按 `docs/interview-learning-manual.md` 做一次 5 分钟讲解录音，再根据卡壳点反向补文档。
+5. 继续按 `docs/next-iteration-role-backlog.md` 推进结果页、文档站和 showcase 截图墙的下一轮小切口。
 
 阶段判断：八小时工作流已经完成一轮高质量产品化加固，适合作为作品集展示和面试讲述版本；但不应宣传为完整生产 SRE 闭环。
