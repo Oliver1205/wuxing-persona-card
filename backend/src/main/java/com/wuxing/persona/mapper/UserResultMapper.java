@@ -46,6 +46,21 @@ public interface UserResultMapper {
             """)
     UserResultEntity selectByResultId(@Param("resultId") String resultId);
 
+    @Select("""
+            <script>
+            SELECT id, result_id AS resultId, primary_element AS primaryElement,
+                   secondary_element AS secondaryElement, star_officer_name AS starOfficerName,
+                   created_at AS createdAt
+            FROM user_result
+            WHERE status = 1
+              AND result_id IN
+              <foreach collection="resultIds" item="resultId" open="(" separator="," close=")">
+                #{resultId}
+              </foreach>
+            </script>
+            """)
+    List<UserResultEntity> listByResultIds(@Param("resultIds") List<String> resultIds);
+
     @Select("SELECT COUNT(*) FROM user_result WHERE status = 1")
     long countAll();
 

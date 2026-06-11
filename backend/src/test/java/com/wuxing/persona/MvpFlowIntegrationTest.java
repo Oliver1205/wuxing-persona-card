@@ -1,5 +1,7 @@
 package com.wuxing.persona;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.hamcrest.Matchers.containsString;
@@ -173,6 +175,44 @@ class MvpFlowIntegrationTest {
                 .andExpect(jsonPath("$.data.records[0].channel").value("share"))
                 .andExpect(jsonPath("$.data.records[0].campaign").value("result-card"))
                 .andExpect(jsonPath("$.data.records[0].deviceType").value("mobile"));
+    }
+
+    @Test
+    void shouldMapBatchedShortLinkStatsToEachListItem() throws Exception {
+        JsonNode first = createValidResult("client-a");
+        JsonNode second = createValidResult("client-b");
+        String firstShortCode = first.get("shortCode").asText();
+        String secondShortCode = second.get("shortCode").asText();
+
+        mockMvc.perform(get("/s/" + firstShortCode)
+                        .header("X-Client-Id", "same-client"))
+                .andExpect(status().is3xxRedirection());
+        mockMvc.perform(get("/s/" + firstShortCode)
+                        .header("X-Client-Id", "same-client"))
+                .andExpect(status().is3xxRedirection());
+        mockMvc.perform(get("/s/" + secondShortCode)
+                        .header("X-Client-Id", "another-client"))
+                .andExpect(status().is3xxRedirection());
+
+        MvcResult response = mockMvc.perform(get("/api/admin/short-links")
+                        .header("X-Admin-Token", "test-token")
+                        .param("page", "1")
+                        .param("pageSize", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.total").value(2))
+                .andReturn();
+        JsonNode records = objectMapper.readTree(response.getResponse().getContentAsString()).get("data").get("records");
+
+        JsonNode firstItem = findShortLinkItem(records, firstShortCode);
+        JsonNode secondItem = findShortLinkItem(records, secondShortCode);
+        assertNotNull(firstItem);
+        assertNotNull(secondItem);
+        assertEquals(2, firstItem.get("pv").asInt());
+        assertEquals(1, firstItem.get("uv").asInt());
+        assertEquals(1, firstItem.get("uip").asInt());
+        assertEquals(1, secondItem.get("pv").asInt());
+        assertEquals(1, secondItem.get("uv").asInt());
+        assertEquals(1, secondItem.get("uip").asInt());
     }
 
     @Test
@@ -410,6 +450,15 @@ class MvpFlowIntegrationTest {
                                 }
                                 """.formatted(eventType, pagePath)))
                 .andExpect(status().isOk());
+    }
+
+    private JsonNode findShortLinkItem(JsonNode records, String shortCode) {
+        for (JsonNode record : records) {
+            if (shortCode.equals(record.get("shortCode").asText())) {
+                return record;
+            }
+        }
+        return null;
     }
 
     private void moveAllRecordsToDate(LocalDate date) {

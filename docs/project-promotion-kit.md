@@ -70,6 +70,7 @@ flowchart LR
 | 短链详情 | `/admin/short-links/{shortCode}` | 展示访问明细、来源和设备类型 |
 | 文档站 | `docs-site/index.html` | 展示项目结构化文档站 |
 | 性能烟测输出 | `scripts/performance-smoke-test.sh` | 展示短链连续访问和后台总览缓存的耗时证据 |
+| 后台短链列表 | `/admin/short-links` | 展示分页短链、批量 PV / UV / UIP 统计和访问明细入口 |
 
 ## 已有视觉资产
 

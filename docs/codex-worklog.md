@@ -115,3 +115,9 @@ multi-role review support. The main outcomes are:
 - Backend change: `SHORT_LINK_VISIT` events are still recorded for every redirect, but `short_link.last_visit_at` is now touched only when the previous value is stale by at least 30 seconds.
 - Tradeoff: operations still get a recent last-visit signal, while a single viral short code no longer rewrites the same `short_link` row on every hit.
 - Local smoke result: after throttling the last-visit touch, the local H2 profile passed with `SHORTLINK_HITS=30`, `ADMIN_HITS=2`, `shortlinkAvgMs=16`, and `adminAvgMs=36`.
+
+### Phase 10
+
+- Backend priority: keep the admin short-link list responsive as rows grow.
+- Backend change: the list now batches result lookups and local PV/UV/UIP aggregation for all short codes on the page instead of running per-row result and distinct-count queries.
+- Verification value: added a two-short-link integration test to prove batched stats still map back to the correct list item.

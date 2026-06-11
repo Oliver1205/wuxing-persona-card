@@ -141,6 +141,27 @@ public interface VisitEventMapper {
                                     @Param("startAt") LocalDateTime startAt,
                                     @Param("endAt") LocalDateTime endAt);
 
+    @Select("""
+            <script>
+            SELECT short_code AS shortCode,
+                   COUNT(*) AS pv,
+                   COUNT(DISTINCT client_id_hash) AS uv,
+                   COUNT(DISTINCT ip_hash) AS uip
+            FROM visit_event
+            WHERE event_type = 'SHORT_LINK_VISIT'
+              AND short_code IN
+              <foreach collection="shortCodes" item="shortCode" open="(" separator="," close=")">
+                #{shortCode}
+              </foreach>
+            <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+            GROUP BY short_code
+            </script>
+            """)
+    List<java.util.Map<String, Object>> listShortLinkStatsBetween(@Param("shortCodes") List<String> shortCodes,
+                                                                  @Param("startAt") LocalDateTime startAt,
+                                                                  @Param("endAt") LocalDateTime endAt);
+
     @Select("SELECT COUNT(*) FROM visit_event WHERE short_code = #{shortCode} AND event_type = 'SHORT_LINK_VISIT'")
     long countByShortCode(@Param("shortCode") String shortCode);
 

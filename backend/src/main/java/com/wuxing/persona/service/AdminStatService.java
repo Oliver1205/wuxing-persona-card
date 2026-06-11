@@ -26,8 +26,11 @@ import com.wuxing.persona.vo.ShortLinkVisitVO;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -301,15 +304,28 @@ public class AdminStatService {
     }
 
     private List<ShortLinkListItemVO> toShortLinkItems(List<ShortLinkEntity> rows, AdminDateRange range) {
+        if (rows.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Map<String, UserResultEntity> resultsById = userResultMapper.listByResultIds(rows.stream()
+                        .map(ShortLinkEntity::getResultId)
+                        .distinct()
+                        .toList())
+                .stream()
+                .collect(Collectors.toMap(UserResultEntity::getResultId, Function.identity()));
+        Map<String, ShortLinkStats> localStatsByCode = visitEventMapper.listShortLinkStatsBetween(rows.stream()
+                        .map(ShortLinkEntity::getShortCode)
+                        .distinct()
+                        .toList(), range.getStartAt(), range.getEndExclusive())
+                .stream()
+                .collect(Collectors.toMap(row -> value(row, "shortCode", "short_code").toString(), this::toShortLinkStats));
         return rows.stream()
                 .map(row -> {
-                    UserResultEntity result = userResultMapper.selectByResultId(row.getResultId());
-                    long pv = visitEventMapper.countPvByShortCodeBetween(row.getShortCode(),
-                            range.getStartAt(), range.getEndExclusive());
-                    long uv = visitEventMapper.countUvByShortCodeBetween(row.getShortCode(),
-                            range.getStartAt(), range.getEndExclusive());
-                    long uip = visitEventMapper.countUipByShortCodeBetween(row.getShortCode(),
-                            range.getStartAt(), range.getEndExclusive());
+                    UserResultEntity result = resultsById.get(row.getResultId());
+                    ShortLinkStats localStats = localStatsByCode.getOrDefault(row.getShortCode(), ShortLinkStats.ZERO);
+                    long pv = localStats.pv();
+                    long uv = localStats.uv();
+                    long uip = localStats.uip();
                     String statSource = "local";
                     java.util.Optional<ExternalShortLinkStatsSnapshot> externalStats =
                             externalShortLinkStatsAdapter.fetchStats(row, range);
@@ -335,6 +351,10 @@ public class AdminStatService {
                     return vo;
                 })
                 .toList();
+    }
+
+    private ShortLinkStats toShortLinkStats(Map<String, Object> row) {
+        return new ShortLinkStats(toLong(value(row, "pv")), toLong(value(row, "uv")), toLong(value(row, "uip")));
     }
 
     private ShortLinkVisitVO toVisit(VisitEventEntity entity) {
@@ -420,5 +440,9 @@ public class AdminStatService {
     }
 
     private record DailyTrendResult(List<DailyMetricVO> records, String metricSource, String aggregatedThroughDate) {
+    }
+
+    private record ShortLinkStats(long pv, long uv, long uip) {
+        private static final ShortLinkStats ZERO = new ShortLinkStats(0, 0, 0);
     }
 }
