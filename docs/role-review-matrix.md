@@ -44,12 +44,13 @@
 | 短链跳转热路径去实时聚合 | `InternalShortLinkProvider` | 资深架构师、后端开发 |
 | 后台 overview 45 秒短缓存 | `AdminStatService`、`RedisCacheService` | 资深架构师、后端开发 |
 | 性能 smoke 脚本 | `scripts/performance-smoke-test.sh` | 架构师、面试官 |
+| 可复现截图流程 | `scripts/capture-showcase-screenshots.sh`、`frontend/e2e/showcase-screenshots.spec.mjs` | 产品经理、普通访问者、美术经理 |
 | 宣传素材分镜 | `docs/project-promotion-kit.md` | 产品经理、美术经理 |
 | 面试讲解图谱 | `docs/interview-learning-manual.md` | 大厂面试官 |
 
 ## 5. 后续推进优先级
 
-1. 先补真实截图或可复现截图流程，让宣传包从“建议”变成“素材”。
-2. 继续优化结果页分享图质感，让它成为项目主视觉资产。
-3. 给后台关键统计补更明确的口径说明，降低面试追问风险。
+1. 执行可复现截图流程，归档最新 showcase 截图。
+2. 继续观察真实手机尺寸下的结果页和分享图展示。
+3. 根据后台指标说明，补一版面试口头讲解练习。
 4. 观察性能 smoke 结果，如果短链平均耗时明显上升，再回到热路径查 DB、Redis、日志写入。
