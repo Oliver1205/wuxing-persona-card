@@ -2,7 +2,7 @@
 
 规划日期：2026-06-08
 
-当前状态：第一版 MVP 主链路已实现，并通过本地构建、后端集成测试、H2 演示模式浏览器验收和 Docker Compose 容器全链路验收。v0.2 已新增短链 Provider 适配层，v0.3 已补 external 模式真实 HTTP 联调配置和后台日期筛选统计，v0.4 已完成外部短链服务级联调和外部 PV / UV / UIP 统计适配，v0.5 已接入外部短链访问明细，v0.6 已建立 v1.0 前的统一质量门禁，v0.7 已完成生产路由与部署预检，v0.8 已增强后台运营可读性，v0.9 已完成稳定性与隐私审计加固，v1.0 已完成稳定版收口，v1.1 已推进 external 生产接入准备，v1.2-v1.4 已完成生产质量增强包，v2.0 已启动商业级产品化基线，将重心从“功能可用”升级为“测评传播闭环、增长漏斗和可演进架构”。
+当前状态：第一版 MVP 主链路已实现，并通过本地构建、后端集成测试、H2 演示模式浏览器验收和 Docker Compose 容器全链路验收。v0.2 已新增短链 Provider 适配层，v0.3 已补 external 模式真实 HTTP 联调配置和后台日期筛选统计，v0.4 已完成外部短链服务级联调和外部 PV / UV / UIP 统计适配，v0.5 已接入外部短链访问明细，v0.6 已建立 v1.0 前的统一质量门禁，v0.7 已完成生产路由与部署预检，v0.8 已增强后台运营可读性，v0.9 已完成稳定性与隐私审计加固，v1.0 已完成稳定版收口，v1.1 已推进 external 生产接入准备，v1.2-v1.4 已完成生产质量增强包，v2.0 已启动商业级产品化基线，v2.1 已落地增长分析基础，将 session、channel、campaign、device 和 eventDate 接入事件数据与后台漏斗视图。
 
 关联文档：
 
@@ -296,6 +296,18 @@ flowchart LR
 - 后端补充非法出生时段业务异常和单元测试，继续保持输入校验边界清晰。
 - 新增 v2.0 商业级产品化方案文档，明确后续 `analytics`、`shortlink`、`assessment`、`ops` 分层演进方向。
 
+### 阶段 21：v2.1 增长分析基础
+
+- 前端新增 sessionId，使用 `sessionStorage` 表示单次访问会话。
+- 前端从 URL 捕获 `channel`、`campaign`、`utm_source`、`utm_campaign` 和短链回流 `sc` 参数。
+- 所有 API 请求携带 `X-Session-Id`、`X-Channel` 和 `X-Campaign`。
+- 分享短链自动带 `channel=share&campaign=result-card`，短链跳转继续保留来源参数。
+- `visit_event` 扩展 `session_id_hash`、`channel`、`campaign`、`device_type`、`event_date`。
+- 后端只保存 session hash，不保存明文 sessionId。
+- 后台 overview 新增增长漏斗、Top Channel 和 Top Campaign。
+- 短链访问详情新增 Channel、Campaign 和设备类型。
+- 后端集成测试覆盖事件归因、漏斗指标、渠道排行、短链来源跳转和访问明细来源字段。
+
 ## 5. 当前验证
 
 已通过：
@@ -399,9 +411,16 @@ v2.0 新增验证：
 - 本地 H2 + Vite 浏览器验收覆盖首页首屏、测试页进度、创建结果、结果页分享区域和短链 302。
 - Vite 开发代理从 `/s` 改为 `^/s/`，避免 `/src/**` 前端源码被错误代理到后端导致白屏。
 
+v2.1 新增验证：
+
+- 后端测试覆盖事件归因、增长漏斗、渠道排行、短链来源参数透传和访问详情归因字段。
+- 前端构建覆盖 session / attribution 工具、分享来源 URL、后台漏斗视图和访问详情新增列。
+- Compose config 确认默认部署编排仍可解析。
+- 本地 H2 + Vite 浏览器验收确认后台增长漏斗、Top Channel 和 Top Campaign 正常展示。
+
 ## 6. 下一阶段建议
 
-1. v2.1 优先补渠道参数、分享来源、会话标识、日聚合表和后台漏斗视图。
-2. v2.2 优先补 Playwright 移动端 E2E、线上 smoke、备份恢复、回滚脚本、HTTPS、限流和告警。
+1. v2.2 优先补 `site_daily_metric` / `short_link_daily_metric` 聚合表、定时聚合任务和后台趋势查询降本。
+2. v2.2 同步补 Playwright 移动端 E2E、线上 smoke、备份恢复、回滚脚本、HTTPS、限流和告警。
 3. v2.3 再评估运营活动、多套卡片和轻量报告增强。
 4. 登录、付费、AI 深度解读、朋友匹配和社区功能必须单独立项，不并入当前产品化基线。

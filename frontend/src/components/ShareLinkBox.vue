@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { withShareAttribution } from '../utils/attribution';
 import { track } from '../utils/tracker';
 
 const props = defineProps<{
@@ -14,15 +15,16 @@ const emit = defineEmits<{
 
 const copied = ref(false);
 const message = ref('');
+const shareUrl = computed(() => withShareAttribution(props.shortUrl));
 
 onMounted(() => {
   track('SHARE_PANEL_VIEW', undefined, props.resultId, props.shortCode);
 });
 
 async function copy() {
-  message.value = '';
+    message.value = '';
   try {
-    await navigator.clipboard.writeText(props.shortUrl);
+    await navigator.clipboard.writeText(shareUrl.value);
     copied.value = true;
     message.value = '短链接已复制，发给朋友看看吧';
     emit('copied');
@@ -42,7 +44,7 @@ async function nativeShare() {
     await navigator.share({
       title: '我的五行人格卡',
       text: '我刚生成了一张五行人格卡，看看像不像我。',
-      url: props.shortUrl,
+      url: shareUrl.value,
     });
     track('NATIVE_SHARE_SUCCESS', undefined, props.resultId, props.shortCode);
   } catch {
@@ -55,7 +57,7 @@ async function nativeShare() {
   <section class="share-box">
     <div>
       <p class="label">专属短链接</p>
-      <p class="url">{{ shortUrl }}</p>
+      <p class="url">{{ shareUrl }}</p>
     </div>
     <div class="share-actions">
       <button type="button" @click="copy">{{ copied ? '已复制' : '复制' }}</button>

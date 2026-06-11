@@ -1,6 +1,6 @@
 const CLIENT_ID_KEY = 'wuxing_client_id';
 
-function createClientId(): string {
+export function createAnonymousId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
   }
@@ -27,7 +27,7 @@ export function getClientId(): string {
   if (existing) {
     return existing;
   }
-  const id = createClientId();
+  const id = createAnonymousId();
   localStorage.setItem(CLIENT_ID_KEY, id);
   return id;
 }

@@ -1,6 +1,7 @@
 package com.wuxing.persona.entity;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 public class VisitEventEntity {
 
@@ -10,9 +11,14 @@ public class VisitEventEntity {
     private String resultId;
     private String shortCode;
     private String clientIdHash;
+    private String sessionIdHash;
     private String ipHash;
     private String userAgentHash;
+    private String channel;
+    private String campaign;
+    private String deviceType;
     private String referer;
+    private LocalDate eventDate;
     private LocalDateTime createdAt;
 
     public Long getId() {
@@ -63,6 +69,14 @@ public class VisitEventEntity {
         this.clientIdHash = clientIdHash;
     }
 
+    public String getSessionIdHash() {
+        return sessionIdHash;
+    }
+
+    public void setSessionIdHash(String sessionIdHash) {
+        this.sessionIdHash = sessionIdHash;
+    }
+
     public String getIpHash() {
         return ipHash;
     }
@@ -79,12 +93,44 @@ public class VisitEventEntity {
         this.userAgentHash = userAgentHash;
     }
 
+    public String getChannel() {
+        return channel;
+    }
+
+    public void setChannel(String channel) {
+        this.channel = channel;
+    }
+
+    public String getCampaign() {
+        return campaign;
+    }
+
+    public void setCampaign(String campaign) {
+        this.campaign = campaign;
+    }
+
+    public String getDeviceType() {
+        return deviceType;
+    }
+
+    public void setDeviceType(String deviceType) {
+        this.deviceType = deviceType;
+    }
+
     public String getReferer() {
         return referer;
     }
 
     public void setReferer(String referer) {
         this.referer = referer;
+    }
+
+    public LocalDate getEventDate() {
+        return eventDate;
+    }
+
+    public void setEventDate(LocalDate eventDate) {
+        this.eventDate = eventDate;
     }
 
     public LocalDateTime getCreatedAt() {

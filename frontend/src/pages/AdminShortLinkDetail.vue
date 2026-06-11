@@ -65,6 +65,9 @@ function dateFilter(): AdminDateFilter {
               <th>Client Hash</th>
               <th>IP Hash</th>
               <th>User-Agent Hash</th>
+              <th>Channel</th>
+              <th>Campaign</th>
+              <th>设备</th>
               <th>Referer</th>
             </tr>
           </thead>
@@ -76,6 +79,9 @@ function dateFilter(): AdminDateFilter {
               <td>{{ item.clientIdHash }}</td>
               <td>{{ item.ipHash }}</td>
               <td>{{ item.userAgentHash }}</td>
+              <td>{{ item.channel || '-' }}</td>
+              <td>{{ item.campaign || '-' }}</td>
+              <td>{{ item.deviceType || '-' }}</td>
               <td>{{ item.referer || '-' }}</td>
             </tr>
           </tbody>

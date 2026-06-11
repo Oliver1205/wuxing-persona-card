@@ -71,11 +71,24 @@ page_path
 result_id
 short_code
 client_id_hash
+session_id_hash
 ip_hash
 user_agent_hash
+channel
+campaign
+device_type
 referer
+event_date
 created_at
 ```
+
+v2.1 起，增长归因字段说明：
+
+- `session_id_hash`：前端 sessionId hash，不保存明文 sessionId。
+- `channel`：来源渠道，例如 `organic`、`share`、`shortlink`。
+- `campaign`：活动标识，例如 `spring-launch`、`result-card`。
+- `device_type`：根据 User-Agent 粗略归类为 `mobile`、`tablet`、`desktop`、`bot`、`unknown`。
+- `event_date`：事件日期，便于后续演进日聚合表。
 
 ## 短链项目库
 

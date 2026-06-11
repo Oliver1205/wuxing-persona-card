@@ -42,6 +42,9 @@ GET /api/questions
 POST /api/results
 Content-Type: application/json
 X-Client-Id: <client-id>
+X-Session-Id: <session-id>
+X-Channel: <channel>
+X-Campaign: <campaign>
 ```
 
 请求体：
@@ -76,6 +79,9 @@ X-Client-Id: <client-id>
 ```http
 GET /api/results/{resultId}
 X-Client-Id: <client-id>
+X-Session-Id: <session-id>
+X-Channel: <channel>
+X-Campaign: <campaign>
 ```
 
 后端优先读取 Redis `result:{resultId}`，未命中再查 MySQL，并写入 `RESULT_VIEW` 事件。
@@ -83,7 +89,7 @@ X-Client-Id: <client-id>
 ## 5. 短链接访问
 
 ```http
-GET /s/{shortCode}
+GET /s/{shortCode}?channel=share&campaign=result-card
 ```
 
 行为：
@@ -93,6 +99,7 @@ GET /s/{shortCode}
 - 优先读取 Redis `shortlink:code:{shortCode}`。
 - Redis 未命中查 `short_link`。
 - 有效短码 302 到 `/result/{resultId}?sc={shortCode}`。
+- 如果访问短链时带 `channel` / `campaign` / `utm_source` / `utm_campaign`，会写入访问事件，并继续透传到结果页 query。
 - 无效短码写入 Redis 空值缓存 `shortlink:null:{shortCode}` 并返回 404。
 
 ## 6. 记录前端事件
@@ -101,6 +108,9 @@ GET /s/{shortCode}
 POST /api/events
 Content-Type: application/json
 X-Client-Id: <client-id>
+X-Session-Id: <session-id>
+X-Channel: <channel>
+X-Campaign: <campaign>
 ```
 
 请求体：
@@ -110,7 +120,10 @@ X-Client-Id: <client-id>
   "eventType": "START_TEST_CLICK",
   "pagePath": "/",
   "resultId": null,
-  "shortCode": null
+  "shortCode": null,
+  "sessionId": "optional-session-id",
+  "channel": "organic",
+  "campaign": "spring-launch"
 }
 ```
 
@@ -119,13 +132,28 @@ X-Client-Id: <client-id>
 ```text
 PAGE_VIEW_HOME
 START_TEST_CLICK
+TEST_FORM_START
+QUESTION_ANSWER_SELECT
+TEST_SUBMIT_ATTEMPT
 TEST_SUBMIT
 RESULT_CREATED
 RESULT_VIEW
 SHORT_LINK_CREATED
 SHORT_LINK_COPY
+SAVE_SHARE_IMAGE_SUCCESS
+NATIVE_SHARE_SUCCESS
+SHARE_PANEL_VIEW
+SHARED_RESULT_CTA_CLICK
+RETAKE_TEST_CLICK
 SHORT_LINK_VISIT
 ```
+
+v2.1 归因规则：
+
+- 前端优先通过 header 传 `X-Session-Id`、`X-Channel`、`X-Campaign`。
+- `/api/events` 也支持在 body 中传 `sessionId`、`channel`、`campaign`。
+- 后端只保存 `session_id_hash`，不保存明文 sessionId。
+- 后端会根据 User-Agent 自动写入 `device_type`。
 
 ## 7. 管理后台总览
 
@@ -144,6 +172,9 @@ X-Admin-Token: <admin-token>
 - 短链生成量
 - 短链访问量
 - 完成率
+- 增长漏斗 `funnelSteps`
+- Top Channel `topChannels`
+- Top Campaign `topCampaigns`
 - 热门五行组合
 - 热门星官
 - 最近结果

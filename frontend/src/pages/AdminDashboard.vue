@@ -199,6 +199,31 @@ function formatDateTime(value: string | null) {
         </div>
 
         <div class="panel stack">
+          <h2>增长漏斗</h2>
+          <p class="muted">按当前日期筛选统计，转化率为相邻步骤转化。</p>
+          <div class="table-wrap">
+            <table class="compact-table">
+              <thead>
+                <tr>
+                  <th>步骤</th>
+                  <th>事件</th>
+                  <th>次数</th>
+                  <th>转化率</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in overview.funnelSteps" :key="item.eventType">
+                  <td>{{ item.label }}</td>
+                  <td>{{ item.eventType }}</td>
+                  <td>{{ item.count }}</td>
+                  <td>{{ item.conversionRate }}%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel stack">
           <h2>日趋势</h2>
           <div class="table-wrap">
             <table class="compact-table">
@@ -225,6 +250,28 @@ function formatDateTime(value: string | null) {
         </div>
 
         <div class="insight-grid">
+          <div class="panel stack">
+            <h2>Top Channel</h2>
+            <div v-if="overview.topChannels.length">
+              <div class="rank-row" v-for="item in overview.topChannels" :key="item.name">
+                <span>{{ item.name }}</span>
+                <strong>{{ item.count }}</strong>
+              </div>
+            </div>
+            <p v-else class="muted">暂无渠道数据</p>
+          </div>
+
+          <div class="panel stack">
+            <h2>Top Campaign</h2>
+            <div v-if="overview.topCampaigns.length">
+              <div class="rank-row" v-for="item in overview.topCampaigns" :key="item.name">
+                <span>{{ item.name }}</span>
+                <strong>{{ item.count }}</strong>
+              </div>
+            </div>
+            <p v-else class="muted">暂无活动数据</p>
+          </div>
+
           <div class="panel stack">
             <h2>热门五行组合</h2>
             <div v-if="overview.popularElementCombos.length">

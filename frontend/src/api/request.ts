@@ -1,4 +1,6 @@
 import { getClientId } from '../utils/clientId';
+import { getAttribution } from '../utils/attribution';
+import { getSessionId } from '../utils/sessionId';
 
 export interface ApiResponse<T> {
   code: number;
@@ -16,6 +18,14 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   const headers = new Headers(options.headers);
   headers.set('Content-Type', 'application/json');
   headers.set('X-Client-Id', getClientId());
+  headers.set('X-Session-Id', getSessionId());
+  const attribution = getAttribution();
+  if (attribution.channel) {
+    headers.set('X-Channel', attribution.channel);
+  }
+  if (attribution.campaign) {
+    headers.set('X-Campaign', attribution.campaign);
+  }
   if (options.adminToken) {
     headers.set('X-Admin-Token', options.adminToken);
   }

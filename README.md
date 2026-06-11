@@ -12,9 +12,9 @@
 
 | 项 | 说明 |
 | --- | --- |
-| 当前版本 | `v2.0-commercial-product-system` |
+| 当前版本 | `v2.1-growth-analytics-foundation` |
 | 稳定分支 | `main` |
-| 当前开发分支 | `codex/v2-commercial-product-system` |
+| 当前开发分支 | `codex/v2.1-growth-analytics-foundation` |
 | MVP 状态 | v0.1 已完成完整单人测算闭环 |
 | v0.2 状态 | 已完成短链接 Provider 适配层，可配置 `internal` / `external` 模式 |
 | v0.3 状态 | 已增强 external 真实 HTTP 联调配置，并为后台总览、短链列表、访问日志增加日期筛选 |
@@ -28,7 +28,8 @@
 | v1.1 状态 | 已补 external 生产接入 overlay、预检脚本、联调脚本、失败测试、对接说明和隐私审计 |
 | v1.2-v1.4 状态 | 已补 CI/CD、运行态治理、后台工具、安全加固、Testcontainers 能力和分享图 |
 | v2.0 状态 | 商业级产品化基线启动，已升级首页、测试流、结果页分享体验和增长埋点 |
-| 最新自评 | MVP 工程基线 99 / 100；v2.0 商业化初评 88 / 100，详见 [quality-scorecard.md](docs/quality-scorecard.md) |
+| v2.1 状态 | 已落地 session、channel、campaign、device、eventDate 事件归因和后台增长漏斗 |
+| 最新自评 | MVP 工程基线 99 / 100；v2.1 商业化初评 91 / 100，详见 [quality-scorecard.md](docs/quality-scorecard.md) |
 | GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics`、`v0.4.0-external-shortlink-service-integration`、`v0.5.0-external-shortlink-access-records`、`v0.6.0-quality-gates-and-roadmap`、`v0.7.0-production-routing-hardening`、`v0.8.0-admin-operational-insights`、`v0.9.0-stability-privacy-audit`、`v1.0.0-stable`、`v1.1.0-external-shortlink-production-readiness`、`v1.4.0-production-quality-suite` |
 
 ## 核心亮点
@@ -51,6 +52,7 @@
 - **生产质量增强**：v1.2-v1.4 补齐 GitHub Actions、Docker smoke、external 运行态状态、后台筛选导出、安全响应头、Testcontainers 和分享图。
 - **商业级产品化基线**：v2.0 以“愿意测、感觉被看见、愿意分享、朋友继续测”为主循环，重做首页承诺、答题进度、结果身份表达、完整五行分布和分享面板。
 - **增长漏斗埋点**：新增测试开始、答题选择、提交尝试、分享面板、原生分享、保存分享图、二次测试等事件，为后续渠道、留存和传播分析预留数据口径。
+- **增长归因基础**：v2.1 将 session、channel、campaign、device、eventDate 写入事件表，分享短链自动带来源参数，后台展示增长漏斗、Top Channel 和 Top Campaign。
 - **教学沉淀**：项目计划、质量评分、短链集成方案、教学手册均已文档化。
 
 ## 目录
@@ -460,6 +462,22 @@ admin pv/uv/uip: 1/1/1
 ## 开发进度记录
 
 <details open>
+<summary><strong>2026-06-11｜v2.1 增长分析基础</strong></summary>
+
+- 新建分支：`codex/v2.1-growth-analytics-foundation`。
+- 前端新增 sessionId，使用 `sessionStorage` 区分单次访问会话。
+- 前端识别 `channel`、`campaign`、`utm_source`、`utm_campaign`、`sc` 等来源参数，并通过请求 header 传给后端。
+- 分享短链自动追加 `channel=share&campaign=result-card`，短链跳转会把来源继续带到结果页。
+- 后端 `visit_event` 新增 `session_id_hash`、`channel`、`campaign`、`device_type`、`event_date` 字段。
+- 后端继续 hash sessionId，不保存明文 session 标识。
+- 后台总览新增增长漏斗、Top Channel 和 Top Campaign。
+- 短链访问详情新增 Channel、Campaign 和设备类型。
+- 后端测试覆盖事件归因、漏斗指标、渠道排行、短链来源跳转和访问明细来源字段。
+- 验证通过：后端测试、前端构建、Docker Compose config、后台增长漏斗浏览器验收。
+
+</details>
+
+<details>
 <summary><strong>2026-06-11｜v2.0 商业级产品化基线</strong></summary>
 
 - 新建分支：`codex/v2-commercial-product-system`。

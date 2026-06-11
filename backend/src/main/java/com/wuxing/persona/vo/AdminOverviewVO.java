@@ -15,6 +15,9 @@ public class AdminOverviewVO {
     private long shortLinkVisits;
     private double completionRate;
     private List<DailyMetricVO> dailyTrends;
+    private List<FunnelStepVO> funnelSteps;
+    private List<NameCountVO> topChannels;
+    private List<NameCountVO> topCampaigns;
     private List<NameCountVO> popularElementCombos;
     private List<NameCountVO> popularStarOfficers;
     private List<RecentResultVO> recentResults;
@@ -106,6 +109,30 @@ public class AdminOverviewVO {
 
     public void setDailyTrends(List<DailyMetricVO> dailyTrends) {
         this.dailyTrends = dailyTrends;
+    }
+
+    public List<FunnelStepVO> getFunnelSteps() {
+        return funnelSteps;
+    }
+
+    public void setFunnelSteps(List<FunnelStepVO> funnelSteps) {
+        this.funnelSteps = funnelSteps;
+    }
+
+    public List<NameCountVO> getTopChannels() {
+        return topChannels;
+    }
+
+    public void setTopChannels(List<NameCountVO> topChannels) {
+        this.topChannels = topChannels;
+    }
+
+    public List<NameCountVO> getTopCampaigns() {
+        return topCampaigns;
+    }
+
+    public void setTopCampaigns(List<NameCountVO> topCampaigns) {
+        this.topCampaigns = topCampaigns;
     }
 
     public List<NameCountVO> getPopularElementCombos() {

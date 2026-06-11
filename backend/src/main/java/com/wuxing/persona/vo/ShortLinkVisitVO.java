@@ -9,6 +9,9 @@ public class ShortLinkVisitVO {
     private String clientIdHash;
     private String ipHash;
     private String userAgentHash;
+    private String channel;
+    private String campaign;
+    private String deviceType;
     private String referer;
     private String statSource;
 
@@ -50,6 +53,30 @@ public class ShortLinkVisitVO {
 
     public void setUserAgentHash(String userAgentHash) {
         this.userAgentHash = userAgentHash;
+    }
+
+    public String getChannel() {
+        return channel;
+    }
+
+    public void setChannel(String channel) {
+        this.channel = channel;
+    }
+
+    public String getCampaign() {
+        return campaign;
+    }
+
+    public void setCampaign(String campaign) {
+        this.campaign = campaign;
+    }
+
+    public String getDeviceType() {
+        return deviceType;
+    }
+
+    public void setDeviceType(String deviceType) {
+        this.deviceType = deviceType;
     }
 
     public String getReferer() {

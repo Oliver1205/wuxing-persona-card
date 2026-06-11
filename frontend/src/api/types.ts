@@ -57,10 +57,20 @@ export interface AdminOverview {
   shortLinkVisits: number;
   completionRate: number;
   dailyTrends: DailyMetric[];
+  funnelSteps: FunnelStep[];
+  topChannels: NameCount[];
+  topCampaigns: NameCount[];
   popularElementCombos: NameCount[];
   popularStarOfficers: NameCount[];
   recentResults: RecentResult[];
   recentShortLinks: ShortLinkListItem[];
+}
+
+export interface FunnelStep {
+  eventType: string;
+  label: string;
+  count: number;
+  conversionRate: number;
 }
 
 export interface ExternalShortLinkRuntime {
@@ -117,6 +127,9 @@ export interface ShortLinkVisit {
   clientIdHash: string;
   ipHash: string;
   userAgentHash: string;
+  channel: string | null;
+  campaign: string | null;
+  deviceType: string | null;
   referer: string | null;
   statSource: 'local' | 'external';
 }
