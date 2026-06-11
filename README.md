@@ -69,6 +69,7 @@
   <tr>
     <td valign="top" width="25%">
       <strong>项目概览</strong><br>
+      <a href="docs-site/index.html">项目文档站</a><br>
       <a href="#项目状态">项目状态</a><br>
       <a href="#核心亮点">核心亮点</a><br>
       <a href="#在线地址">在线地址</a><br>
@@ -104,6 +105,8 @@
 ## 在线地址
 
 生产地址按实际部署环境填写。当前仓库重点保留可复现的本地、Docker Compose 和云服务器单机部署能力。
+
+- 项目文档站：本地可打开 `docs-site/index.html`；启用 GitHub Pages 后可访问 `https://Oliver1205.github.io/wuxing-persona-card/docs-site/`。
 
 ## 技术栈
 

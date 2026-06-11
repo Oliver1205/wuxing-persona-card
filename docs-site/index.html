@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="五行人格卡项目文档站，整理产品定位、业务闭环、短链接架构、数据统计、部署运行和版本进度。">
+    <title>五行人格卡｜项目文档站</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <div class="site-shell">
+      <aside class="sidebar" aria-label="文档目录">
+        <a class="brand" href="#overview" aria-label="回到项目总览">
+          <span class="brand-mark">五</span>
+          <span>
+            <strong>五行人格卡</strong>
+            <small>Project Docs</small>
+          </span>
+        </a>
+
+        <nav class="toc">
+          <p class="toc-title">文档目录</p>
+          <a href="#overview">1. 项目总览</a>
+          <a href="#product-loop">2. 产品主循环</a>
+          <a href="#architecture">3. 架构总览</a>
+          <a href="#shortlink">4. 短链接系统</a>
+          <a href="#analytics">5. 数据统计</a>
+          <a href="#deployment">6. 部署运行</a>
+          <a href="#quality">7. 质量门禁</a>
+          <a href="#versions">8. 版本进度</a>
+          <a href="#interview">9. 面试表达</a>
+          <a href="#roadmap">10. 后续路线</a>
+          <a href="#documents">11. 文档索引</a>
+        </nav>
+
+        <div class="sidebar-note">
+          <strong>当前阶段</strong>
+          <span>v2.6 卡片式逐题问答</span>
+        </div>
+      </aside>
+
+      <main class="content">
+        <section class="hero" id="overview">
+          <div class="hero-copy">
+            <p class="eyebrow">商业级 H5 微项目 · 短链接真实业务闭环</p>
+            <h1>五行人格卡项目文档站</h1>
+            <p class="hero-lead">
+              一个从匿名测算、结果生成、专属短链、朋友访问到后台 PV / UV / UIP 统计的完整全栈项目。
+              这里把产品定位、工程架构、短链接入、部署运行和版本进度整理成更适合展示的文档视图。
+            </p>
+            <div class="hero-actions" aria-label="快捷入口">
+              <a class="primary-action" href="../README.md">查看根 README</a>
+              <a class="secondary-action" href="../docs/project-plan.md">项目计划</a>
+            </div>
+          </div>
+          <div class="hero-card" aria-label="项目关键指标">
+            <div>
+              <span class="metric">v2.6</span>
+              <small>当前体验版本</small>
+            </div>
+            <div>
+              <span class="metric">99/100</span>
+              <small>MVP 工程自评</small>
+            </div>
+            <div>
+              <span class="metric">PV·UV·UIP</span>
+              <small>访问统计口径</small>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2>项目定位</h2>
+          <p>
+            五行人格卡不是命理预测工具，而是传统文化元素启发下的娱乐性人格测试 H5。
+            项目的核心价值不是“算命”，而是把用户愿意分享的结果页与可观测的短链接系统结合起来，
+            做出一个可上线、可演示、可复盘的 Java 后端实习作品。
+          </p>
+          <div class="status-grid">
+            <article>
+              <span>产品侧</span>
+              <strong>年轻化人格测试</strong>
+              <p>面向大学生和年轻用户，强调轻量、正向、可分享。</p>
+            </article>
+            <article>
+              <span>工程侧</span>
+              <strong>短链真实业务接入</strong>
+              <p>每个结果生成专属短链，访问后可跳转并沉淀统计。</p>
+            </article>
+            <article>
+              <span>部署侧</span>
+              <strong>单机可上线</strong>
+              <p>Docker Compose 管理 MySQL、Redis、后端和 Nginx。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" id="product-loop">
+          <h2>产品主循环</h2>
+          <p>
+            当前产品主循环围绕“愿意开始、愿意答完、感觉被看见、愿意分享、朋友继续测”设计。
+            v2.6 已把测试页从瀑布式表单升级为卡片式逐题问答，并补充出生年份精确输入。
+          </p>
+          <div class="flow">
+            <div>引导页</div>
+            <div>测试页</div>
+            <div>结果页</div>
+            <div>专属短链</div>
+            <div>朋友访问</div>
+            <div>后台统计</div>
+          </div>
+          <div class="two-column">
+            <article class="panel">
+              <h3>用户体验重点</h3>
+              <ul>
+                <li>移动端优先，页面节奏更接近 H5 测试产品。</li>
+                <li>出生年份支持高频选项、滑杆、+1 / -1 和手动输入。</li>
+                <li>题目选项隐藏五行属性提示，降低用户被暗示的感觉。</li>
+                <li>结果页强调身份表达、关键词、五行比例和分享动作。</li>
+              </ul>
+            </article>
+            <article class="panel">
+              <h3>业务闭环重点</h3>
+              <ul>
+                <li>测算结果保存到 `user_result`。</li>
+                <li>短码和结果绑定保存到 `short_link`。</li>
+                <li>访问和按钮行为写入 `visit_event`。</li>
+                <li>后台按日期、短链和来源查看数据。</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" id="architecture">
+          <h2>架构总览</h2>
+          <p>
+            项目采用 Vue H5 + Spring Boot + MySQL + Redis + Nginx 的单机可部署架构。
+            后端保持 controller、service、mapper、entity、dto、vo、config、util 的分层，短链接模块通过 Provider 适配层隔离内置和外部服务模式。
+          </p>
+          <div class="architecture-map" role="img" aria-label="五行人格卡架构图">
+            <div class="node browser">移动端浏览器</div>
+            <div class="connector"></div>
+            <div class="node nginx">Nginx</div>
+            <div class="branch">
+              <div class="node frontend">Vue H5</div>
+              <div class="node api">Spring Boot API</div>
+              <div class="node short">/s/{shortCode}</div>
+            </div>
+            <div class="branch">
+              <div class="node mysql">MySQL</div>
+              <div class="node redis">Redis</div>
+              <div class="node provider">ShortLinkProvider</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="shortlink">
+          <h2>短链接系统</h2>
+          <p>
+            短链接是项目的核心工程亮点。它不是展示字段，而是贯穿结果生成、分享访问、302 跳转、访问日志和后台统计的真实业务链路。
+          </p>
+          <div class="code-card">
+            <pre><code>ResultService
+  -> ShortLinkService
+    -> ShortLinkProvider
+      -> InternalShortLinkProvider
+      -> ExternalShortLinkProvider
+        -> ExternalShortLinkClient</code></pre>
+          </div>
+          <div class="two-column">
+            <article class="panel">
+              <h3>Internal 模式</h3>
+              <p>五行后端内置短码生成、短链绑定、Redis 解析缓存、无效短码空值缓存和 `/s/{code}` 302 跳转。</p>
+            </article>
+            <article class="panel">
+              <h3>External 模式</h3>
+              <p>通过配置调用独立短链接系统创建短链，失败时按配置降级到内置实现，五行侧继续保留 resultId 与短码业务绑定。</p>
+            </article>
+          </div>
+          <a class="doc-link" href="../docs/shortlink-integration-assessment.md">查看短链接接入评估</a>
+        </section>
+
+        <section class="section" id="analytics">
+          <h2>数据统计</h2>
+          <p>
+            统计口径覆盖首页访问、开始测试、提交、结果生成、短链生成、短链访问和结果页传播行为。
+            clientId、IP、User-Agent 均在后端 hash 后保存，避免落库明文个人标识。
+          </p>
+          <div class="metric-grid">
+            <article>
+              <strong>PV</strong>
+              <span>符合条件的事件总数</span>
+            </article>
+            <article>
+              <strong>UV</strong>
+              <span>去重后的 clientId hash</span>
+            </article>
+            <article>
+              <strong>UIP</strong>
+              <span>去重后的 IP hash</span>
+            </article>
+            <article>
+              <strong>Attribution</strong>
+              <span>session、channel、campaign、device</span>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" id="deployment">
+          <h2>部署运行</h2>
+          <p>
+            项目支持本地开发、H2 演示模式、Docker Compose 容器化运行和云服务器单机部署。
+            腾讯云轻量服务器部署时，Nginx 对外暴露 80 / 443，MySQL 与 Redis 不暴露公网。
+          </p>
+          <div class="code-card">
+            <pre><code>cp deploy/.env.example deploy/.env
+scripts/deploy-preflight.sh deploy/.env
+docker compose --env-file deploy/.env -f deploy/docker-compose.yml up --build -d
+scripts/docker-smoke-test.sh http://127.0.0.1 dev-token</code></pre>
+          </div>
+          <a class="doc-link" href="../docs/deploy.md">查看部署文档</a>
+        </section>
+
+        <section class="section" id="quality">
+          <h2>质量门禁</h2>
+          <p>
+            v0.6 之后项目进入严格质量门禁阶段。每个版本不仅要实现功能，还要保留测试、构建、文档、自评分和 GitHub 留痕。
+          </p>
+          <div class="checklist">
+            <span>backend: mvn test</span>
+            <span>frontend: npm run build</span>
+            <span>docker compose config</span>
+            <span>scripts/quality-check.sh</span>
+            <span>README + docs 更新</span>
+            <span>Git commit + push</span>
+          </div>
+          <a class="doc-link" href="../docs/quality-scorecard.md">查看质量评分</a>
+        </section>
+
+        <section class="section" id="versions">
+          <h2>版本进度</h2>
+          <div class="timeline">
+            <article>
+              <span>v0.1</span>
+              <strong>MVP 闭环</strong>
+              <p>完成单人测算、结果页、短链接、访问统计和后台。</p>
+            </article>
+            <article>
+              <span>v0.2 - v0.5</span>
+              <strong>短链适配与外部接入</strong>
+              <p>Provider 架构、external 创建、外部统计和访问明细接入。</p>
+            </article>
+            <article>
+              <span>v1.0 - v1.4</span>
+              <strong>生产质量增强</strong>
+              <p>质量门禁、部署预检、CI/CD、备份回滚、安全头和分享图。</p>
+            </article>
+            <article>
+              <span>v2.0 - v2.6</span>
+              <strong>商业级产品化</strong>
+              <p>增长埋点、渠道归因、传播体验、H5 输入体验和卡片式问答。</p>
+            </article>
+          </div>
+          <a class="doc-link" href="../docs/v2.6-card-question-flow.md">查看 v2.6 说明</a>
+        </section>
+
+        <section class="section" id="interview">
+          <h2>面试表达</h2>
+          <p>
+            这个项目可以作为 Java 后端实习作品，重点表达“短链接不是 Demo，而是被真实 H5 分享业务调用”的工程价值。
+          </p>
+          <div class="quote-panel">
+            我做的是一个完整上线链路：用户匿名完成 H5 测算，后端生成结果并绑定短链，朋友通过短链访问同一个结果页，后台能看到 PV / UV / UIP 和短链访问明细。短链模块后来被抽象成 Provider，可以在 internal 和 external 服务之间切换。
+          </div>
+        </section>
+
+        <section class="section" id="roadmap">
+          <h2>后续路线</h2>
+          <p>下一阶段更适合围绕真实上线后的产品质量推进，而不是继续堆功能。</p>
+          <div class="roadmap-grid">
+            <article>
+              <strong>域名与 HTTPS</strong>
+              <p>绑定正式域名，配置证书和短链子域名。</p>
+            </article>
+            <article>
+              <strong>真实用户反馈</strong>
+              <p>收集手机端加载、答题完成率、分享点击和结果页停留反馈。</p>
+            </article>
+            <article>
+              <strong>运营实验</strong>
+              <p>围绕首页文案、题目顺序、分享图样式做轻量 A/B 实验。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" id="documents">
+          <h2>文档索引</h2>
+          <div class="doc-grid">
+            <a href="../README.md">根 README</a>
+            <a href="../docs/project-plan.md">项目计划</a>
+            <a href="../docs/teaching-manual.md">教学手册</a>
+            <a href="../docs/development-standards.md">开发规范</a>
+            <a href="../docs/shortlink-integration-assessment.md">短链评估</a>
+            <a href="../docs/external-shortlink-integration-guide.md">外部短链对接</a>
+            <a href="../docs/external-shortlink-privacy-audit.md">隐私审计</a>
+            <a href="../docs/quality-scorecard.md">质量评分</a>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
