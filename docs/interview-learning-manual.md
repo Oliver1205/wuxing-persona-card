@@ -181,7 +181,8 @@ flowchart TB
 cp deploy/.env.example deploy/.env
 scripts/deploy-preflight.sh deploy/.env
 docker compose --env-file deploy/.env -f deploy/docker-compose.yml up --build -d
-scripts/docker-smoke-test.sh http://127.0.0.1 dev-token
+BASE_URL=http://127.0.0.1:8088 ADMIN_TOKEN=dev-token scripts/docker-smoke-test.sh
+BASE_URL=http://127.0.0.1:8088 ADMIN_TOKEN=dev-token SHORTLINK_HITS=30 scripts/performance-smoke-test.sh
 ```
 
 面试要点：
@@ -189,6 +190,7 @@ scripts/docker-smoke-test.sh http://127.0.0.1 dev-token
 - 不能直接暴露 Spring Boot 8080 到公网，公网入口应走 Nginx。
 - MySQL 和 Redis 不暴露公网。
 - 上线前必须替换 `ADMIN_TOKEN`、`HASH_SALT`、数据库密码和 `APP_BASE_URL`。
+- 性能 smoke 不是压测报告，而是回归检查：它会创建一个真实结果，连续访问短链，并重复读取后台总览，用输出的 `shortlinkAvgMs` 和 `adminAvgMs` 观察热点链路是否明显退化。
 
 ## 9. 面试追问速答
 

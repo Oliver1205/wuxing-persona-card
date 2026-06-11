@@ -157,6 +157,7 @@
     ├── restore-mysql.sh
     ├── deploy-rollback.sh
     ├── mobile-e2e.sh
+    ├── performance-smoke-test.sh
     ├── external-shortlink-preflight.sh
     ├── external-shortlink-smoke-test.sh
     └── quality-check.sh
@@ -415,6 +416,7 @@ scripts/quality-check.sh
 - Compose 配置：`docker compose config`
 - external 预检和 smoke 脚本语法检查
 - Docker smoke 脚本语法检查
+- 性能 smoke 脚本语法检查
 - external Compose overlay 配置检查
 
 v1.0 路线和质量要求详见 [v1.0-roadmap-and-quality-gates.md](docs/v1.0-roadmap-and-quality-gates.md)。
@@ -441,6 +443,16 @@ ADMIN_TOKEN=<your-admin-token> \
 scripts/docker-smoke-test.sh
 ```
 
+短链传播和后台缓存的轻量性能 smoke：
+
+```bash
+BASE_URL=http://127.0.0.1:8088 \
+ADMIN_TOKEN=<your-admin-token> \
+SHORTLINK_HITS=30 \
+ADMIN_HITS=2 \
+scripts/performance-smoke-test.sh
+```
+
 可选 Testcontainers 集成测试：
 
 ```bash
@@ -452,6 +464,7 @@ mvn -q -f backend/pom.xml -Pcontainer-it verify
 已通过：
 
 - `scripts/quality-check.sh`
+- `bash -n scripts/performance-smoke-test.sh`
 - `scripts/deploy-preflight.sh` 语法检查已纳入质量门禁；真实 `deploy/.env` 上线前执行
 - `scripts/deploy-preflight.sh /private/tmp/wuxing-v07.env` 正向预检通过
 - `cd backend && mvn -q test`

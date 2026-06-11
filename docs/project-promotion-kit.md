@@ -68,6 +68,7 @@ flowchart LR
 | 后台总览 | `/admin` | 展示 PV / UV / UIP、漏斗和 Top Channel |
 | 短链详情 | `/admin/short-links/{shortCode}` | 展示访问明细、来源和设备类型 |
 | 文档站 | `docs-site/index.html` | 展示项目结构化文档站 |
+| 性能烟测输出 | `scripts/performance-smoke-test.sh` | 展示短链连续访问和后台总览缓存的耗时证据 |
 
 ## 宣传图建议
 
@@ -80,4 +81,3 @@ flowchart LR
 ## 边界声明
 
 五行人格卡仅用于传统文化元素启发下的娱乐性人格解读，不用于命运、疾病、财富、婚恋或其他现实决策判断。项目刻意不收集昵称、性别等多余个人信息，访问统计只保存 hash 后的匿名标识。
-

@@ -77,3 +77,9 @@ multi-role review support. The main outcomes are:
 - Frontend change: mobile sticky actions now put the primary next-step button on its own full-width row, with previous/home actions below it.
 - Backend priority: keep admin overview useful during traffic spikes without making each refresh repeat all live aggregate queries.
 - Backend change: admin overview now uses a short Redis cache keyed by the selected date range; Redis failures degrade to live calculation.
+
+### Phase 4
+
+- Verification priority: make the burst-traffic story repeatable without introducing heavy benchmark infrastructure.
+- Tooling change: added `scripts/performance-smoke-test.sh` to create a real result, read the result, repeatedly hit the same short link, and repeat admin overview reads.
+- Interview value: the script output gives concrete `shortlinkAvgMs` and `adminAvgMs` values for explaining why short-link redirects and admin aggregate refreshes were optimized separately.

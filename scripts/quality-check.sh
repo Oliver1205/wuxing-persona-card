@@ -17,6 +17,7 @@ run git diff --check
 run bash -n scripts/quality-check.sh
 run bash -n scripts/deploy-preflight.sh
 run bash -n scripts/docker-smoke-test.sh
+run bash -n scripts/performance-smoke-test.sh
 run bash -n scripts/production-smoke-test.sh
 run bash -n scripts/backup-mysql.sh
 run bash -n scripts/restore-mysql.sh
