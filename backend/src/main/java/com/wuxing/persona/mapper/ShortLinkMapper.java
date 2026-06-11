@@ -141,4 +141,12 @@ public interface ShortLinkMapper {
                        @Param("uv") long uv,
                        @Param("uip") long uip,
                        @Param("lastVisitAt") java.time.LocalDateTime lastVisitAt);
+
+    @Update("""
+            UPDATE short_link
+            SET last_visit_at = #{lastVisitAt}, updated_at = #{lastVisitAt}
+            WHERE short_code = #{shortCode}
+            """)
+    int touchLastVisitAt(@Param("shortCode") String shortCode,
+                         @Param("lastVisitAt") java.time.LocalDateTime lastVisitAt);
 }

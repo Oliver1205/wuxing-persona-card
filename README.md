@@ -70,6 +70,7 @@
     <td valign="top" width="25%">
       <strong>项目概览</strong><br>
       <a href="docs-site/index.html">项目文档站</a><br>
+      <a href="docs/project-promotion-kit.md">项目宣传包</a><br>
       <a href="#项目状态">项目状态</a><br>
       <a href="#核心亮点">核心亮点</a><br>
       <a href="#在线地址">在线地址</a><br>
@@ -92,6 +93,7 @@
     </td>
     <td valign="top" width="25%">
       <strong>质量与路线</strong><br>
+      <a href="docs/interview-learning-manual.md">面试学习手册</a><br>
       <a href="#质量门禁">质量门禁</a><br>
       <a href="#验证结果">验证结果</a><br>
       <a href="#开发进度记录">开发进度记录</a><br>

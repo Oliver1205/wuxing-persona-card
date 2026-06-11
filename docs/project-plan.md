@@ -25,6 +25,9 @@
 - v2.2-v2.4 商业增长与生产体验增强：`docs/v2.2-v2.4-commercial-growth-suite.md`
 - v2.5 H5 输入体验优化：`docs/v2.5-h5-input-experience.md`
 - v2.6 卡片式问答体验优化：`docs/v2.6-card-question-flow.md`
+- 项目宣传包：`docs/project-promotion-kit.md`
+- 面试学习手册：`docs/interview-learning-manual.md`
+- Codex 八小时工作日志：`docs/codex-worklog.md`
 - 外部短链服务对接说明：`docs/external-shortlink-integration-guide.md`
 - 外部短链接入隐私审计报告：`docs/external-shortlink-privacy-audit.md`
 - 教学手册：`docs/teaching-manual.md`

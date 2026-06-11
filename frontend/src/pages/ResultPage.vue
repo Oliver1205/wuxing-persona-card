@@ -14,6 +14,7 @@ const result = ref<ResultDetail | null>(null);
 const loading = ref(true);
 const error = ref('');
 const shareImageStatus = ref('');
+const sharedEntry = computed(() => Boolean(route.query.sc || route.query.channel === 'shared-result'));
 
 const identityTitle = computed(() => {
   if (!result.value) {
@@ -89,6 +90,20 @@ function sharedLandingStart() {
         <RouterLink class="button-link" to="/test">重新测试</RouterLink>
       </div>
       <template v-else-if="result">
+        <section v-if="sharedEntry" class="shared-entry-banner" aria-label="分享来源提示">
+          <div>
+            <span>朋友分享给你的五行人格卡</span>
+            <strong>先看看这张卡像不像 TA，也可以顺手测一张自己的。</strong>
+          </div>
+          <RouterLink
+            class="button-link primary-cta"
+            :to="{ path: '/test', query: { channel: 'shared-result', campaign: 'result-banner' } }"
+            @click="sharedLandingStart"
+          >
+            我也测一张
+          </RouterLink>
+        </section>
+
         <div class="result-hero">
           <p class="eyebrow">你的五行人格身份</p>
           <h1>{{ identityTitle }}</h1>
@@ -134,14 +149,14 @@ function sharedLandingStart() {
 
         <div class="actions">
           <button type="button" @click="downloadShareImage">保存分享图</button>
-          <RouterLink class="button-link" to="/test" @click="retake">重新测试</RouterLink>
           <RouterLink
-            class="button-link secondary"
+            class="button-link"
             :to="{ path: '/test', query: { channel: 'shared-result', campaign: 'result-cta' } }"
             @click="sharedLandingStart"
           >
             我也要测
           </RouterLink>
+          <RouterLink class="button-link secondary" to="/test" @click="retake">重新测试</RouterLink>
         </div>
         <div class="share-guidance">
           <span>保存图适合发朋友圈</span>
@@ -169,6 +184,34 @@ function sharedLandingStart() {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(236, 244, 239, 0.92)),
     radial-gradient(circle at 80% 20%, rgba(215, 155, 67, 0.2), transparent 34%);
+}
+
+.shared-entry-banner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid rgba(47, 111, 94, 0.18);
+  border-radius: 8px;
+  padding: 16px;
+  background: #edf7f2;
+  color: #24302f;
+}
+
+.shared-entry-banner span,
+.shared-entry-banner strong {
+  display: block;
+}
+
+.shared-entry-banner span {
+  color: #2f6f5e;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.shared-entry-banner strong {
+  margin-top: 4px;
+  font-size: 16px;
 }
 
 .result-hero h1 {
@@ -249,6 +292,7 @@ function sharedLandingStart() {
   }
 
   .result-identity-grid,
+  .shared-entry-banner,
   .share-guidance {
     grid-template-columns: 1fr;
   }

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -17,7 +18,6 @@ import com.wuxing.persona.config.AppProperties;
 import com.wuxing.persona.entity.ShortLinkEntity;
 import com.wuxing.persona.enums.EventType;
 import com.wuxing.persona.mapper.ShortLinkMapper;
-import com.wuxing.persona.mapper.VisitEventMapper;
 import com.wuxing.persona.service.RedisCacheService;
 import com.wuxing.persona.service.VisitEventService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,9 +33,6 @@ class InternalShortLinkProviderTest {
 
     @Mock
     private ShortLinkMapper shortLinkMapper;
-
-    @Mock
-    private VisitEventMapper visitEventMapper;
 
     @Mock
     private RedisCacheService redisCacheService;
@@ -54,7 +51,6 @@ class InternalShortLinkProviderTest {
         appProperties.setBaseUrl("https://example.com/");
         provider = new InternalShortLinkProvider(
                 shortLinkMapper,
-                visitEventMapper,
                 redisCacheService,
                 visitEventService,
                 appProperties
@@ -132,20 +128,18 @@ class InternalShortLinkProviderTest {
     }
 
     @Test
-    void resolveAndRecordShouldUseRedisMappingAndUpdateCounters() {
+    void resolveAndRecordShouldUseRedisMappingWithoutRealtimeAggregation() {
         when(redisCacheService.isNullShortLink("abc123")).thenReturn(false);
         when(redisCacheService.getShortLinkResultId("abc123")).thenReturn("R3");
         when(shortLinkMapper.selectByShortCode("abc123")).thenReturn(shortLink("R3", "abc123"));
-        when(visitEventMapper.countPvByShortCode("abc123")).thenReturn(3L);
-        when(visitEventMapper.countUvByShortCode("abc123")).thenReturn(2L);
-        when(visitEventMapper.countUipByShortCode("abc123")).thenReturn(1L);
 
         String resultId = provider.resolveAndRecord("abc123", "client-a", request);
 
         assertEquals("R3", resultId);
         verify(visitEventService).record(eq(EventType.SHORT_LINK_VISIT),
                 eq("/s/abc123"), eq("R3"), eq("abc123"), eq("client-a"), eq(request));
-        verify(shortLinkMapper).updateCounters(eq("abc123"), eq(3L), eq(2L), eq(1L), any());
+        verify(shortLinkMapper).touchLastVisitAt(eq("abc123"), any());
+        verify(shortLinkMapper, never()).updateCounters(anyString(), anyLong(), anyLong(), anyLong(), any());
     }
 
     private ShortLinkEntity shortLink(String resultId, String shortCode) {

@@ -5,7 +5,6 @@ import com.wuxing.persona.config.AppProperties;
 import com.wuxing.persona.entity.ShortLinkEntity;
 import com.wuxing.persona.enums.EventType;
 import com.wuxing.persona.mapper.ShortLinkMapper;
-import com.wuxing.persona.mapper.VisitEventMapper;
 import com.wuxing.persona.service.RedisCacheService;
 import com.wuxing.persona.service.VisitEventService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,18 +17,15 @@ public class InternalShortLinkProvider implements ShortLinkProvider {
 
     private final SecureRandom secureRandom = new SecureRandom();
     private final ShortLinkMapper shortLinkMapper;
-    private final VisitEventMapper visitEventMapper;
     private final RedisCacheService redisCacheService;
     private final VisitEventService visitEventService;
     private final AppProperties appProperties;
 
     public InternalShortLinkProvider(ShortLinkMapper shortLinkMapper,
-                                     VisitEventMapper visitEventMapper,
                                      RedisCacheService redisCacheService,
                                      VisitEventService visitEventService,
                                      AppProperties appProperties) {
         this.shortLinkMapper = shortLinkMapper;
-        this.visitEventMapper = visitEventMapper;
         this.redisCacheService = redisCacheService;
         this.visitEventService = visitEventService;
         this.appProperties = appProperties;
@@ -75,10 +71,7 @@ public class InternalShortLinkProvider implements ShortLinkProvider {
             entity = shortLinkMapper.selectByShortCode(shortCode);
         }
         visitEventService.record(EventType.SHORT_LINK_VISIT, "/s/" + shortCode, resultId, shortCode, clientId, request);
-        long pv = visitEventMapper.countPvByShortCode(shortCode);
-        long uv = visitEventMapper.countUvByShortCode(shortCode);
-        long uip = visitEventMapper.countUipByShortCode(shortCode);
-        shortLinkMapper.updateCounters(shortCode, pv, uv, uip, LocalDateTime.now());
+        shortLinkMapper.touchLastVisitAt(shortCode, LocalDateTime.now());
         return entity == null ? resultId : entity.getResultId();
     }
 
