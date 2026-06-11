@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import {
   aggregateAdminAnalytics,
   exportAdminShortLinks,
@@ -30,6 +30,7 @@ const error = ref('');
 const loading = ref(false);
 const exporting = ref(false);
 const aggregating = ref(false);
+const busy = computed(() => loading.value || exporting.value || aggregating.value);
 
 onMounted(() => {
   if (token.value) {
@@ -38,6 +39,9 @@ onMounted(() => {
 });
 
 async function load() {
+  if (busy.value) {
+    return;
+  }
   error.value = '';
   loading.value = true;
   try {
@@ -53,6 +57,9 @@ async function load() {
 }
 
 function clearDateFilter() {
+  if (busy.value) {
+    return;
+  }
   startDate.value = '';
   endDate.value = '';
   keyword.value = '';
@@ -61,6 +68,9 @@ function clearDateFilter() {
 }
 
 async function checkExternalRuntime() {
+  if (busy.value) {
+    return;
+  }
   error.value = '';
   loading.value = true;
   try {
@@ -73,6 +83,9 @@ async function checkExternalRuntime() {
 }
 
 async function refreshAggregation() {
+  if (busy.value) {
+    return;
+  }
   error.value = '';
   aggregating.value = true;
   try {
@@ -86,6 +99,9 @@ async function refreshAggregation() {
 }
 
 async function exportCsv() {
+  if (busy.value || !shortLinks.value) {
+    return;
+  }
   error.value = '';
   exporting.value = true;
   try {
@@ -166,36 +182,37 @@ function formatDateTime(value: string | null) {
       <div class="panel stack">
         <h2>数据中台</h2>
         <div class="admin-token">
-          <input v-model="token" type="password" placeholder="输入管理 token" />
-          <button type="button" @click="load">{{ loading ? '加载中...' : '进入后台' }}</button>
+          <input v-model="token" type="password" placeholder="输入管理 token" :disabled="busy" />
+          <button type="button" :disabled="busy" @click="load">{{ loading ? '加载中...' : '进入后台' }}</button>
         </div>
-        <div class="filter-bar">
+        <div class="filter-bar" :aria-busy="busy">
           <label>
             开始日期
-            <input v-model="startDate" type="date" />
+            <input v-model="startDate" type="date" :disabled="busy" />
           </label>
           <label>
             结束日期
-            <input v-model="endDate" type="date" />
+            <input v-model="endDate" type="date" :disabled="busy" />
           </label>
           <label>
             短码 / 结果
-            <input v-model="keyword" type="search" placeholder="输入短码或 resultId" />
+            <input v-model="keyword" type="search" placeholder="输入短码或 resultId" :disabled="busy" />
           </label>
           <label>
             来源
-            <select v-model="statSource">
+            <select v-model="statSource" :disabled="busy">
               <option value="">全部</option>
               <option value="local">本地</option>
               <option value="external">外部</option>
             </select>
           </label>
-          <button type="button" @click="load">应用筛选</button>
-          <button class="secondary" type="button" @click="clearDateFilter">清空</button>
-          <button class="secondary" type="button" :disabled="exporting || !shortLinks" @click="exportCsv">
+          <button type="button" :disabled="busy" @click="load">应用筛选</button>
+          <button class="secondary" type="button" :disabled="busy" @click="clearDateFilter">清空</button>
+          <button class="secondary" type="button" :disabled="busy || !shortLinks" @click="exportCsv">
             {{ exporting ? '导出中...' : '导出 CSV' }}
           </button>
         </div>
+        <p v-if="busy" class="muted admin-busy">正在处理当前请求，请稍候。</p>
         <p v-if="error" class="error-text">{{ error }}</p>
       </div>
 
@@ -203,7 +220,9 @@ function formatDateTime(value: string | null) {
         <div v-if="runtime" class="panel stack">
           <div class="section-head">
             <h2>外部短链状态</h2>
-            <button class="secondary" type="button" :disabled="loading" @click="checkExternalRuntime">检查</button>
+            <button class="secondary" type="button" :disabled="busy" @click="checkExternalRuntime">
+              {{ loading ? '检查中...' : '检查' }}
+            </button>
           </div>
           <div class="runtime-grid">
             <span>模式：{{ runtime.mode }}</span>
@@ -264,7 +283,7 @@ function formatDateTime(value: string | null) {
                 <span v-if="overview.aggregatedThroughDate">，已聚合至 {{ overview.aggregatedThroughDate }}</span>
               </p>
             </div>
-            <button class="secondary" type="button" :disabled="aggregating" @click="refreshAggregation">
+            <button class="secondary" type="button" :disabled="busy" @click="refreshAggregation">
               {{ aggregating ? '聚合中...' : '刷新聚合' }}
             </button>
           </div>
