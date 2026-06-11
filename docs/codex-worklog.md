@@ -401,3 +401,9 @@ multi-role review support. The main outcomes are:
 - Interview priority: turn the admin-token boundary from a one-endpoint assertion into a broader sensitive-endpoint guarantee.
 - Test change: `MvpFlowIntegrationTest` now parameterizes unauthorized checks across overview, short-link list, CSV export, visit details, external status, visit-event runtime, and manual analytics aggregation.
 - Documentation value: the interview materials now explicitly say `X-Admin-Token` is MVP admin protection, not a full RBAC system.
+
+### Phase 57
+
+- Interview priority: make the database migration boundary explicit instead of letting `schema.sql` look like production migration governance.
+- Documentation change: added `docs/db-migration-plan.md` with current init-script limits, a Flyway-style version split, rollout checks, rollback rules, and interview wording.
+- Risk value: the project can now admit that Flyway/Liquibase is not implemented while still showing a concrete productionization path.

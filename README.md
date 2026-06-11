@@ -305,7 +305,7 @@ GET /api/admin/short-links/{shortCode}/visits?startDate=2026-06-09&endDate=2026-
 
 ## 数据库表说明
 
-第一版表结构位于 `backend/src/main/resources/db/schema.sql`。
+第一版表结构位于 `backend/src/main/resources/db/schema.sql`。当前脚本服务于演示初始化，不等于成熟生产迁移体系；迁移治理边界和 Flyway 拆分计划见 [数据库迁移治理计划](docs/db-migration-plan.md)。
 
 | 表 | 作用 |
 | --- | --- |

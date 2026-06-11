@@ -73,7 +73,7 @@
 | 前端交互 | 移动端出生步骤的底部操作区不应压住出生卡；自动下一题需要更可预期 | Phase 47 已优化出生步骤；Phase 52 已改为手动下一题 |
 | 美术经理 | 结果卡比例条应体现真实五行主副元素；showcase 截图墙需要更强流程叙事 | Phase 46 已落地主副元素色，截图墙待排期 |
 | 资深架构师 | `RESULT_VIEW` 读取链路不应等待非核心统计写入；正式高峰前必须观察队列积压和丢弃；短码创建要避免 `count + insert` 竞态 | Phase 46 已将 `RESULT_VIEW` 改为异步；Phase 50 已补队列调参；Phase 51 已补统计口径可见与唯一键冲突重试；正式压测待执行 |
-| 大厂面试官 | 不能说“已验证生产高并发”；需要准备迁移治理、短码冲突、异步事件丢失语义和后台权限边界等追问 | Phase 51 已补短码冲突代码证据；Phase 53 已补 external 一致性边界；Phase 54 已补异步丢弃单测和 smoke 阈值；Phase 56 已补后台敏感接口未授权覆盖；迁移治理仍待补强 |
+| 大厂面试官 | 不能说“已验证生产高并发”；需要准备迁移治理、短码冲突、异步事件丢失语义和后台权限边界等追问 | Phase 51 已补短码冲突代码证据；Phase 53 已补 external 一致性边界；Phase 54 已补异步丢弃单测和 smoke 阈值；Phase 56 已补后台敏感接口未授权覆盖；Phase 57 已补迁移治理计划 |
 
 ## 7. 下一轮优先级候选
 
@@ -95,4 +95,5 @@
 - Phase 54：访问事件异步队列满时的丢弃计数已补单测，performance smoke 可用 `MAX_ASYNC_QUEUE_SIZE` 和 `MAX_ASYNC_DROPPED_EVENTS` 卡队列积压与丢弃阈值。
 - Phase 55：文档站“立即体验 H5”改为可直接点击的本地 `/test` 入口，并在同屏给出 H2 后端和前端 preview 启动命令。
 - Phase 56：后台敏感接口未授权路径改为参数化集成测试覆盖，并在面试文档里明确 `X-Admin-Token` 是 MVP 管理保护而非完整 RBAC。
+- Phase 57：新增数据库迁移治理计划，明确当前 `schema.sql` 是初始化脚本，生产化应拆成 Flyway/Liquibase 版本迁移并配套备份、EXPLAIN 和回滚边界。
 - 本轮验证：`scripts/quality-check.sh` 通过；本地 375px 移动视口验证出生步骤操作区为 `position: static`，`flowPaddingBottom=0px`。

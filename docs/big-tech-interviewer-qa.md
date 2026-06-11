@@ -179,12 +179,13 @@
 - `backend/src/main/resources/db/schema-local.sql`
 - `backend/src/main/resources/application.yml`
 - `docs/deploy.md`
+- `docs/db-migration-plan.md`
 
 回答要点：
 
 - 当前仓库以单机部署和作品集演示为主，保留了 schema 初始化脚本和本地 H2 脚本。
 - 这能保证新环境快速拉起，但不等于成熟生产迁移体系。
-- 如果进入长期生产迭代，应引入 Flyway 或 Liquibase，按版本管理 DDL，避免手工改库。
+- 如果进入长期生产迭代，应引入 Flyway 或 Liquibase，按版本管理 DDL，避免手工改库；现有 DDL 可以拆成核心表、访问归因、日聚合和热路径索引几个版本。
 
 边界要主动说：
 
