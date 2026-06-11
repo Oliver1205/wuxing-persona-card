@@ -352,3 +352,9 @@ multi-role review support. The main outcomes are:
 - Result-page priority: reduce duplicated share and retest actions so the user has one clear next step.
 - Frontend change: own result pages now promote "保存分享图" near the persona card while `ShareLinkBox` owns copy/native share; shared-result pages use the banner and tail CTA for "我也测一张" instead of repeating save/share buttons.
 - Verification value: updated the mobile E2E shared-result click target to the new `result-banner` campaign and passed `scripts/mobile-e2e.sh`.
+
+### Phase 49
+
+- Documentation-site priority: make "立即体验 H5" behave like an experience entry instead of sending visitors back into README.
+- Docs-site change: added a dedicated `#experience` section with local H5 URL, showcase page, and startup command links; expanded the materials screenshot wall into a five-step story from homepage to birth info, question card, result page, and admin metrics.
+- Verification value: static reference check confirmed all `href` and `src` targets in `docs-site/index.html` resolve.

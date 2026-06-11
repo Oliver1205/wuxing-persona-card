@@ -51,7 +51,7 @@
               先看它作为 H5 是否愿意点开、答完和分享，再看背后的短链、缓存、统计和部署证据。
             </p>
             <div class="hero-actions" aria-label="快捷入口">
-              <a class="primary-action" href="../README.md#本地启动方式">立即体验 H5</a>
+              <a class="primary-action" href="#experience">立即体验 H5</a>
               <a class="secondary-action" href="./showcase.html">查看作品集展示页</a>
               <a class="secondary-action" href="../docs/screenshots/local-result-page.png">查看结果截图</a>
               <a class="secondary-action" href="#architecture">查看工程证据</a>
@@ -75,6 +75,36 @@
               <span>复制短链</span>
               <span>朋友也测</span>
             </div>
+          </div>
+        </section>
+
+        <section class="section experience-panel" id="experience">
+          <h2>立即体验 H5</h2>
+          <p>
+            文档站是静态页面，真正的 H5 体验需要启动本地前后端，或在部署 GitHub Pages / 服务器后访问线上地址。
+            本地预览时先启动后端，再启动 Vite，然后打开 `/test` 进入真实问答流程。
+          </p>
+          <div class="experience-grid">
+            <article>
+              <span>本地 H5</span>
+              <strong>http://127.0.0.1:5174/test</strong>
+              <p>适合体验首页、出生信息、5 道题、结果页和分享链接。</p>
+            </article>
+            <article>
+              <span>作品集展示</span>
+              <strong>docs-site/showcase.html</strong>
+              <p>适合给面试官快速看产品截图、架构故事和项目亮点。</p>
+            </article>
+            <article>
+              <span>启动命令</span>
+              <strong>README 本地启动方式</strong>
+              <p>按 README 启动后端和前端；只看文档时可直接打开本页。</p>
+            </article>
+          </div>
+          <div class="doc-actions">
+            <a class="doc-link" href="../README.md#本地启动方式">查看启动命令</a>
+            <a class="doc-link" href="./showcase.html">打开作品集展示页</a>
+            <a class="doc-link" href="../docs/screenshots/showcase/iphone-se-04-result.png">查看结果页截图</a>
           </div>
         </section>
 
@@ -341,15 +371,23 @@ scripts/docker-smoke-test.sh http://127.0.0.1 dev-token</code></pre>
           <div class="showcase-wall" aria-label="showcase 截图墙">
             <figure>
               <img src="../docs/screenshots/showcase/iphone-se-01-home.png" alt="iPhone SE 首页首屏截图">
-              <figcaption>iPhone SE 首页：3 秒内说明产品价值和开始入口。</figcaption>
+              <figcaption>01 首页：3 秒内说明产品价值和开始入口。</figcaption>
+            </figure>
+            <figure>
+              <img src="../docs/screenshots/showcase/iphone-se-02-test-birth-card.png" alt="iPhone SE 出生信息步骤截图">
+              <figcaption>02 出生信息：年份、月份优先，日期和时段保持可选。</figcaption>
+            </figure>
+            <figure>
+              <img src="../docs/screenshots/showcase/iphone-se-03-test-question-card.png" alt="iPhone SE 问答卡片截图">
+              <figcaption>03 问答卡片：一题一张卡，选中后有明确反馈。</figcaption>
             </figure>
             <figure>
               <img src="../docs/screenshots/showcase/android-wide-04-result.png" alt="安卓宽屏结果页截图">
-              <figcaption>安卓宽屏结果页：身份卡、关键词、五行比例和分享入口。</figcaption>
+              <figcaption>04 结果页：身份卡、五行比例、共鸣解释和分享入口。</figcaption>
             </figure>
             <figure>
               <img src="../docs/screenshots/showcase/desktop-06-admin-overview.png" alt="桌面后台总览截图">
-              <figcaption>桌面后台：增长漏斗、日趋势、热门组合和短链列表。</figcaption>
+              <figcaption>05 后台统计：增长漏斗、日趋势、热门组合和短链列表。</figcaption>
             </figure>
           </div>
           <div class="material-board" aria-label="展示素材清单">
