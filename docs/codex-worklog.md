@@ -169,3 +169,9 @@ multi-role review support. The main outcomes are:
 - Backend priority: keep noisy analytics payloads from creating avoidable database write failures.
 - Backend change: `VisitEventService` trims `pagePath`, `resultId`, and `shortCode` to their database column bounds before insertion.
 - Verification value: added a unit test for dimension trimming and passed the full quality gate.
+
+### Phase 19
+
+- Admin priority: make short-link visit detail feel like an operations page, not a raw table.
+- Frontend change: short-link detail filters now disable while loading, show a loading hint, and display a clear empty state when a date range has no visits.
+- Browser value: local H2 + Vite verification covered both an existing `SHORT_LINK_VISIT` row and a future-date empty result.

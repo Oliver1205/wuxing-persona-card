@@ -347,7 +347,7 @@
 - `visit_event` 写入失败已降级为告警日志，不阻断结果读取或短链访问主流程。
 - `visit_event` 上报维度已按数据库字段长度收敛，减少异常 payload 造成的无效写入失败。
 - 后台短链列表已批量读取结果和统计，避免分页列表出现 N+1 查询。
-- 后台总览已补短缓存、指标解释和加载期间按钮 / 输入禁用。
+- 后台总览已补短缓存、指标解释和加载期间按钮 / 输入禁用；短链详情已补加载提示、筛选禁用和空状态。
 - 新增 `docs/assets/wuxing-architecture-map.svg`、`docs/role-review-matrix.md`、`docs/project-promotion-kit.md`、`docs/interview-learning-manual.md` 相关章节和 `docs/codex-worklog.md`。
 - 已通过 `scripts/quality-check.sh`、前端类型检查、Vite 构建、后端专项测试和本地浏览器抽验。
 
