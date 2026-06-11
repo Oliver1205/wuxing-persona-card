@@ -20,6 +20,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.DuplicateKeyException;
 
 @ExtendWith(MockitoExtension.class)
 class ExternalShortLinkProviderTest {
@@ -125,6 +127,46 @@ class ExternalShortLinkProviderTest {
         verify(shortLinkMapper, never()).insert(any(ShortLinkEntity.class));
         verify(redisCacheService, never()).setShortLinkResultId(any(), any());
         verify(internalShortLinkProvider).createForResult("R2");
+    }
+
+    @Test
+    void createForResultShouldFallbackToInternalWhenExternalBindingInsertCollides() {
+        when(shortLinkMapper.selectByResultId("R2")).thenReturn(null);
+        when(shortLinkMapper.countByShortCode("Dup123")).thenReturn(0L);
+        ExternalShortLinkCreateResponse response = new ExternalShortLinkCreateResponse();
+        response.setFullShortUrl("https://s.example.com/Dup123");
+        when(externalShortLinkClient.create(any(ExternalShortLinkCreateRequest.class))).thenReturn(response);
+        when(shortLinkMapper.insert(any(ShortLinkEntity.class)))
+                .thenThrow(new DuplicateKeyException("duplicate short_code"));
+        ShortLinkEntity fallback = new ShortLinkEntity();
+        fallback.setResultId("R2");
+        fallback.setShortCode("local1");
+        when(internalShortLinkProvider.createForResult("R2")).thenReturn(fallback);
+
+        ShortLinkEntity result = provider.createForResult("R2");
+
+        assertSame(fallback, result);
+        verify(redisCacheService, never()).setShortLinkResultId("Dup123", "R2");
+        verify(internalShortLinkProvider).createForResult("R2");
+    }
+
+    @Test
+    void createForResultShouldExposeManualCompensationWhenExternalBindingInsertFails() {
+        when(shortLinkMapper.selectByResultId("R5")).thenReturn(null);
+        when(shortLinkMapper.countByShortCode("Ext123")).thenReturn(0L);
+        ExternalShortLinkCreateResponse response = new ExternalShortLinkCreateResponse();
+        response.setFullShortUrl("https://s.example.com/Ext123");
+        when(externalShortLinkClient.create(any(ExternalShortLinkCreateRequest.class))).thenReturn(response);
+        when(shortLinkMapper.insert(any(ShortLinkEntity.class)))
+                .thenThrow(new DataAccessResourceFailureException("database unavailable"));
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> provider.createForResult("R5"));
+
+        assertEquals(500, exception.getCode());
+        assertEquals("external short link created but local binding failed, manual compensation required",
+                exception.getMessage());
+        verify(redisCacheService, never()).setShortLinkResultId(any(), any());
+        verify(internalShortLinkProvider, never()).createForResult("R5");
     }
 
     @Test

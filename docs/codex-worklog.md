@@ -377,3 +377,9 @@ multi-role review support. The main outcomes are:
 - UX priority: give mobile users control after selecting an answer instead of auto-advancing the card.
 - Frontend change: answer selection now only marks the chosen option; the sticky primary action is disabled until an answer exists, then advances explicitly with "下一题" or submits on the last question.
 - Verification value: mobile E2E and showcase screenshot flows now click "下一题" between answers, so the automated path matches the more deliberate interaction.
+
+### Phase 53
+
+- Architecture priority: make external short-link consistency boundaries explicit instead of hiding cross-system failures behind optimistic fallback language.
+- Backend change: external short-code duplicate-key collisions now reuse the existing fallback path, while a successful external create followed by local binding write failure returns an explicit 500 requiring manual or compensating cleanup.
+- Interview value: the project can now explain which external failures are safe to degrade and which ones need a production compensation mechanism such as delete/disable API, outbox, or reconciliation.

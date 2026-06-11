@@ -177,8 +177,8 @@
 
 仓库证据：
 
-- `backend/src/main/java/com/wuxing/persona/service/ExternalShortLinkProvider.java`
-- `backend/src/main/java/com/wuxing/persona/service/RestExternalShortLinkClient.java`
+- `backend/src/main/java/com/wuxing/persona/service/shortlink/ExternalShortLinkProvider.java`
+- `backend/src/main/java/com/wuxing/persona/service/shortlink/RestExternalShortLinkClient.java`
 - `backend/src/main/java/com/wuxing/persona/config/AppProperties.java`
 - `docs/external-shortlink-integration-guide.md`
 
@@ -187,12 +187,14 @@
 - 短链 Provider 把 internal 和 external 适配隔离起来。
 - external 创建失败时可以配置降级 internal，让用户仍然拿到可访问结果。
 - 本地 `short_link` 仍保留五行业务 resultId 和 shortUrl 绑定，便于后台统计和兼容跳转。
+- external 返回短码如果和本地唯一键冲突，会按 fallback 策略回到 internal；如果外部已创建但本地绑定写入失败，则明确返回 500，并提示需要人工或补偿治理，不能假装主流程成功。
 
 边界要主动说：
 
 - 如果外部 HTTP 调用在核心事务里耗时过长，会影响结果创建体验。
 - 生产阶段应配置超时、重试、熔断和更清晰的事务边界。
 - 降级 internal 后，外部平台侧统计不会天然完整，需要后台口径说明。
+- 当前还没有外部短链删除/禁用 API 或 outbox 补偿任务，所以跨系统一致性只能做到明确暴露和人工处理，不能说已经强一致。
 
 ## 9. 前端产品化做了哪些取舍？
 

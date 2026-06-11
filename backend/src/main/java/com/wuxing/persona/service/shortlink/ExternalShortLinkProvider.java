@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -47,10 +48,13 @@ public class ExternalShortLinkProvider implements ShortLinkProvider {
                 throw new BusinessException("external shortCode already exists in local binding");
             }
             ShortLinkEntity entity = buildExternalBinding(resultId, shortCode, response.getFullShortUrl());
-            shortLinkMapper.insert(entity);
+            insertExternalBinding(entity);
             redisCacheService.setShortLinkResultId(shortCode, resultId);
             return entity;
         } catch (BusinessException ex) {
+            if (ex.getCode() >= 500) {
+                throw ex;
+            }
             if (!appProperties.getShortLink().getExternal().isFallbackToInternal()) {
                 throw ex;
             }
@@ -101,5 +105,18 @@ public class ExternalShortLinkProvider implements ShortLinkProvider {
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
         return entity;
+    }
+
+    private void insertExternalBinding(ShortLinkEntity entity) {
+        try {
+            shortLinkMapper.insert(entity);
+        } catch (DuplicateKeyException ex) {
+            throw new BusinessException("external shortCode already exists in local binding");
+        } catch (RuntimeException ex) {
+            log.error("External short link was created but local binding failed, resultId={}, shortCode={}, error={}: {}",
+                    entity.getResultId(), entity.getShortCode(), ex.getClass().getSimpleName(), ex.getMessage());
+            throw new BusinessException(500,
+                    "external short link created but local binding failed, manual compensation required");
+        }
     }
 }
