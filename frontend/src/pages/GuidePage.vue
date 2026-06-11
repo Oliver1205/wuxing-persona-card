@@ -49,6 +49,7 @@
             <span></span>
             <strong>32% 水</strong>
           </div>
+          <RouterLink class="preview-cta" to="/test" @click="start">生成我的人格卡</RouterLink>
         </div>
       </div>
     </section>
@@ -225,6 +226,25 @@ function start() {
   height: 10px;
   border-radius: 999px;
   background: linear-gradient(90deg, #2f6f5e 0 68%, #486f92 68% 100%);
+}
+
+.preview-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 26px;
+  border-radius: 8px;
+  background: #2f6f5e;
+  color: #fff;
+  font-weight: 900;
+  text-decoration: none;
+  box-shadow: 0 12px 28px rgba(47, 111, 94, 0.22);
+}
+
+.preview-cta:hover {
+  background: #25594c;
 }
 
 @media (max-width: 820px) {

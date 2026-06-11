@@ -407,3 +407,9 @@ multi-role review support. The main outcomes are:
 - Interview priority: make the database migration boundary explicit instead of letting `schema.sql` look like production migration governance.
 - Documentation change: added `docs/db-migration-plan.md` with current init-script limits, a Flyway-style version split, rollout checks, rollback rules, and interview wording.
 - Risk value: the project can now admit that Flyway/Liquibase is not implemented while still showing a concrete productionization path.
+
+### Phase 58
+
+- UX priority: remove the small dead end after a visitor clicks "先看样例" on the home page.
+- Frontend change: the sample persona card now includes a full-width "生成我的人格卡" action that routes to `/test` and reuses the start-click tracking.
+- Validation value: the real-user checklist now observes whether users can continue from the sample card without scrolling back to the hero CTA.
