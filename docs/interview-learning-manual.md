@@ -177,7 +177,7 @@ Admin overview 的回答可以这样补充：
 - 不做登录注册，不收集昵称和性别。
 - clientId、IP、User-Agent hash 后入库。
 - Referer 入库前去掉 query 和 fragment，避免泄露参数。
-- 后台接口要求 `X-Admin-Token`。
+- 后台接口要求 `X-Admin-Token`；这是 MVP 管理保护，不是完整 RBAC，但 overview、短链列表、CSV 导出、访问明细、external 状态、事件 runtime 和手动聚合接口的未授权路径都有集成测试覆盖。
 - 安全响应头由后端和 Nginx 配置协同提供。
 - 文案只做娱乐性人格解读，不做宿命、财富、疾病、婚恋判断。
 
@@ -385,6 +385,7 @@ sequenceDiagram
 | 短链热路径 | `backend/src/main/java/com/wuxing/persona/service/shortlink/InternalShortLinkProvider.java` | `mvn -q -f backend/pom.xml -Dtest=InternalShortLinkProviderTest test` | `/s/{shortCode}` 是传播峰值入口，Redis 命中时直接拿 resultId 做 302，不同步做统计聚合。 |
 | 异步访问事件 | `backend/src/main/java/com/wuxing/persona/service/VisitEventService.java` | `mvn -q -f backend/pom.xml -Dtest=VisitEventServiceTest test` | 访问事件是统计事实来源，但不该卡住用户跳转，所以进入可配置的有界队列并后台批量写库。 |
 | 后台统计和缓存 | `backend/src/main/java/com/wuxing/persona/service/AdminStatService.java`、`backend/src/main/java/com/wuxing/persona/service/RedisCacheService.java` | `mvn -q -f backend/pom.xml -Dtest=MvpFlowIntegrationTest test` | 后台 overview 可以接受 45 秒短缓存，短链列表也要说明统计来自实时事件、日聚合表还是外部短链服务。 |
+| 后台管理保护 | `backend/src/main/java/com/wuxing/persona/controller/AdminController.java`、`backend/src/test/java/com/wuxing/persona/MvpFlowIntegrationTest.java` | `mvn -q -f backend/pom.xml -Dtest=MvpFlowIntegrationTest#shouldRejectAllAdminEndpointsWithoutToken test` | 当前不是 RBAC 权限系统，但所有后台敏感入口都要求 `X-Admin-Token`，并用参数化集成测试覆盖未授权返回 401。 |
 | 可观测证据 | `scripts/performance-smoke-test.sh`、`backend/src/main/java/com/wuxing/persona/vo/VisitEventRuntimeVO.java` | `BASE_URL=http://127.0.0.1:48081 ADMIN_TOKEN=dev-token scripts/performance-smoke-test.sh` | 性能 smoke 看 avg / P95，也看 async queue 和 dropped events，避免只看快不看数据丢失。 |
 | 视觉与作品集证据 | `scripts/capture-showcase-screenshots.sh`、`docs/screenshots/showcase/`、`docs-site/showcase.html` | `E2E_BASE_URL=http://127.0.0.1:5174 E2E_ADMIN_TOKEN=dev-token scripts/capture-showcase-screenshots.sh` | 项目展示不只靠文字，已经有 iPhone SE、安卓宽屏和桌面后台三类可复现截图。 |
 | 短码并发冲突 | `backend/src/main/java/com/wuxing/persona/service/shortlink/InternalShortLinkProvider.java`、`backend/src/main/java/com/wuxing/persona/mapper/ShortLinkMapper.java` | `mvn -q -f backend/pom.xml -Dtest=InternalShortLinkProviderTest test` | 当前短码生成依赖 `uk_short_code` 唯一键兜底，插入冲突时重试，避免 `count + insert` 的并发竞态。 |

@@ -17,8 +17,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -30,6 +33,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.RequestBuilder;
 
 @SpringBootTest(properties = {
         "spring.datasource.driver-class-name=org.h2.Driver",
@@ -406,11 +410,24 @@ class MvpFlowIntegrationTest {
                 .andExpect(jsonPath("$.message").value("eventType is invalid"));
     }
 
-    @Test
-    void shouldProtectAdminApisWithToken() throws Exception {
-        mockMvc.perform(get("/api/admin/overview"))
+    @ParameterizedTest
+    @MethodSource("adminRequestsWithoutToken")
+    void shouldRejectAllAdminEndpointsWithoutToken(RequestBuilder request) throws Exception {
+        mockMvc.perform(request)
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value(401));
+    }
+
+    private static Stream<RequestBuilder> adminRequestsWithoutToken() {
+        return Stream.of(
+                get("/api/admin/overview"),
+                get("/api/admin/short-links"),
+                get("/api/admin/short-links/export"),
+                get("/api/admin/short-links/abc123/visits"),
+                get("/api/admin/external-shortlink/status"),
+                get("/api/admin/visit-events/runtime"),
+                post("/api/admin/analytics/aggregate")
+        );
     }
 
     @Test

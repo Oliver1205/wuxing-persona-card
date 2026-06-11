@@ -395,3 +395,9 @@ multi-role review support. The main outcomes are:
 - Product priority: make the docs-site "try the H5" path direct enough for portfolio visitors.
 - Docs-site change: the experience section now links to the local `/test` route, names the H2 local profile path, and shows the backend/frontend preview commands in the same panel.
 - Verification value: the documentation site no longer sends a visitor through README first just to find the working local demo URL.
+
+### Phase 56
+
+- Interview priority: turn the admin-token boundary from a one-endpoint assertion into a broader sensitive-endpoint guarantee.
+- Test change: `MvpFlowIntegrationTest` now parameterizes unauthorized checks across overview, short-link list, CSV export, visit details, external status, visit-event runtime, and manual analytics aggregation.
+- Documentation value: the interview materials now explicitly say `X-Admin-Token` is MVP admin protection, not a full RBAC system.
