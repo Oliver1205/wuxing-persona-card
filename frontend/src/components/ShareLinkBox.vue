@@ -39,7 +39,7 @@ async function copy() {
   try {
     await navigator.clipboard.writeText(shareUrl.value);
     copied.value = true;
-    message.value = '短链接已复制，发给朋友看看吧';
+    message.value = '分享链接已复制，发给朋友看看吧';
     emit('copied');
   } catch {
     copied.value = false;
@@ -56,7 +56,7 @@ async function nativeShare() {
   }
   message.value = '';
   if (!navigator.share) {
-    message.value = '当前浏览器不支持系统分享，可以先复制短链接';
+    message.value = '当前浏览器不支持系统分享，可以先复制分享链接';
     return;
   }
   sharing.value = true;
@@ -90,7 +90,7 @@ function selectShareUrl() {
 <template>
   <section class="share-box">
     <div>
-      <p class="label">专属短链接</p>
+      <p class="label">专属分享链接</p>
       <p ref="urlEl" class="url" tabindex="0" @click="selectShareUrl">{{ shareUrl }}</p>
       <div class="share-note">
         <span>打开即达结果</span>

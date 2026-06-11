@@ -112,7 +112,7 @@ function sharedLandingStart() {
           <span></span>
         </div>
         <h2>结果马上就好</h2>
-        <p class="muted">正在读取人格身份、五行比例和专属短链。</p>
+        <p class="muted">正在读取人格身份、五行比例和专属分享链接。</p>
         <div class="skeleton-lines" aria-hidden="true">
           <span></span>
           <span></span>

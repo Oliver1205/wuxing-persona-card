@@ -425,3 +425,9 @@ multi-role review support. The main outcomes are:
 - Observability priority: prove the async visit-event worker is draining, not merely alive.
 - Backend change: visit-event runtime now reports `totalFlushedEvents`, `lastFlushAt`, `lastBatchSize`, and `batchWriteFailures` alongside queue size, drops, and worker liveness.
 - Tooling change: performance smoke prints the new worker-drain fields and supports `MAX_ASYNC_BATCH_FAILURES` as an optional hard threshold.
+
+### Phase 61
+
+- UX copy priority: keep technical "short link" language out of the ordinary visitor flow.
+- Frontend change: homepage, result loading state, share link box, and generated share-card copy now say "分享链接" instead of "短链/短链接".
+- Validation value: the real-user checklist now asks users to find the share image or share-link entry, while backend/admin docs keep the engineering short-link terminology.

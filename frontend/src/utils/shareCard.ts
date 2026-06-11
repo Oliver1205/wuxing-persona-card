@@ -205,7 +205,7 @@ function drawFooter(ctx: CanvasRenderingContext2D, result: ResultDetail) {
   drawSingleLineText(ctx, '保存分享图发朋友圈', CONTENT_X + 24, footerY + 38, CONTENT_WIDTH - 130);
   ctx.fillStyle = palette.primary;
   ctx.font = '900 22px sans-serif';
-  drawSingleLineText(ctx, '复制短链发私聊，朋友打开也能测一张', CONTENT_X + 24, footerY + 70, CONTENT_WIDTH - 130);
+  drawSingleLineText(ctx, '复制分享链接发私聊，朋友打开也能测一张', CONTENT_X + 24, footerY + 70, CONTENT_WIDTH - 130);
 
   ctx.fillStyle = '#596764';
   ctx.font = '600 17px sans-serif';
