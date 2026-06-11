@@ -27,6 +27,7 @@
 - v2.6 卡片式问答体验优化：`docs/v2.6-card-question-flow.md`
 - 项目宣传包：`docs/project-promotion-kit.md`
 - 面试学习手册：`docs/interview-learning-manual.md`
+- 角色 Agent 编排：`docs/agent-workflow-orchestration.md`
 - 八小时完成度审计：`docs/eight-hour-completion-audit.md`
 - Codex 八小时工作日志：`docs/codex-worklog.md`
 - 外部短链服务对接说明：`docs/external-shortlink-integration-guide.md`

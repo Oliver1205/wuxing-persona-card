@@ -73,6 +73,7 @@
       <a href="docs-site/index.html">项目文档站</a><br>
       <a href="docs/project-promotion-kit.md">项目宣传包</a><br>
       <a href="docs/role-review-matrix.md">多角色评审矩阵</a><br>
+      <a href="docs/agent-workflow-orchestration.md">角色 Agent 编排</a><br>
       <a href="docs/eight-hour-completion-audit.md">八小时完成度审计</a><br>
       <a href="#项目状态">项目状态</a><br>
       <a href="#核心亮点">核心亮点</a><br>
