@@ -218,3 +218,15 @@ multi-role review support. The main outcomes are:
 - Interview priority: turn big-tech-style scrutiny into a study artifact the owner can rehearse.
 - Documentation change: added a pressure-question guide covering short-link hot paths, async events, admin statistics, external stats caching, Redis degradation, indexing, migration, external dependency failure, frontend product choices, and honest QPS boundaries.
 - Learning value: every answer now separates repository evidence from current limitations, so the project can be presented confidently without overstating production readiness.
+
+### Phase 27
+
+- Visitor priority: make the result page answer "why does this feel like me?" before the longer explanation.
+- Frontend change: added a three-card resonance section derived from existing result keywords, primary/secondary elements, and star officer data.
+- Product value: users now see concrete behavior cues before the detailed layout and relationship text, which should make the result easier to recognize and share.
+
+### Phase 28
+
+- Sharing priority: let users act on the result while the main persona card is still in view.
+- Frontend change: added a compact quick-action strip below the result card with save-image and retake/share-entry actions, while keeping the full short-link panel later in the page.
+- Browser value: local H2 + Vite verification confirmed the quick-action strip renders on a real result page and the new resonance cards still show three behavior cues.

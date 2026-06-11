@@ -37,6 +37,27 @@ const personaLine = computed(() => {
   return `你可能是那种既有${result.value.primaryElementName}的主心骨，也保留${result.value.secondaryElementName}的弹性空间的人。`;
 });
 
+const resonanceSignals = computed(() => {
+  if (!result.value) {
+    return [];
+  }
+  const [primaryTrait = '有主见', orderTrait = '有节奏', judgmentTrait = '会判断', secondaryTrait = '能调和', starTrait = '有辨识度'] = result.value.keywords;
+  return [
+    {
+      label: '做决定时',
+      text: `你更容易先抓住${primaryTrait}和${judgmentTrait}，不太喜欢长期停在含糊状态。`,
+    },
+    {
+      label: '推进事情时',
+      text: `你会用${orderTrait}维持自己的步调，也会留下${secondaryTrait}的回旋空间。`,
+    },
+    {
+      label: '和人相处时',
+      text: `${result.value.starOfficerName}让你带着${starTrait}，既有个人风格，也愿意照顾关系里的感受。`,
+    },
+  ];
+});
+
 onMounted(async () => {
   try {
     result.value = await fetchResult(String(route.params.resultId));
@@ -135,6 +156,20 @@ function sharedLandingStart() {
 
         <div class="panel">
           <PersonaCard :result="result" />
+          <div class="result-quick-actions" aria-label="结果分享快捷操作">
+            <div>
+              <strong>这张卡已经可以发给朋友</strong>
+              <span>先保存图，或者让朋友直接从短链打开同一张结果。</span>
+            </div>
+            <button type="button" @click="downloadShareImage">保存分享图</button>
+            <RouterLink
+              class="button-link"
+              :to="{ path: '/test', query: { channel: 'shared-result', campaign: 'result-card-cta' } }"
+              @click="sharedLandingStart"
+            >
+              我也测一张
+            </RouterLink>
+          </div>
         </div>
 
         <section class="identity-statement">
@@ -143,6 +178,19 @@ function sharedLandingStart() {
           <p>
             {{ result.starOfficerName }} 让你的表达更有辨识度：{{ result.keywords.slice(0, 3).join('、') }}。
           </p>
+        </section>
+
+        <section class="panel stack">
+          <div>
+            <p class="eyebrow">为什么像你</p>
+            <h2>最容易被朋友认出来的 3 个表现</h2>
+          </div>
+          <div class="resonance-grid">
+            <article v-for="signal in resonanceSignals" :key="signal.label">
+              <span>{{ signal.label }}</span>
+              <p>{{ signal.text }}</p>
+            </article>
+          </div>
         </section>
 
         <div class="panel stack">
@@ -367,6 +415,67 @@ function sharedLandingStart() {
   color: rgba(255, 255, 255, 0.78);
 }
 
+.result-quick-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  margin-top: 18px;
+  border-top: 1px solid rgba(36, 48, 47, 0.1);
+  padding-top: 16px;
+}
+
+.result-quick-actions div {
+  display: grid;
+  gap: 4px;
+}
+
+.result-quick-actions strong,
+.result-quick-actions span {
+  display: block;
+}
+
+.result-quick-actions strong {
+  color: #24302f;
+  font-size: 16px;
+}
+
+.result-quick-actions span {
+  color: #60716d;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.resonance-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.resonance-grid article {
+  display: grid;
+  gap: 10px;
+  min-height: 138px;
+  border: 1px solid rgba(47, 111, 94, 0.16);
+  border-radius: 8px;
+  padding: 16px;
+  background: #f5fbf7;
+}
+
+.resonance-grid span {
+  color: #2f6f5e;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.resonance-grid p {
+  margin: 0;
+  color: #253634;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.7;
+}
+
 .share-guidance {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -390,6 +499,8 @@ function sharedLandingStart() {
   }
 
   .result-identity-grid,
+  .result-quick-actions,
+  .resonance-grid,
   .shared-entry-banner,
   .share-guidance {
     grid-template-columns: 1fr;
