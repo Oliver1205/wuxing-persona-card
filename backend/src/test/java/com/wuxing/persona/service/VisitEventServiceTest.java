@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.timeout;
 
 import com.wuxing.persona.config.AppProperties;
 import com.wuxing.persona.entity.VisitEventEntity;
@@ -65,6 +66,18 @@ class VisitEventServiceTest {
 
         assertDoesNotThrow(() ->
                 service.record(EventType.SHORT_LINK_VISIT, "/s/abc123", "R1", "abc123", "client-a", request));
+    }
+
+    @Test
+    void recordAsyncShouldInsertOutsideCallerThread() {
+        stubRequest("/s/abc123?channel=share");
+
+        service.recordAsync(EventType.SHORT_LINK_VISIT, "/s/abc123", "R1", "abc123", "client-a", request);
+
+        ArgumentCaptor<VisitEventEntity> captor = ArgumentCaptor.forClass(VisitEventEntity.class);
+        verify(visitEventMapper, timeout(1000)).insert(captor.capture());
+        assertEquals("SHORT_LINK_VISIT", captor.getValue().getEventType());
+        assertEquals("abc123", captor.getValue().getShortCode());
     }
 
     @Test

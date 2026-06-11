@@ -72,7 +72,8 @@ public class InternalShortLinkProvider implements ShortLinkProvider {
         if (entity == null) {
             entity = shortLinkMapper.selectByShortCode(shortCode);
         }
-        visitEventService.record(EventType.SHORT_LINK_VISIT, "/s/" + shortCode, resultId, shortCode, clientId, request);
+        visitEventService.recordAsync(EventType.SHORT_LINK_VISIT, "/s/" + shortCode, resultId, shortCode,
+                clientId, request);
         touchLastVisitAtIfStale(shortCode);
         return entity == null ? resultId : entity.getResultId();
     }

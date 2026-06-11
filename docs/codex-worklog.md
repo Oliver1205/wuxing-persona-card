@@ -187,3 +187,10 @@ multi-role review support. The main outcomes are:
 - Visitor priority: remove the expectation gap between the homepage promise and the first test step.
 - Frontend change: the homepage now promises "birth year/month + 5 questions", and the test page defaults to a simpler birth-year/month step while folding optional day/time controls into a secondary section.
 - Browser value: local mobile verification confirmed the optional day/time section is closed by default, can be expanded, and still exposes the existing date/time controls.
+
+### Phase 22
+
+- Backend priority: keep short-link redirects from waiting on analytics inserts during burst traffic.
+- Backend change: short-link visit events now use a bounded in-memory queue and daemon writer, so `/s/{shortCode}` prepares the event and enqueues it instead of inserting from the request thread.
+- Verification value: targeted unit tests cover async insertion and short-link provider delegation, while the existing synchronous record path keeps its failure-degrade behavior.
+- Local smoke result: with local H2 profile, `SHORTLINK_HITS=100`, `ADMIN_HITS=2`, `shortlinkAvgMs=15`, and `adminAvgMs=34`.

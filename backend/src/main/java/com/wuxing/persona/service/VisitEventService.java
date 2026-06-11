@@ -6,12 +6,19 @@ import com.wuxing.persona.enums.EventType;
 import com.wuxing.persona.mapper.VisitEventMapper;
 import com.wuxing.persona.util.HashUtils;
 import com.wuxing.persona.util.IpUtils;
+import jakarta.annotation.PreDestroy;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -25,13 +32,22 @@ public class VisitEventService {
     private static final int MAX_SHORT_CODE_LENGTH = 32;
     private static final int MAX_REFERER_LENGTH = 255;
     private static final int MAX_ATTRIBUTION_LENGTH = 64;
+    private static final int ASYNC_QUEUE_CAPACITY = 2048;
+    private static final int ASYNC_DRAIN_LIMIT = 64;
 
     private final VisitEventMapper visitEventMapper;
     private final AppProperties appProperties;
+    private final BlockingQueue<VisitEventEntity> asyncQueue = new LinkedBlockingQueue<>(ASYNC_QUEUE_CAPACITY);
+    private final AtomicBoolean running = new AtomicBoolean(true);
+    private final AtomicLong droppedAsyncEvents = new AtomicLong();
+    private final Thread asyncWorker;
 
     public VisitEventService(VisitEventMapper visitEventMapper, AppProperties appProperties) {
         this.visitEventMapper = visitEventMapper;
         this.appProperties = appProperties;
+        this.asyncWorker = new Thread(this::drainAsyncEvents, "visit-event-async-writer");
+        this.asyncWorker.setDaemon(true);
+        this.asyncWorker.start();
     }
 
     public void record(EventType eventType,
@@ -52,6 +68,82 @@ public class VisitEventService {
                        String sessionId,
                        String channel,
                        String campaign) {
+        VisitEventEntity entity = buildEntity(eventType, pagePath, resultId, shortCode, clientId, request,
+                sessionId, channel, campaign);
+        insertWithDegrade(entity, eventType, pagePath, resultId, shortCode);
+    }
+
+    public void recordAsync(EventType eventType,
+                            String pagePath,
+                            String resultId,
+                            String shortCode,
+                            String clientId,
+                            HttpServletRequest request) {
+        VisitEventEntity entity = buildEntity(eventType, pagePath, resultId, shortCode, clientId, request,
+                null, null, null);
+        if (!asyncQueue.offer(entity)) {
+            long dropped = droppedAsyncEvents.incrementAndGet();
+            log.warn("Visit event async queue full, dropped={}, eventType={}, pagePath={}, resultId={}, shortCode={}",
+                    dropped, eventType, pagePath, resultId, shortCode);
+        }
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        running.set(false);
+        asyncWorker.interrupt();
+        try {
+            asyncWorker.join(1000);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        }
+        flushRemainingAsyncEvents();
+    }
+
+    private void drainAsyncEvents() {
+        List<VisitEventEntity> batch = new ArrayList<>(ASYNC_DRAIN_LIMIT);
+        while (running.get()) {
+            try {
+                VisitEventEntity first = asyncQueue.take();
+                batch.add(first);
+                asyncQueue.drainTo(batch, ASYNC_DRAIN_LIMIT - 1);
+                flushBatch(batch);
+                batch.clear();
+            } catch (InterruptedException ex) {
+                if (!running.get()) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            } catch (RuntimeException ex) {
+                log.warn("Visit event async worker failed, error={}: {}", ex.getClass().getSimpleName(),
+                        ex.getMessage());
+                batch.clear();
+            }
+        }
+    }
+
+    private void flushRemainingAsyncEvents() {
+        List<VisitEventEntity> batch = new ArrayList<>(ASYNC_DRAIN_LIMIT);
+        asyncQueue.drainTo(batch);
+        flushBatch(batch);
+    }
+
+    private void flushBatch(List<VisitEventEntity> batch) {
+        for (VisitEventEntity entity : batch) {
+            insertWithDegrade(entity, EventType.valueOf(entity.getEventType()), entity.getPagePath(),
+                    entity.getResultId(), entity.getShortCode());
+        }
+    }
+
+    private VisitEventEntity buildEntity(EventType eventType,
+                                         String pagePath,
+                                         String resultId,
+                                         String shortCode,
+                                         String clientId,
+                                         HttpServletRequest request,
+                                         String sessionId,
+                                         String channel,
+                                         String campaign) {
         VisitEventEntity entity = new VisitEventEntity();
         entity.setEventType(eventType.name());
         entity.setPagePath(truncate(pagePath, MAX_PAGE_PATH_LENGTH));
@@ -77,6 +169,14 @@ public class VisitEventService {
         LocalDateTime now = LocalDateTime.now();
         entity.setEventDate(LocalDate.now());
         entity.setCreatedAt(now);
+        return entity;
+    }
+
+    private void insertWithDegrade(VisitEventEntity entity,
+                                   EventType eventType,
+                                   String pagePath,
+                                   String resultId,
+                                   String shortCode) {
         try {
             visitEventMapper.insert(entity);
         } catch (RuntimeException ex) {

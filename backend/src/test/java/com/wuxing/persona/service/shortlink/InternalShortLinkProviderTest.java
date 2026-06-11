@@ -99,7 +99,7 @@ class InternalShortLinkProviderTest {
 
         assertNull(resultId);
         verify(shortLinkMapper, never()).selectByShortCode(anyString());
-        verify(visitEventService, never()).record(any(), anyString(), anyString(), anyString(), anyString(), any());
+        verify(visitEventService, never()).recordAsync(any(), anyString(), anyString(), anyString(), anyString(), any());
     }
 
     @Test
@@ -112,7 +112,7 @@ class InternalShortLinkProviderTest {
 
         assertNull(resultId);
         verify(redisCacheService).setNullShortLink("abc123");
-        verify(visitEventService, never()).record(any(), anyString(), anyString(), anyString(), anyString(), any());
+        verify(visitEventService, never()).recordAsync(any(), anyString(), anyString(), anyString(), anyString(), any());
     }
 
     @Test
@@ -136,7 +136,7 @@ class InternalShortLinkProviderTest {
         String resultId = provider.resolveAndRecord("abc123", "client-a", request);
 
         assertEquals("R3", resultId);
-        verify(visitEventService).record(eq(EventType.SHORT_LINK_VISIT),
+        verify(visitEventService).recordAsync(eq(EventType.SHORT_LINK_VISIT),
                 eq("/s/abc123"), eq("R3"), eq("abc123"), eq("client-a"), eq(request));
         verify(shortLinkMapper).touchLastVisitAtIfStale(eq("abc123"), any(), any());
         verify(shortLinkMapper, never()).touchLastVisitAt(eq("abc123"), any());
