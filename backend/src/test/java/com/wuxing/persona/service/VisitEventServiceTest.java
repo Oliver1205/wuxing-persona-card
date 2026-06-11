@@ -1,7 +1,10 @@
 package com.wuxing.persona.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -53,6 +56,15 @@ class VisitEventServiceTest {
 
         VisitEventEntity entity = capturedEntity();
         assertEquals("/result/R2", entity.getReferer());
+    }
+
+    @Test
+    void recordShouldNotBreakMainFlowWhenInsertFails() {
+        stubRequest("/s/abc123?channel=share");
+        doThrow(new RuntimeException("database busy")).when(visitEventMapper).insert(any());
+
+        assertDoesNotThrow(() ->
+                service.record(EventType.SHORT_LINK_VISIT, "/s/abc123", "R1", "abc123", "client-a", request));
     }
 
     private void stubRequest(String referer) {

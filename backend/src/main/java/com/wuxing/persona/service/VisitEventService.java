@@ -12,11 +12,14 @@ import java.net.URISyntaxException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Locale;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class VisitEventService {
 
+    private static final Logger log = LoggerFactory.getLogger(VisitEventService.class);
     private static final int MAX_REFERER_LENGTH = 255;
     private static final int MAX_ATTRIBUTION_LENGTH = 64;
 
@@ -71,7 +74,12 @@ public class VisitEventService {
         LocalDateTime now = LocalDateTime.now();
         entity.setEventDate(LocalDate.now());
         entity.setCreatedAt(now);
-        visitEventMapper.insert(entity);
+        try {
+            visitEventMapper.insert(entity);
+        } catch (RuntimeException ex) {
+            log.warn("Visit event write failed, eventType={}, pagePath={}, resultId={}, shortCode={}, error={}: {}",
+                    eventType, pagePath, resultId, shortCode, ex.getClass().getSimpleName(), ex.getMessage());
+        }
     }
 
     private String hashOrNull(String value) {
