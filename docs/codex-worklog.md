@@ -90,3 +90,9 @@ multi-role review support. The main outcomes are:
 - Frontend priority: reduce the repeated tap friction in the mobile question flow while keeping the final submit action explicit.
 - Frontend change: choosing an answer now briefly confirms the selection and auto-advances to the next question, except on the last question where the user still taps "生成我的人格卡".
 - Test update: mobile e2e was adjusted to follow the faster answer flow instead of requiring a manual "下一题" tap after every answer.
+
+### Phase 6
+
+- Documentation priority: turn the requested multi-role agent strategy into a repeatable review matrix.
+- Documentation change: added `docs/role-review-matrix.md`, covering product manager, ordinary visitor, art director, frontend developer, senior architect, backend developer, and big-tech interviewer perspectives.
+- Workflow value: later UX/backend/documentation changes can be checked against role-specific acceptance criteria instead of relying on a single engineering viewpoint.

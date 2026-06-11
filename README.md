@@ -71,6 +71,7 @@
       <strong>项目概览</strong><br>
       <a href="docs-site/index.html">项目文档站</a><br>
       <a href="docs/project-promotion-kit.md">项目宣传包</a><br>
+      <a href="docs/role-review-matrix.md">多角色评审矩阵</a><br>
       <a href="#项目状态">项目状态</a><br>
       <a href="#核心亮点">核心亮点</a><br>
       <a href="#在线地址">在线地址</a><br>
