@@ -12,9 +12,9 @@
 
 | 项 | 说明 |
 | --- | --- |
-| 当前版本 | `v2.4-commercial-growth-suite` |
+| 当前版本 | `v2.5-h5-input-experience` |
 | 稳定分支 | `main` |
-| 当前开发分支 | `codex/v2.2-v2.4-commercial-growth-suite` |
+| 当前开发分支 | `codex/v2.5-h5-input-experience` |
 | MVP 状态 | v0.1 已完成完整单人测算闭环 |
 | v0.2 状态 | 已完成短链接 Provider 适配层，可配置 `internal` / `external` 模式 |
 | v0.3 状态 | 已增强 external 真实 HTTP 联调配置，并为后台总览、短链列表、访问日志增加日期筛选 |
@@ -30,7 +30,8 @@
 | v2.0 状态 | 商业级产品化基线启动，已升级首页、测试流、结果页分享体验和增长埋点 |
 | v2.1 状态 | 已落地 session、channel、campaign、device、eventDate 事件归因和后台增长漏斗 |
 | v2.2-v2.4 状态 | 已补日聚合、生产 smoke/备份/回滚/限流和结果页传播体验增强 |
-| 最新自评 | MVP 工程基线 99 / 100；v2.4 商业化初评 94 / 100，详见 [quality-scorecard.md](docs/quality-scorecard.md) |
+| v2.5 状态 | 已优化 H5 测试页输入体验、年轻化字体栈、年份滑杆和触控选项 |
+| 最新自评 | MVP 工程基线 99 / 100；v2.5 前端体验初评 95 / 100，详见 [quality-scorecard.md](docs/quality-scorecard.md) |
 | GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics`、`v0.4.0-external-shortlink-service-integration`、`v0.5.0-external-shortlink-access-records`、`v0.6.0-quality-gates-and-roadmap`、`v0.7.0-production-routing-hardening`、`v0.8.0-admin-operational-insights`、`v0.9.0-stability-privacy-audit`、`v1.0.0-stable`、`v1.1.0-external-shortlink-production-readiness`、`v1.4.0-production-quality-suite` |
 
 ## 核心亮点
@@ -55,6 +56,7 @@
 - **增长漏斗埋点**：新增测试开始、答题选择、提交尝试、分享面板、原生分享、保存分享图、二次测试等事件，为后续渠道、留存和传播分析预留数据口径。
 - **增长归因基础**：v2.1 将 session、channel、campaign、device、eventDate 写入事件表，分享短链自动带来源参数，后台展示增长漏斗、Top Channel 和 Top Campaign。
 - **商业增长增强**：v2.2-v2.4 新增日聚合表、手动聚合接口、生产 smoke、备份恢复、回滚脚本、Nginx 限流安全头和更适合传播的结果页/分享图。
+- **H5 输入体验增强**：v2.5 将测试页出生信息从普通下拉框升级为年份滑杆、横向触控卡片和年轻化字体栈，让大学生和年轻用户更愿意完成测试。
 - **教学沉淀**：项目计划、质量评分、短链集成方案、教学手册均已文档化。
 
 ## 目录
@@ -469,6 +471,19 @@ admin pv/uv/uip: 1/1/1
 ## 开发进度记录
 
 <details open>
+<summary><strong>2026-06-11｜v2.5 H5 输入体验优化</strong></summary>
+
+- 新建分支：`codex/v2.5-h5-input-experience`。
+- 选择不依赖外网的年轻化中文 UI 字体栈：`HarmonyOS Sans SC`、`MiSans`、`PingFang SC`、`Inter`、`Noto Sans SC`。
+- 测试页出生年份从超长下拉框升级为滑杆选择，并提供常用年份快捷按钮。
+- 出生月份、出生日期和出生时段改成移动端触控卡片，支持横向滑动和明确选中态。
+- 价值取向题选项升级为倾向卡片，展示“金系倾向 / 木系倾向”等元素提示和“已选”状态。
+- 更新移动端 E2E 脚本选择器，适配新的输入控件。
+- 新增 [v2.5 H5 输入体验优化](docs/v2.5-h5-input-experience.md)。
+
+</details>
+
+<details>
 <summary><strong>2026-06-11｜v2.2-v2.4 商业增长与生产体验增强</strong></summary>
 
 - 新建分支：`codex/v2.2-v2.4-commercial-growth-suite`。

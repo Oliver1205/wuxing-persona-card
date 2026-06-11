@@ -29,7 +29,36 @@ const form = reactive<{
 });
 
 const currentYear = new Date().getFullYear();
-const years = computed(() => Array.from({ length: currentYear - 1900 + 1 }, (_, index) => currentYear - index));
+const minBirthYear = 1900;
+const yearDraft = ref(Math.min(currentYear, 2002));
+const yearPickerValue = computed(() => form.birthYear ?? yearDraft.value);
+const quickYears = computed(() => [2008, 2005, 2002, 1999, 1996, 1993].filter((year) => year <= currentYear));
+const yearScale = computed(() => [minBirthYear, 1970, 1990, 2000, 2010, currentYear]
+  .filter((year, index, source) => year <= currentYear && source.indexOf(year) === index));
+const monthHints = [
+  '水气沉静',
+  '木气初生',
+  '春林舒展',
+  '竹风有序',
+  '火气点燃',
+  '炎庭推进',
+  '土气承接',
+  '白露清醒',
+  '金桂有界',
+  '岩衡稳定',
+  '澄夜洞察',
+  '雪川包容',
+];
+const days = Array.from({ length: 31 }, (_, index) => index + 1);
+const timeOptions: Array<{ value: string | null; label: string; hint: string }> = [
+  { value: null, label: '不透露', hint: '保持神秘' },
+  { value: 'MORNING', label: '上午', hint: '清新生长' },
+  { value: 'NOON', label: '中午', hint: '明亮行动' },
+  { value: 'AFTERNOON', label: '下午', hint: '稳住节奏' },
+  { value: 'EVENING', label: '傍晚', hint: '清醒收束' },
+  { value: 'NIGHT', label: '夜晚', hint: '安静洞察' },
+  { value: 'UNKNOWN', label: '不确定', hint: '随缘即可' },
+];
 const answeredCount = computed(() => questions.value.filter((question) => form.answers[question.questionCode]).length);
 const birthInfoComplete = computed(() => Boolean(form.birthYear && form.birthMonth));
 const totalProgressUnits = computed(() => questions.value.length + 1);
@@ -96,6 +125,32 @@ function selectAnswer(questionCode: string, optionCode: string) {
   form.answers[questionCode] = optionCode;
   track('QUESTION_ANSWER_SELECT', '/test');
 }
+
+function selectBirthYear(year: number) {
+  yearDraft.value = year;
+  form.birthYear = year;
+  markFormStart();
+}
+
+function updateBirthYear(event: Event) {
+  const target = event.target as HTMLInputElement;
+  selectBirthYear(Number(target.value));
+}
+
+function selectBirthMonth(month: number) {
+  form.birthMonth = month;
+  markFormStart();
+}
+
+function selectBirthDay(day: number | null) {
+  form.birthDay = day;
+  markFormStart();
+}
+
+function selectBirthTime(value: string | null) {
+  form.birthTimeRange = value;
+  markFormStart();
+}
 </script>
 
 <template>
@@ -116,49 +171,131 @@ function selectAnswer(questionCode: string, optionCode: string) {
         </div>
       </div>
 
-      <div class="panel stack birth-panel">
-        <div>
-          <h2>出生信息</h2>
-          <p class="muted">用于生成娱乐化五行倾向，不保存明文 IP，也不要求昵称和性别。</p>
+      <div class="panel stack birth-panel input-panel">
+        <div class="birth-panel-head">
+          <div>
+            <p class="section-kicker">STEP 01</p>
+            <h2>出生信息</h2>
+            <p class="muted">用于生成娱乐化五行倾向，不保存明文 IP，也不要求昵称和性别。</p>
+          </div>
+          <div class="birth-status" :class="{ active: birthInfoComplete }">
+            <span>{{ birthInfoComplete ? '已完成' : '待选择' }}</span>
+            <strong>{{ form.birthYear ?? '年份' }} / {{ form.birthMonth ? `${form.birthMonth}月` : '月份' }}</strong>
+          </div>
         </div>
 
-        <div class="form-grid">
-          <label>
-            出生年份
-            <select v-model.number="form.birthYear" @change="markFormStart">
-              <option :value="null">请选择</option>
-              <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
-            </select>
-          </label>
+        <div class="input-stack">
+          <section class="field-block year-field" aria-labelledby="birth-year-label">
+            <div class="field-head">
+              <span id="birth-year-label">出生年份</span>
+              <strong>{{ form.birthYear ? `${form.birthYear} 年` : '拖动选择' }}</strong>
+            </div>
+            <div class="year-picker">
+              <div class="year-display">
+                <strong>{{ yearPickerValue }}</strong>
+                <span>{{ form.birthYear ? '你的年份刻度' : '滑动下方刻度选择' }}</span>
+              </div>
+              <input
+                class="year-range"
+                data-testid="birth-year-range"
+                type="range"
+                :min="minBirthYear"
+                :max="currentYear"
+                :value="yearPickerValue"
+                aria-label="出生年份"
+                @input="updateBirthYear"
+              >
+              <div class="year-scale" aria-hidden="true">
+                <span v-for="year in yearScale" :key="year">{{ year }}</span>
+              </div>
+              <div class="quick-row" aria-label="常用年份">
+                <button
+                  v-for="year in quickYears"
+                  :key="year"
+                  type="button"
+                  class="quick-chip"
+                  :class="{ active: form.birthYear === year }"
+                  :data-testid="`birth-year-quick-${year}`"
+                  @click="selectBirthYear(year)"
+                >
+                  {{ year }} 年
+                </button>
+              </div>
+            </div>
+          </section>
 
-          <label>
-            出生月份
-            <select v-model.number="form.birthMonth" @change="markFormStart">
-              <option :value="null">请选择</option>
-              <option v-for="month in 12" :key="month" :value="month">{{ month }} 月</option>
-            </select>
-          </label>
+          <section class="field-block" aria-labelledby="birth-month-label">
+            <div class="field-head">
+              <span id="birth-month-label">出生月份</span>
+              <strong>{{ form.birthMonth ? `${form.birthMonth} 月` : '请选择' }}</strong>
+            </div>
+            <div class="choice-rail month-rail" role="list" aria-label="出生月份">
+              <button
+                v-for="month in 12"
+                :key="month"
+                type="button"
+                class="choice-chip month-chip"
+                :class="{ active: form.birthMonth === month }"
+                :data-testid="`birth-month-${month}`"
+                @click="selectBirthMonth(month)"
+              >
+                <strong>{{ month }} 月</strong>
+                <span>{{ monthHints[month - 1] }}</span>
+              </button>
+            </div>
+          </section>
 
-          <label>
-            出生日期
-            <select v-model.number="form.birthDay" @change="markFormStart">
-              <option :value="null">不透露</option>
-              <option v-for="day in 31" :key="day" :value="day">{{ day }} 日</option>
-            </select>
-          </label>
+          <section class="field-block" aria-labelledby="birth-day-label">
+            <div class="field-head">
+              <span id="birth-day-label">出生日期</span>
+              <strong>{{ form.birthDay ? `${form.birthDay} 日` : '可不透露' }}</strong>
+            </div>
+            <div class="choice-rail day-rail" role="list" aria-label="出生日期">
+              <button
+                type="button"
+                class="choice-chip day-chip optional"
+                :class="{ active: form.birthDay === null }"
+                data-testid="birth-day-none"
+                @click="selectBirthDay(null)"
+              >
+                <strong>不透露</strong>
+                <span>默认</span>
+              </button>
+              <button
+                v-for="day in days"
+                :key="day"
+                type="button"
+                class="choice-chip day-chip"
+                :class="{ active: form.birthDay === day }"
+                :data-testid="`birth-day-${day}`"
+                @click="selectBirthDay(day)"
+              >
+                <strong>{{ day }}</strong>
+                <span>日</span>
+              </button>
+            </div>
+          </section>
 
-          <label>
-            出生时段
-            <select v-model="form.birthTimeRange" @change="markFormStart">
-              <option :value="null">不透露</option>
-              <option value="MORNING">上午</option>
-              <option value="NOON">中午</option>
-              <option value="AFTERNOON">下午</option>
-              <option value="EVENING">傍晚</option>
-              <option value="NIGHT">夜晚</option>
-              <option value="UNKNOWN">不确定</option>
-            </select>
-          </label>
+          <section class="field-block" aria-labelledby="birth-time-label">
+            <div class="field-head">
+              <span id="birth-time-label">出生时段</span>
+              <strong>{{ timeOptions.find((item) => item.value === form.birthTimeRange)?.label ?? '不透露' }}</strong>
+            </div>
+            <div class="time-grid" aria-label="出生时段">
+              <button
+                v-for="option in timeOptions"
+                :key="option.label"
+                type="button"
+                class="time-chip"
+                :class="{ active: form.birthTimeRange === option.value }"
+                :data-testid="`birth-time-${option.value ?? 'NONE'}`"
+                @click="selectBirthTime(option.value)"
+              >
+                <strong>{{ option.label }}</strong>
+                <span>{{ option.hint }}</span>
+              </button>
+            </div>
+          </section>
         </div>
       </div>
 
@@ -197,7 +334,7 @@ function selectAnswer(questionCode: string, optionCode: string) {
 <style scoped>
 .test-page {
   background:
-    linear-gradient(180deg, #f8f5eb 0%, #edf4ef 46%, #f6f3ec 100%);
+    linear-gradient(180deg, #fbf8f0 0%, #edf5f1 48%, #f7efe9 100%);
 }
 
 .test-shell {
@@ -205,12 +342,17 @@ function selectAnswer(questionCode: string, optionCode: string) {
 }
 
 .test-header {
+  position: relative;
+  overflow: hidden;
   display: grid;
   gap: 12px;
   border: 1px solid rgba(36, 48, 47, 0.12);
   border-radius: 8px;
   padding: 22px;
-  background: rgba(255, 255, 255, 0.72);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(238, 247, 242, 0.82)),
+    linear-gradient(90deg, rgba(47, 111, 94, 0.08), rgba(196, 122, 80, 0.08));
+  box-shadow: 0 18px 48px rgba(31, 48, 43, 0.1);
 }
 
 .test-header h1 {
@@ -249,7 +391,273 @@ function selectAnswer(questionCode: string, optionCode: string) {
 }
 
 .birth-panel {
-  background: rgba(255, 255, 255, 0.86);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(252, 248, 240, 0.9));
+}
+
+.birth-panel-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+}
+
+.section-kicker {
+  margin: 0 0 8px;
+  color: #9b6d32;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.birth-status {
+  display: grid;
+  gap: 5px;
+  min-width: 138px;
+  border: 1px solid rgba(36, 48, 47, 0.12);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #596764;
+}
+
+.birth-status span {
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.birth-status strong {
+  color: #24302f;
+  font-size: 15px;
+}
+
+.birth-status.active {
+  border-color: rgba(47, 111, 94, 0.24);
+  background: #edf7f2;
+  color: #2f6f5e;
+}
+
+.input-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.field-block {
+  display: grid;
+  gap: 10px;
+}
+
+.field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #40514e;
+  font-weight: 900;
+}
+
+.field-head strong {
+  color: #24302f;
+  font-size: 14px;
+}
+
+.year-picker {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(36, 48, 47, 0.12);
+  border-radius: 8px;
+  padding: 16px;
+  background:
+    linear-gradient(135deg, rgba(237, 247, 242, 0.96), rgba(255, 249, 238, 0.94));
+}
+
+.year-display {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.year-display strong {
+  color: #1f3732;
+  font-size: 42px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.year-display span {
+  color: #697674;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.year-range {
+  width: 100%;
+  min-height: 32px;
+  height: 32px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  accent-color: #2f6f5e;
+  cursor: pointer;
+}
+
+.year-range::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2f6f5e, #d79b43, #b85b48);
+}
+
+.year-range::-webkit-slider-thumb {
+  width: 26px;
+  height: 26px;
+  margin-top: -9px;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  background: #24302f;
+  box-shadow: 0 8px 22px rgba(36, 48, 47, 0.25);
+  appearance: none;
+}
+
+.year-range::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2f6f5e, #d79b43, #b85b48);
+}
+
+.year-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  background: #24302f;
+  box-shadow: 0 8px 22px rgba(36, 48, 47, 0.25);
+}
+
+.year-scale {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #7a8582;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.quick-row,
+.choice-rail {
+  display: flex;
+  gap: 9px;
+  overflow-x: auto;
+  padding: 2px 2px 8px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.quick-row::-webkit-scrollbar,
+.choice-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.quick-chip,
+.choice-chip,
+.time-chip {
+  flex: 0 0 auto;
+  min-height: auto;
+  border: 1px solid rgba(36, 48, 47, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #263735;
+  box-shadow: 0 8px 18px rgba(31, 48, 43, 0.06);
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.quick-chip {
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 900;
+  scroll-snap-align: start;
+}
+
+.choice-chip {
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  width: 92px;
+  min-height: 72px;
+  padding: 10px 8px;
+  text-align: center;
+  scroll-snap-align: start;
+}
+
+.choice-chip strong {
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.choice-chip span {
+  color: #6a7774;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.day-chip {
+  width: 58px;
+  min-height: 58px;
+}
+
+.day-chip.optional {
+  width: 88px;
+}
+
+.quick-chip:hover,
+.choice-chip:hover,
+.time-chip:hover {
+  transform: translateY(-1px);
+}
+
+.quick-chip.active,
+.choice-chip.active,
+.time-chip.active {
+  border-color: rgba(47, 111, 94, 0.5);
+  background: linear-gradient(135deg, #24302f, #2f6f5e);
+  color: #fff;
+  box-shadow: 0 13px 26px rgba(47, 111, 94, 0.22);
+  transform: translateY(-1px);
+}
+
+.choice-chip.active span,
+.time-chip.active span {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.time-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.time-chip {
+  display: grid;
+  gap: 5px;
+  justify-items: start;
+  min-height: 70px;
+  padding: 11px;
+  text-align: left;
+}
+
+.time-chip strong {
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.time-chip span {
+  color: #6a7774;
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .sticky-action {
@@ -278,6 +686,26 @@ function selectAnswer(questionCode: string, optionCode: string) {
 }
 
 @media (max-width: 760px) {
+  .test-shell {
+    padding-bottom: 118px;
+  }
+
+  .birth-panel-head {
+    grid-template-columns: 1fr;
+  }
+
+  .birth-status {
+    min-width: 0;
+  }
+
+  .year-display strong {
+    font-size: 36px;
+  }
+
+  .time-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .sticky-action {
     grid-template-columns: 1fr;
   }

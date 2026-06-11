@@ -14,8 +14,8 @@ test('mobile user flow creates result, shares short link, and admin sees metrics
   await expect(page.getByRole('heading', { name: '生成你的五行人格卡' })).toBeVisible();
   await page.getByRole('link', { name: '开始测试' }).click();
 
-  await page.getByLabel('出生年份').selectOption('2002');
-  await page.getByLabel('出生月份').selectOption('8');
+  await page.getByTestId('birth-year-quick-2002').click();
+  await page.getByTestId('birth-month-8').click();
   await page.getByText('标准、边界和清晰判断').click();
   await page.getByText('提出计划和方向的人').click();
   await page.getByText('先感受和观察，再慢慢调整').click();

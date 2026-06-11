@@ -1,8 +1,9 @@
 :root {
+  --font-ui: "HarmonyOS Sans SC", "MiSans", "PingFang SC", "Inter", "Noto Sans SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-display: "HarmonyOS Sans SC", "MiSans", "PingFang SC", "Noto Sans SC", sans-serif;
   color: #24302f;
   background: #f6f3ec;
-  font-family:
-    Inter, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-family: var(--font-ui);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -79,14 +80,18 @@ button.secondary {
 
 h1 {
   margin: 0;
+  font-family: var(--font-display);
   font-size: 52px;
+  font-weight: 950;
   line-height: 1.08;
   letter-spacing: 0;
 }
 
 h2 {
   margin: 0 0 12px;
+  font-family: var(--font-display);
   font-size: 24px;
+  font-weight: 900;
   line-height: 1.25;
   letter-spacing: 0;
 }
