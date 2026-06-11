@@ -14,6 +14,7 @@ import com.wuxing.persona.entity.VisitEventEntity;
 import com.wuxing.persona.enums.EventType;
 import com.wuxing.persona.mapper.VisitEventMapper;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -74,10 +75,10 @@ class VisitEventServiceTest {
 
         service.recordAsync(EventType.SHORT_LINK_VISIT, "/s/abc123", "R1", "abc123", "client-a", request);
 
-        ArgumentCaptor<VisitEventEntity> captor = ArgumentCaptor.forClass(VisitEventEntity.class);
-        verify(visitEventMapper, timeout(1000)).insert(captor.capture());
-        assertEquals("SHORT_LINK_VISIT", captor.getValue().getEventType());
-        assertEquals("abc123", captor.getValue().getShortCode());
+        ArgumentCaptor<List<VisitEventEntity>> captor = ArgumentCaptor.forClass(List.class);
+        verify(visitEventMapper, timeout(1000)).insertBatch(captor.capture());
+        assertEquals("SHORT_LINK_VISIT", captor.getValue().get(0).getEventType());
+        assertEquals("abc123", captor.getValue().get(0).getShortCode());
     }
 
     @Test
@@ -87,10 +88,21 @@ class VisitEventServiceTest {
         service.recordAsync(EventType.PAGE_VIEW_HOME, "/", null, null, "client-a", request,
                 "session-a", "Organic Search", "Spring Launch");
 
-        ArgumentCaptor<VisitEventEntity> captor = ArgumentCaptor.forClass(VisitEventEntity.class);
-        verify(visitEventMapper, timeout(1000)).insert(captor.capture());
-        assertEquals("organic-search", captor.getValue().getChannel());
-        assertEquals("spring-launch", captor.getValue().getCampaign());
+        ArgumentCaptor<List<VisitEventEntity>> captor = ArgumentCaptor.forClass(List.class);
+        verify(visitEventMapper, timeout(1000)).insertBatch(captor.capture());
+        assertEquals("organic-search", captor.getValue().get(0).getChannel());
+        assertEquals("spring-launch", captor.getValue().get(0).getCampaign());
+    }
+
+    @Test
+    void recordAsyncShouldFallbackToSingleInsertWhenBatchFails() {
+        stubRequest("/s/abc123?channel=share");
+        doThrow(new RuntimeException("batch busy")).when(visitEventMapper).insertBatch(any());
+
+        service.recordAsync(EventType.SHORT_LINK_VISIT, "/s/abc123", "R1", "abc123", "client-a", request);
+
+        verify(visitEventMapper, timeout(1000).atLeastOnce()).insertBatch(any());
+        verify(visitEventMapper, timeout(1000).atLeastOnce()).insert(any(VisitEventEntity.class));
     }
 
     @Test

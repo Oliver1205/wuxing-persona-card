@@ -141,9 +141,18 @@ public class VisitEventService {
     }
 
     private void flushBatch(List<VisitEventEntity> batch) {
-        for (VisitEventEntity entity : batch) {
-            insertWithDegrade(entity, EventType.valueOf(entity.getEventType()), entity.getPagePath(),
-                    entity.getResultId(), entity.getShortCode());
+        if (batch.isEmpty()) {
+            return;
+        }
+        try {
+            visitEventMapper.insertBatch(List.copyOf(batch));
+        } catch (RuntimeException ex) {
+            log.warn("Visit event batch write failed, size={}, error={}: {}", batch.size(),
+                    ex.getClass().getSimpleName(), ex.getMessage());
+            for (VisitEventEntity entity : batch) {
+                insertWithDegrade(entity, EventType.valueOf(entity.getEventType()), entity.getPagePath(),
+                        entity.getResultId(), entity.getShortCode());
+            }
         }
     }
 

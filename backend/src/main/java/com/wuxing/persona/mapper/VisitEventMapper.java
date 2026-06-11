@@ -26,6 +26,24 @@ public interface VisitEventMapper {
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(VisitEventEntity entity);
 
+    @Insert("""
+            <script>
+            INSERT INTO visit_event (
+              event_type, page_path, result_id, short_code, client_id_hash,
+              session_id_hash, ip_hash, user_agent_hash, channel, campaign,
+              device_type, referer, event_date, created_at
+            ) VALUES
+            <foreach collection="events" item="event" separator=",">
+            (
+              #{event.eventType}, #{event.pagePath}, #{event.resultId}, #{event.shortCode}, #{event.clientIdHash},
+              #{event.sessionIdHash}, #{event.ipHash}, #{event.userAgentHash}, #{event.channel}, #{event.campaign},
+              #{event.deviceType}, #{event.referer}, #{event.eventDate}, #{event.createdAt}
+            )
+            </foreach>
+            </script>
+            """)
+    int insertBatch(@Param("events") List<VisitEventEntity> events);
+
     @Select("SELECT COUNT(*) FROM visit_event")
     long countAll();
 

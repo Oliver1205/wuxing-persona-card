@@ -266,3 +266,9 @@ multi-role review support. The main outcomes are:
 - Backend priority: keep non-critical frontend tracking from waiting on MySQL inserts.
 - Backend change: `/api/events` now uses the existing bounded async visit-event queue with session/channel/campaign attribution preserved, while result creation events remain synchronous business evidence.
 - Verification value: `VisitEventServiceTest` covers async attribution fields, and `MvpFlowIntegrationTest` now waits for async growth events before asserting admin funnel counts.
+
+### Phase 35
+
+- Backend priority: make the async visit-event worker reduce database round trips instead of only moving them off the request thread.
+- Backend change: async visit events now flush through a MyBatis batch insert, with a per-row degraded fallback if the batch write fails.
+- Verification value: service tests cover batch insertion and fallback, and the MVP integration flow still passes with async frontend event tracking.
