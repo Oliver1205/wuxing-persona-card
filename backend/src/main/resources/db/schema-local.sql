@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS short_link (
 
 CREATE INDEX IF NOT EXISTS idx_short_link_result_id ON short_link(result_id);
 CREATE INDEX IF NOT EXISTS idx_short_link_created_at ON short_link(created_at);
+CREATE INDEX IF NOT EXISTS idx_short_link_status_created_at ON short_link(status, created_at);
 
 CREATE TABLE IF NOT EXISTS visit_event (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -65,6 +66,10 @@ CREATE TABLE IF NOT EXISTS visit_event (
 CREATE INDEX IF NOT EXISTS idx_visit_event_event_created ON visit_event(event_type, created_at);
 CREATE INDEX IF NOT EXISTS idx_visit_event_short_created ON visit_event(short_code, created_at);
 CREATE INDEX IF NOT EXISTS idx_visit_event_result_created ON visit_event(result_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_visit_event_created_at ON visit_event(created_at);
+CREATE INDEX IF NOT EXISTS idx_visit_event_created_client ON visit_event(created_at, client_id_hash);
+CREATE INDEX IF NOT EXISTS idx_visit_event_created_ip ON visit_event(created_at, ip_hash);
+CREATE INDEX IF NOT EXISTS idx_visit_event_event_created_short ON visit_event(event_type, created_at, short_code);
 CREATE INDEX IF NOT EXISTS idx_visit_event_client ON visit_event(client_id_hash);
 CREATE INDEX IF NOT EXISTS idx_visit_event_ip ON visit_event(ip_hash);
 CREATE INDEX IF NOT EXISTS idx_visit_event_session ON visit_event(session_id_hash);

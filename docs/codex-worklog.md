@@ -102,3 +102,9 @@ multi-role review support. The main outcomes are:
 - Visual/product priority: make the generated result share image feel closer to a real spreadable asset.
 - Frontend change: upgraded `frontend/src/utils/shareCard.ts` with element-aware colors, stronger result identity hierarchy, clearer short-link copy, and a friend-return prompt.
 - Promotion value: the share image now better matches the project poster and can be used as a screenshot target in the promotion kit.
+
+### Phase 8
+
+- Backend priority: keep admin analytics usable after bursts without adding heavyweight infrastructure.
+- Data change: added lightweight MySQL/H2 indexes for `visit_event.created_at`, date-range UV/UIP counts, event-type/date/short-code aggregation, and `short_link.status + created_at` list queries.
+- Interview value: this gives a concrete answer for the big-tech interviewer role: cache helps, but the fallback SQL path also has supporting indexes.
