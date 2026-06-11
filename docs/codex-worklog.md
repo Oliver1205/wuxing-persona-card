@@ -108,3 +108,9 @@ multi-role review support. The main outcomes are:
 - Backend priority: keep admin analytics usable after bursts without adding heavyweight infrastructure.
 - Data change: added lightweight MySQL/H2 indexes for `visit_event.created_at`, date-range UV/UIP counts, event-type/date/short-code aggregation, and `short_link.status + created_at` list queries.
 - Interview value: this gives a concrete answer for the big-tech interviewer role: cache helps, but the fallback SQL path also has supporting indexes.
+
+### Phase 9
+
+- Backend priority: reduce non-critical write amplification on the short-link redirect hot path.
+- Backend change: `SHORT_LINK_VISIT` events are still recorded for every redirect, but `short_link.last_visit_at` is now touched only when the previous value is stale by at least 30 seconds.
+- Tradeoff: operations still get a recent last-visit signal, while a single viral short code no longer rewrites the same `short_link` row on every hit.

@@ -149,4 +149,14 @@ public interface ShortLinkMapper {
             """)
     int touchLastVisitAt(@Param("shortCode") String shortCode,
                          @Param("lastVisitAt") java.time.LocalDateTime lastVisitAt);
+
+    @Update("""
+            UPDATE short_link
+            SET last_visit_at = #{lastVisitAt}, updated_at = #{lastVisitAt}
+            WHERE short_code = #{shortCode}
+              AND (last_visit_at IS NULL OR last_visit_at < #{staleBefore})
+            """)
+    int touchLastVisitAtIfStale(@Param("shortCode") String shortCode,
+                                @Param("lastVisitAt") java.time.LocalDateTime lastVisitAt,
+                                @Param("staleBefore") java.time.LocalDateTime staleBefore);
 }

@@ -138,7 +138,8 @@ class InternalShortLinkProviderTest {
         assertEquals("R3", resultId);
         verify(visitEventService).record(eq(EventType.SHORT_LINK_VISIT),
                 eq("/s/abc123"), eq("R3"), eq("abc123"), eq("client-a"), eq(request));
-        verify(shortLinkMapper).touchLastVisitAt(eq("abc123"), any());
+        verify(shortLinkMapper).touchLastVisitAtIfStale(eq("abc123"), any(), any());
+        verify(shortLinkMapper, never()).touchLastVisitAt(eq("abc123"), any());
         verify(shortLinkMapper, never()).updateCounters(anyString(), anyLong(), anyLong(), anyLong(), any());
     }
 

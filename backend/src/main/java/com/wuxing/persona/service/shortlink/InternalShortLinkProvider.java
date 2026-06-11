@@ -15,6 +15,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class InternalShortLinkProvider implements ShortLinkProvider {
 
+    private static final long LAST_VISIT_TOUCH_INTERVAL_SECONDS = 30;
+
     private final SecureRandom secureRandom = new SecureRandom();
     private final ShortLinkMapper shortLinkMapper;
     private final RedisCacheService redisCacheService;
@@ -71,7 +73,7 @@ public class InternalShortLinkProvider implements ShortLinkProvider {
             entity = shortLinkMapper.selectByShortCode(shortCode);
         }
         visitEventService.record(EventType.SHORT_LINK_VISIT, "/s/" + shortCode, resultId, shortCode, clientId, request);
-        shortLinkMapper.touchLastVisitAt(shortCode, LocalDateTime.now());
+        touchLastVisitAtIfStale(shortCode);
         return entity == null ? resultId : entity.getResultId();
     }
 
@@ -107,5 +109,10 @@ public class InternalShortLinkProvider implements ShortLinkProvider {
             builder.append(ShortLinkCodeUtils.BASE62.charAt(secureRandom.nextInt(ShortLinkCodeUtils.BASE62.length())));
         }
         return builder.toString();
+    }
+
+    private void touchLastVisitAtIfStale(String shortCode) {
+        LocalDateTime now = LocalDateTime.now();
+        shortLinkMapper.touchLastVisitAtIfStale(shortCode, now, now.minusSeconds(LAST_VISIT_TOUCH_INTERVAL_SECONDS));
     }
 }
