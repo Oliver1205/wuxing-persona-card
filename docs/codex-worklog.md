@@ -175,3 +175,9 @@ multi-role review support. The main outcomes are:
 - Admin priority: make short-link visit detail feel like an operations page, not a raw table.
 - Frontend change: short-link detail filters now disable while loading, show a loading hint, and display a clear empty state when a date range has no visits.
 - Browser value: local H2 + Vite verification covered both an existing `SHORT_LINK_VISIT` row and a future-date empty result.
+
+### Phase 20
+
+- Admin priority: make cold-start and no-result states readable in the main dashboard.
+- Frontend change: recent results, recent short links, and the short-link list now show explicit empty states instead of blank tables.
+- Browser value: local admin verification with a future date range confirmed all three empty states render correctly.
