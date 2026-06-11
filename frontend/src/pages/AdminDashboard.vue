@@ -362,7 +362,7 @@ function formatDateTime(value: string | null) {
 
           <div class="panel stack">
             <h2>最近结果</h2>
-            <div class="table-wrap">
+            <div v-if="overview.recentResults.length" class="table-wrap">
               <table class="compact-table">
                 <thead>
                   <tr>
@@ -382,11 +382,12 @@ function formatDateTime(value: string | null) {
                 </tbody>
               </table>
             </div>
+            <p v-else class="muted empty-state">当前筛选范围内暂无结果生成记录。</p>
           </div>
 
           <div class="panel stack">
             <h2>最近短链</h2>
-            <div class="table-wrap">
+            <div v-if="overview.recentShortLinks.length" class="table-wrap">
               <table class="compact-table">
                 <thead>
                   <tr>
@@ -406,13 +407,14 @@ function formatDateTime(value: string | null) {
                 </tbody>
               </table>
             </div>
+            <p v-else class="muted empty-state">当前筛选范围内暂无短链生成记录。</p>
           </div>
         </div>
 
         <div class="panel stack">
           <h2>短链列表</h2>
           <p class="muted">当前筛选共 {{ shortLinks?.total ?? 0 }} 条，来源筛选最多扫描最近 500 条短链。</p>
-          <div class="table-wrap">
+          <div v-if="shortLinks?.records.length" class="table-wrap">
             <table>
               <thead>
                 <tr>
@@ -444,6 +446,7 @@ function formatDateTime(value: string | null) {
               </tbody>
             </table>
           </div>
+          <p v-else class="muted empty-state">没有匹配当前筛选条件的短链。</p>
         </div>
       </template>
     </section>
