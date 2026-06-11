@@ -381,13 +381,13 @@ sequenceDiagram
 | 创建结果链路 | `backend/src/main/java/com/wuxing/persona/service/ResultService.java` | `mvn -q -f backend/pom.xml -Dtest=MvpFlowIntegrationTest test` | 创建结果是强业务链路，结果、短链和关键事件要一起形成可恢复的业务证据。 |
 | 短链门面和适配 | `backend/src/main/java/com/wuxing/persona/service/ShortLinkService.java` | `mvn -q -f backend/pom.xml -Dtest=ExternalShortLinkProviderTest,InternalShortLinkProviderTest test` | Provider 让结果生成不用关心短链来自 internal 还是 external，外部失败时可以降级。 |
 | 短链热路径 | `backend/src/main/java/com/wuxing/persona/service/shortlink/InternalShortLinkProvider.java` | `mvn -q -f backend/pom.xml -Dtest=InternalShortLinkProviderTest test` | `/s/{shortCode}` 是传播峰值入口，Redis 命中时直接拿 resultId 做 302，不同步做统计聚合。 |
-| 异步访问事件 | `backend/src/main/java/com/wuxing/persona/service/VisitEventService.java` | `mvn -q -f backend/pom.xml -Dtest=VisitEventServiceTest test` | 访问事件是统计事实来源，但不该卡住用户跳转，所以进入有界队列并后台批量写库。 |
+| 异步访问事件 | `backend/src/main/java/com/wuxing/persona/service/VisitEventService.java` | `mvn -q -f backend/pom.xml -Dtest=VisitEventServiceTest test` | 访问事件是统计事实来源，但不该卡住用户跳转，所以进入可配置的有界队列并后台批量写库。 |
 | 后台统计和缓存 | `backend/src/main/java/com/wuxing/persona/service/AdminStatService.java`、`backend/src/main/java/com/wuxing/persona/service/RedisCacheService.java` | `mvn -q -f backend/pom.xml -Dtest=MvpFlowIntegrationTest test` | 后台 overview 可以接受 45 秒短缓存，运营刷新不应该反复触发昂贵聚合。 |
 | 可观测证据 | `scripts/performance-smoke-test.sh`、`backend/src/main/java/com/wuxing/persona/vo/VisitEventRuntimeVO.java` | `BASE_URL=http://127.0.0.1:48081 ADMIN_TOKEN=dev-token scripts/performance-smoke-test.sh` | 性能 smoke 看 avg / P95，也看 async queue 和 dropped events，避免只看快不看数据丢失。 |
 | 视觉与作品集证据 | `scripts/capture-showcase-screenshots.sh`、`docs/screenshots/showcase/`、`docs-site/showcase.html` | `E2E_BASE_URL=http://127.0.0.1:5174 E2E_ADMIN_TOKEN=dev-token scripts/capture-showcase-screenshots.sh` | 项目展示不只靠文字，已经有 iPhone SE、安卓宽屏和桌面后台三类可复现截图。 |
 | 短码并发冲突 | `backend/src/main/java/com/wuxing/persona/service/shortlink/InternalShortLinkProvider.java`、`backend/src/main/java/com/wuxing/persona/mapper/ShortLinkMapper.java` | `mvn -q -f backend/pom.xml -Dtest=InternalShortLinkProviderTest test` | 当前短码生成适合单机作品阶段；面试中要能说明 `count + insert` 的并发冲突风险，以及下一步用唯一键异常重试兜底。 |
 | 数据库迁移治理 | `backend/src/main/resources/db/schema.sql`、`backend/src/main/resources/application.yml` | `docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml config` | 当前是初始化脚本和演示环境 DDL，不是成熟迁移体系；生产化应引入 Flyway/Liquibase、版本号和回滚策略。 |
-| 异步事件丢失语义 | `backend/src/main/java/com/wuxing/persona/service/VisitEventService.java`、`docs/production-load-alert-runbook.md` | `mvn -q -f backend/pom.xml -Dtest=VisitEventServiceTest test` | 异步队列优先保护跳转低延迟，队列满或进程重启可能丢低价值事件，所以必须看 `asyncDroppedEvents` 并诚实说明统计不是强一致。 |
+| 异步事件丢失语义 | `backend/src/main/java/com/wuxing/persona/service/VisitEventService.java`、`docs/production-load-alert-runbook.md` | `mvn -q -f backend/pom.xml -Dtest=VisitEventServiceTest test` | 异步队列优先保护跳转低延迟，队列满或进程重启可能丢低价值事件，所以必须看 `asyncDroppedEvents`，并说明队列容量和批量大小是压测调参项。 |
 
 学习时建议每读完一张卡，就用自己的话录 30 秒音频。如果说到一半卡住，说明还不是代码没看懂，而是“入口、取舍、证据”三者没有串起来。
 

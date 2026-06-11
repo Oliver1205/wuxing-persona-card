@@ -28,6 +28,7 @@ app:
   hash-salt: ${HASH_SALT:dev-salt}
   short-link:
     mode: ${SHORT_LINK_MODE:internal}
+    last-visit-touch-interval-seconds: ${SHORT_LINK_LAST_VISIT_TOUCH_INTERVAL_SECONDS:30}
     external:
       base-url: ${SHORT_LINK_EXTERNAL_BASE_URL:http://localhost:8003}
       group-id: ${SHORT_LINK_EXTERNAL_GROUP_ID:wuxing_persona}
@@ -36,3 +37,6 @@ app:
       connect-timeout-millis: ${SHORT_LINK_EXTERNAL_CONNECT_TIMEOUT_MILLIS:2000}
       read-timeout-millis: ${SHORT_LINK_EXTERNAL_READ_TIMEOUT_MILLIS:3000}
       stats-cache-ttl-seconds: ${SHORT_LINK_EXTERNAL_STATS_CACHE_TTL_SECONDS:60}
+  visit-event:
+    async-queue-capacity: ${VISIT_EVENT_ASYNC_QUEUE_CAPACITY:2048}
+    async-drain-limit: ${VISIT_EVENT_ASYNC_DRAIN_LIMIT:64}

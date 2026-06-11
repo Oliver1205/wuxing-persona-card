@@ -11,6 +11,7 @@ public class AppProperties {
     private String adminToken;
     private String hashSalt;
     private ShortLinkProperties shortLink = new ShortLinkProperties();
+    private VisitEventProperties visitEvent = new VisitEventProperties();
 
     public String getBaseUrl() {
         return baseUrl;
@@ -46,6 +47,16 @@ public class AppProperties {
         }
     }
 
+    public VisitEventProperties getVisitEvent() {
+        return visitEvent;
+    }
+
+    public void setVisitEvent(VisitEventProperties visitEvent) {
+        if (visitEvent != null) {
+            this.visitEvent = visitEvent;
+        }
+    }
+
     private String trimTrailingSlash(String value) {
         if (value == null || value.isBlank()) {
             return "http://localhost:5173";
@@ -59,6 +70,7 @@ public class AppProperties {
     public static class ShortLinkProperties {
 
         private String mode = "internal";
+        private int lastVisitTouchIntervalSeconds = 30;
         private ExternalShortLinkProperties external = new ExternalShortLinkProperties();
 
         public String getMode() {
@@ -67,6 +79,14 @@ public class AppProperties {
 
         public void setMode(String mode) {
             this.mode = mode;
+        }
+
+        public int getLastVisitTouchIntervalSeconds() {
+            return lastVisitTouchIntervalSeconds;
+        }
+
+        public void setLastVisitTouchIntervalSeconds(int lastVisitTouchIntervalSeconds) {
+            this.lastVisitTouchIntervalSeconds = Math.max(0, lastVisitTouchIntervalSeconds);
         }
 
         public ExternalShortLinkProperties getExternal() {
@@ -199,6 +219,28 @@ public class AppProperties {
                 value = value.substring(0, value.length() - 1);
             }
             return value;
+        }
+    }
+
+    public static class VisitEventProperties {
+
+        private int asyncQueueCapacity = 2048;
+        private int asyncDrainLimit = 64;
+
+        public int getAsyncQueueCapacity() {
+            return asyncQueueCapacity;
+        }
+
+        public void setAsyncQueueCapacity(int asyncQueueCapacity) {
+            this.asyncQueueCapacity = Math.max(1, asyncQueueCapacity);
+        }
+
+        public int getAsyncDrainLimit() {
+            return asyncDrainLimit;
+        }
+
+        public void setAsyncDrainLimit(int asyncDrainLimit) {
+            this.asyncDrainLimit = Math.max(1, asyncDrainLimit);
         }
     }
 }

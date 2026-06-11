@@ -15,6 +15,7 @@ import com.wuxing.persona.enums.EventType;
 import com.wuxing.persona.mapper.VisitEventMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +39,11 @@ class VisitEventServiceTest {
         AppProperties appProperties = new AppProperties();
         appProperties.setHashSalt("test-salt");
         service = new VisitEventService(visitEventMapper, appProperties);
+    }
+
+    @AfterEach
+    void tearDown() {
+        service.shutdown();
     }
 
     @Test
@@ -103,6 +109,24 @@ class VisitEventServiceTest {
 
         verify(visitEventMapper, timeout(1000).atLeastOnce()).insertBatch(any());
         verify(visitEventMapper, timeout(1000).atLeastOnce()).insert(any(VisitEventEntity.class));
+    }
+
+    @Test
+    void runtimeShouldExposeConfiguredAsyncPressureKnobs() {
+        AppProperties appProperties = new AppProperties();
+        AppProperties.VisitEventProperties visitEventProperties = new AppProperties.VisitEventProperties();
+        visitEventProperties.setAsyncQueueCapacity(7);
+        visitEventProperties.setAsyncDrainLimit(3);
+        appProperties.setVisitEvent(visitEventProperties);
+
+        VisitEventService customService = new VisitEventService(visitEventMapper, appProperties);
+
+        try {
+            assertEquals(7, customService.runtime().getQueueCapacity());
+            assertEquals(3, customService.runtime().getDrainLimit());
+        } finally {
+            customService.shutdown();
+        }
     }
 
     @Test

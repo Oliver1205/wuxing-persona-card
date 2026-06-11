@@ -4,12 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,6 +23,8 @@ import com.wuxing.persona.mapper.ShortLinkMapper;
 import com.wuxing.persona.service.RedisCacheService;
 import com.wuxing.persona.service.VisitEventService;
 import jakarta.servlet.http.HttpServletRequest;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -142,6 +145,31 @@ class InternalShortLinkProviderTest {
         verify(shortLinkMapper).touchLastVisitAtIfStale(eq("abc123"), any(), any());
         verify(shortLinkMapper, never()).touchLastVisitAt(eq("abc123"), any());
         verify(shortLinkMapper, never()).updateCounters(anyString(), anyLong(), anyLong(), anyLong(), any());
+    }
+
+    @Test
+    void resolveAndRecordShouldUseConfiguredLastVisitTouchInterval() {
+        AppProperties appProperties = new AppProperties();
+        appProperties.setBaseUrl("https://example.com/");
+        appProperties.getShortLink().setLastVisitTouchIntervalSeconds(120);
+        InternalShortLinkProvider customProvider = new InternalShortLinkProvider(
+                shortLinkMapper,
+                redisCacheService,
+                visitEventService,
+                appProperties
+        );
+        when(redisCacheService.isNullShortLink("abc123")).thenReturn(false);
+        when(redisCacheService.getShortLinkResultId("abc123")).thenReturn("R5");
+
+        String resultId = customProvider.resolveAndRecord("abc123", "client-a", request);
+
+        assertEquals("R5", resultId);
+        ArgumentCaptor<LocalDateTime> nowCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
+        ArgumentCaptor<LocalDateTime> staleBeforeCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
+        verify(shortLinkMapper).touchLastVisitAtIfStale(eq("abc123"),
+                nowCaptor.capture(), staleBeforeCaptor.capture());
+        long intervalSeconds = Duration.between(staleBeforeCaptor.getValue(), nowCaptor.getValue()).getSeconds();
+        assertTrue(intervalSeconds >= 119 && intervalSeconds <= 121);
     }
 
     @Test

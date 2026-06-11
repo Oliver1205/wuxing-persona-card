@@ -81,6 +81,14 @@ asyncWorkerAlive=
 - `asyncDroppedEvents` 如果明显上升，要检查队列容量、批量写库速度和数据库连接池。
 - `asyncWorkerAlive=false` 是严重故障，必须停止压测并看后端日志。
 
+压测调参入口：
+
+| 环境变量 | 默认值 | 用途 |
+| --- | --- | --- |
+| `VISIT_EVENT_ASYNC_QUEUE_CAPACITY` | `2048` | 调整访问事件异步队列容量，适合在短链峰值演练时观察积压和丢弃边界。 |
+| `VISIT_EVENT_ASYNC_DRAIN_LIMIT` | `64` | 调整后台 worker 单次批量写库上限，适合在数据库写入压力和延迟之间取平衡。 |
+| `SHORT_LINK_LAST_VISIT_TOUCH_INTERVAL_SECONDS` | `30` | 调整热门短码 `last_visit_at` 的低频更新间隔，避免传播峰值下反复打热同一行。 |
+
 ## 5. 正式压测记录模板
 
 每次压测必须记录固定信息，否则不要把结果写进简历或宣传页。

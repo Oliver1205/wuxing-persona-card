@@ -358,3 +358,9 @@ multi-role review support. The main outcomes are:
 - Documentation-site priority: make "立即体验 H5" behave like an experience entry instead of sending visitors back into README.
 - Docs-site change: added a dedicated `#experience` section with local H5 URL, showcase page, and startup command links; expanded the materials screenshot wall into a five-step story from homepage to birth info, question card, result page, and admin metrics.
 - Verification value: static reference check confirmed all `href` and `src` targets in `docs-site/index.html` resolve.
+
+### Phase 50
+
+- Backend pressure-test priority: make the async visit-event queue and short-link hot-row touch interval tunable without code changes.
+- Code change: `VISIT_EVENT_ASYNC_QUEUE_CAPACITY`, `VISIT_EVENT_ASYNC_DRAIN_LIMIT`, and `SHORT_LINK_LAST_VISIT_TOUCH_INTERVAL_SECONDS` now bind through application config with the same conservative defaults.
+- Documentation value: the production load runbook names the tuning knobs, and the interview manual now describes queue capacity and batch size as explicit pressure-test tradeoffs.

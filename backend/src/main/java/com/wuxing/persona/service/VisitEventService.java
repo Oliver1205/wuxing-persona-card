@@ -33,12 +33,12 @@ public class VisitEventService {
     private static final int MAX_SHORT_CODE_LENGTH = 32;
     private static final int MAX_REFERER_LENGTH = 255;
     private static final int MAX_ATTRIBUTION_LENGTH = 64;
-    private static final int ASYNC_QUEUE_CAPACITY = 2048;
-    private static final int ASYNC_DRAIN_LIMIT = 64;
 
     private final VisitEventMapper visitEventMapper;
     private final AppProperties appProperties;
-    private final BlockingQueue<VisitEventEntity> asyncQueue = new LinkedBlockingQueue<>(ASYNC_QUEUE_CAPACITY);
+    private final int asyncQueueCapacity;
+    private final int asyncDrainLimit;
+    private final BlockingQueue<VisitEventEntity> asyncQueue;
     private final AtomicBoolean running = new AtomicBoolean(true);
     private final AtomicLong droppedAsyncEvents = new AtomicLong();
     private final Thread asyncWorker;
@@ -46,6 +46,9 @@ public class VisitEventService {
     public VisitEventService(VisitEventMapper visitEventMapper, AppProperties appProperties) {
         this.visitEventMapper = visitEventMapper;
         this.appProperties = appProperties;
+        this.asyncQueueCapacity = appProperties.getVisitEvent().getAsyncQueueCapacity();
+        this.asyncDrainLimit = appProperties.getVisitEvent().getAsyncDrainLimit();
+        this.asyncQueue = new LinkedBlockingQueue<>(asyncQueueCapacity);
         this.asyncWorker = new Thread(this::drainAsyncEvents, "visit-event-async-writer");
         this.asyncWorker.setDaemon(true);
         this.asyncWorker.start();
@@ -104,8 +107,8 @@ public class VisitEventService {
     public VisitEventRuntimeVO runtime() {
         VisitEventRuntimeVO runtime = new VisitEventRuntimeVO();
         runtime.setQueueSize(asyncQueue.size());
-        runtime.setQueueCapacity(ASYNC_QUEUE_CAPACITY);
-        runtime.setDrainLimit(ASYNC_DRAIN_LIMIT);
+        runtime.setQueueCapacity(asyncQueueCapacity);
+        runtime.setDrainLimit(asyncDrainLimit);
         runtime.setDroppedAsyncEvents(droppedAsyncEvents.get());
         runtime.setWorkerAlive(asyncWorker.isAlive());
         return runtime;
@@ -124,12 +127,12 @@ public class VisitEventService {
     }
 
     private void drainAsyncEvents() {
-        List<VisitEventEntity> batch = new ArrayList<>(ASYNC_DRAIN_LIMIT);
+        List<VisitEventEntity> batch = new ArrayList<>(asyncDrainLimit);
         while (running.get()) {
             try {
                 VisitEventEntity first = asyncQueue.take();
                 batch.add(first);
-                asyncQueue.drainTo(batch, ASYNC_DRAIN_LIMIT - 1);
+                asyncQueue.drainTo(batch, asyncDrainLimit - 1);
                 flushBatch(batch);
                 batch.clear();
             } catch (InterruptedException ex) {
@@ -146,7 +149,7 @@ public class VisitEventService {
     }
 
     private void flushRemainingAsyncEvents() {
-        List<VisitEventEntity> batch = new ArrayList<>(ASYNC_DRAIN_LIMIT);
+        List<VisitEventEntity> batch = new ArrayList<>(asyncDrainLimit);
         asyncQueue.drainTo(batch);
         flushBatch(batch);
     }

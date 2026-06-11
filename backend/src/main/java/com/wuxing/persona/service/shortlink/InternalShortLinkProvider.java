@@ -18,7 +18,6 @@ import org.springframework.stereotype.Component;
 public class InternalShortLinkProvider implements ShortLinkProvider {
 
     private static final Logger log = LoggerFactory.getLogger(InternalShortLinkProvider.class);
-    private static final long LAST_VISIT_TOUCH_INTERVAL_SECONDS = 30;
 
     private final SecureRandom secureRandom = new SecureRandom();
     private final ShortLinkMapper shortLinkMapper;
@@ -114,8 +113,9 @@ public class InternalShortLinkProvider implements ShortLinkProvider {
 
     private void touchLastVisitAtIfStale(String shortCode) {
         LocalDateTime now = LocalDateTime.now();
+        int intervalSeconds = appProperties.getShortLink().getLastVisitTouchIntervalSeconds();
         try {
-            shortLinkMapper.touchLastVisitAtIfStale(shortCode, now, now.minusSeconds(LAST_VISIT_TOUCH_INTERVAL_SECONDS));
+            shortLinkMapper.touchLastVisitAtIfStale(shortCode, now, now.minusSeconds(intervalSeconds));
         } catch (RuntimeException ex) {
             log.warn("Short link last visit touch failed, shortCode={}, error={}: {}",
                     shortCode, ex.getClass().getSimpleName(), ex.getMessage());
