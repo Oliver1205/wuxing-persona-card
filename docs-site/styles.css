@@ -227,7 +227,7 @@ h3 {
 
 .hero-card {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .hero-card > div {
@@ -246,6 +246,88 @@ h3 {
 
 .hero-card small {
   color: var(--muted);
+}
+
+.result-preview {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  background:
+    linear-gradient(135deg, #fff8ee 0%, #fff0e7 100%);
+}
+
+.preview-mark {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: #bd5c43;
+  color: #fff;
+  font-size: 34px;
+  font-weight: 900;
+}
+
+.result-preview strong,
+.result-preview small {
+  display: block;
+}
+
+.result-preview strong {
+  margin-top: 6px;
+  font-size: 26px;
+  line-height: 1.25;
+}
+
+.result-preview p {
+  margin: 6px 0 0;
+  color: #6b4538;
+  font-weight: 800;
+}
+
+.preview-bars {
+  display: grid;
+  gap: 10px;
+}
+
+.preview-bars span {
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #edf4f0;
+  color: #21332f;
+  font-size: 13px;
+  font-weight: 900;
+  padding: 9px 12px;
+}
+
+.preview-bars span::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--value);
+  background: rgb(47 123 98 / 24%);
+}
+
+.preview-bars span {
+  isolation: isolate;
+}
+
+.preview-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.preview-actions span {
+  border-radius: 999px;
+  background: #fff;
+  color: var(--green-dark);
+  font-size: 12px;
+  font-weight: 900;
+  padding: 8px 10px;
+  text-align: center;
 }
 
 .section {
@@ -612,6 +694,7 @@ h3 {
   .workflow-grid,
   .roadmap-grid,
   .doc-grid,
+  .preview-actions,
   .material-board,
   .diagram-strip,
   .flow,

@@ -230,3 +230,9 @@ multi-role review support. The main outcomes are:
 - Sharing priority: let users act on the result while the main persona card is still in view.
 - Frontend change: added a compact quick-action strip below the result card with save-image and retake/share-entry actions, while keeping the full short-link panel later in the page.
 - Browser value: local H2 + Vite verification confirmed the quick-action strip renders on a real result page and the new resonance cards still show three behavior cues.
+
+### Phase 29
+
+- Showcase priority: make the static docs site first screen feel like a product entry before an engineering defense.
+- Docs-site change: the hero now leads with H5 experience, result screenshot, and engineering evidence actions, plus a compact result-card preview that shows identity, keywords, ratio, and share actions.
+- Product value: ordinary visitors can understand what the H5 produces before reading the deeper architecture and interview material.
