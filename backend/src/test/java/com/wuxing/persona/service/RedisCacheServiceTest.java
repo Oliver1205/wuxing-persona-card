@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wuxing.persona.vo.AdminOverviewVO;
 import com.wuxing.persona.vo.ResultDetailVO;
 import java.time.Duration;
 import java.util.List;
@@ -106,11 +107,47 @@ class RedisCacheServiceTest {
     }
 
     @Test
+    void adminOverviewCacheShouldUseShortTtl() {
+        AdminOverviewVO overview = new AdminOverviewVO();
+        overview.setTotalPv(12L);
+        overview.setTotalUv(8L);
+
+        service.setAdminOverview("2026-06-11:null", overview);
+
+        verify(valueOperations).set(eq("admin:overview:2026-06-11:null"), any(String.class), eq(Duration.ofSeconds(45)));
+    }
+
+    @Test
+    void getAdminOverviewShouldDeserializeCachedJson() {
+        when(valueOperations.get("admin:overview:today")).thenReturn("""
+                {
+                  "totalPv": 12,
+                  "totalUv": 8,
+                  "totalUip": 6,
+                  "metricSource": "live_event"
+                }
+                """);
+
+        AdminOverviewVO overview = service.getAdminOverview("today");
+
+        assertEquals(12L, overview.getTotalPv());
+        assertEquals(8L, overview.getTotalUv());
+        assertEquals("live_event", overview.getMetricSource());
+    }
+
+    @Test
     void cacheFailuresShouldDegradeToMisses() {
         doThrow(new RuntimeException("redis unavailable")).when(valueOperations).get("result:R1");
         doThrow(new RuntimeException("redis unavailable")).when(redisTemplate).hasKey("shortlink:null:abc123");
 
         assertNull(service.getResult("R1"));
         assertFalse(service.isNullShortLink("abc123"));
+    }
+
+    @Test
+    void adminOverviewCacheFailuresShouldDegradeToMisses() {
+        doThrow(new RuntimeException("redis unavailable")).when(valueOperations).get("admin:overview:today");
+
+        assertNull(service.getAdminOverview("today"));
     }
 }

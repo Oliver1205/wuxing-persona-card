@@ -464,7 +464,7 @@ function goToStep(index: number) {
       <p v-if="error" class="error-text">{{ error }}</p>
 
       <div class="sticky-action">
-        <div>
+        <div class="action-summary">
           <strong>{{ stepCaption }}</strong>
           <span>
             {{ isBirthStep ? (birthInfoComplete ? '可以进入问答卡片' : '出生年月是必填项') : (activeQuestionAnswered ? '已选择，继续下一张' : '按第一反应选择一个答案') }}
@@ -473,7 +473,7 @@ function goToStep(index: number) {
         <button type="button" class="secondary nav-button" :disabled="activeStepIndex === 0 || submitting" @click="goPrevious">
           上一张
         </button>
-        <button type="button" :disabled="submitting || loading" @click="goNext">
+        <button type="button" class="primary-action-button" :disabled="submitting || loading" @click="goNext">
           {{ primaryActionText }}
         </button>
         <RouterLink class="button-link secondary" to="/">返回首页</RouterLink>
@@ -931,7 +931,7 @@ function goToStep(index: number) {
   box-shadow: 0 14px 42px rgba(31, 48, 43, 0.14);
 }
 
-.sticky-action div {
+.action-summary {
   display: grid;
   gap: 3px;
 }
@@ -975,7 +975,32 @@ function goToStep(index: number) {
   }
 
   .sticky-action {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    bottom: 10px;
+    gap: 8px;
+  }
+
+  .action-summary,
+  .primary-action-button {
+    grid-column: 1 / -1;
+  }
+
+  .primary-action-button {
+    order: 1;
+    min-height: 50px;
+    font-size: 16px;
+  }
+
+  .action-summary {
+    order: 0;
+  }
+
+  .nav-button {
+    order: 2;
+  }
+
+  .sticky-action a {
+    order: 3;
   }
 
   .sticky-action button,

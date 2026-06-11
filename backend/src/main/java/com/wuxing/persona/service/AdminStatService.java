@@ -44,20 +44,28 @@ public class AdminStatService {
     private final VisitEventMapper visitEventMapper;
     private final SiteDailyMetricMapper siteDailyMetricMapper;
     private final ExternalShortLinkStatsAdapter externalShortLinkStatsAdapter;
+    private final RedisCacheService redisCacheService;
 
     public AdminStatService(UserResultMapper userResultMapper,
                             ShortLinkMapper shortLinkMapper,
                             VisitEventMapper visitEventMapper,
                             SiteDailyMetricMapper siteDailyMetricMapper,
-                            ExternalShortLinkStatsAdapter externalShortLinkStatsAdapter) {
+                            ExternalShortLinkStatsAdapter externalShortLinkStatsAdapter,
+                            RedisCacheService redisCacheService) {
         this.userResultMapper = userResultMapper;
         this.shortLinkMapper = shortLinkMapper;
         this.visitEventMapper = visitEventMapper;
         this.siteDailyMetricMapper = siteDailyMetricMapper;
         this.externalShortLinkStatsAdapter = externalShortLinkStatsAdapter;
+        this.redisCacheService = redisCacheService;
     }
 
     public AdminOverviewVO overview(AdminDateRange range) {
+        String rangeKey = overviewRangeKey(range);
+        AdminOverviewVO cached = redisCacheService.getAdminOverview(rangeKey);
+        if (cached != null) {
+            return cached;
+        }
         AdminOverviewVO overview = new AdminOverviewVO();
         long startClicks = visitEventMapper.countByEventTypeBetween(EventType.START_TEST_CLICK.name(),
                 range.getStartAt(), range.getEndExclusive());
@@ -92,6 +100,7 @@ public class AdminStatService {
                 range.getStartAt(), range.getEndExclusive())));
         overview.setRecentShortLinks(toShortLinkItems(shortLinkMapper.listPageBetween(0, 5,
                 range.getStartAt(), range.getEndExclusive()), range));
+        redisCacheService.setAdminOverview(rangeKey, overview);
         return overview;
     }
 
@@ -378,6 +387,10 @@ public class AdminStatService {
             throw new BusinessException("statSource must be local or external");
         }
         return value;
+    }
+
+    private String overviewRangeKey(AdminDateRange range) {
+        return String.valueOf(range.getStartAt()) + ':' + range.getEndExclusive();
     }
 
     private String csv(String value) {

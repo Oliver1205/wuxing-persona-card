@@ -1,6 +1,7 @@
 package com.wuxing.persona.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wuxing.persona.vo.AdminOverviewVO;
 import com.wuxing.persona.vo.ResultDetailVO;
 import java.time.Duration;
 import org.slf4j.Logger;
@@ -15,6 +16,7 @@ public class RedisCacheService {
     private static final Duration RESULT_TTL = Duration.ofHours(24);
     private static final Duration SHORT_LINK_TTL = Duration.ofDays(7);
     private static final Duration NULL_SHORT_LINK_TTL = Duration.ofMinutes(5);
+    private static final Duration ADMIN_OVERVIEW_TTL = Duration.ofSeconds(45);
 
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
@@ -79,6 +81,27 @@ public class RedisCacheService {
         }
     }
 
+    public AdminOverviewVO getAdminOverview(String rangeKey) {
+        try {
+            String json = redisTemplate.opsForValue().get(adminOverviewKey(rangeKey));
+            if (json == null || json.isBlank()) {
+                return null;
+            }
+            return objectMapper.readValue(json, AdminOverviewVO.class);
+        } catch (Exception ex) {
+            log.warn("Read admin overview cache failed, rangeKey={}", rangeKey);
+            return null;
+        }
+    }
+
+    public void setAdminOverview(String rangeKey, AdminOverviewVO overview) {
+        try {
+            redisTemplate.opsForValue().set(adminOverviewKey(rangeKey), objectMapper.writeValueAsString(overview), ADMIN_OVERVIEW_TTL);
+        } catch (Exception ex) {
+            log.warn("Write admin overview cache failed, rangeKey={}", rangeKey);
+        }
+    }
+
     private String resultKey(String resultId) {
         return "result:" + resultId;
     }
@@ -89,5 +112,9 @@ public class RedisCacheService {
 
     private String nullShortLinkKey(String shortCode) {
         return "shortlink:null:" + shortCode;
+    }
+
+    private String adminOverviewKey(String rangeKey) {
+        return "admin:overview:" + rangeKey;
     }
 }
