@@ -134,6 +134,9 @@ onBeforeUnmount(() => {
 });
 
 async function submit() {
+  if (submitting.value) {
+    return;
+  }
   error.value = '';
   track('TEST_SUBMIT_ATTEMPT', '/test');
   if (!form.birthYear || !form.birthMonth) {
@@ -174,6 +177,9 @@ function markFormStart() {
 }
 
 function selectAnswer(questionCode: string, optionCode: string) {
+  if (submitting.value) {
+    return;
+  }
   markFormStart();
   clearAutoAdvance();
   form.answers[questionCode] = optionCode;
@@ -245,12 +251,18 @@ function optionRank(questionCode: string, optionCode: string) {
 }
 
 function goPrevious() {
+  if (submitting.value) {
+    return;
+  }
   error.value = '';
   clearAutoAdvance();
   activeStepIndex.value = Math.max(0, activeStepIndex.value - 1);
 }
 
 function goNext() {
+  if (submitting.value) {
+    return;
+  }
   error.value = '';
   clearAutoAdvance();
   if (isBirthStep.value) {
@@ -287,6 +299,9 @@ function canOpenStep(index: number) {
 }
 
 function goToStep(index: number) {
+  if (submitting.value) {
+    return;
+  }
   if (!canOpenStep(index)) {
     return;
   }
@@ -324,7 +339,7 @@ function clearAutoAdvance() {
       </div>
 
       <div class="step-strip" aria-label="测试步骤">
-        <button type="button" class="step-pill" :class="{ active: activeStepIndex === 0, done: birthInfoComplete }" @click="goToStep(0)">
+        <button type="button" class="step-pill" :class="{ active: activeStepIndex === 0, done: birthInfoComplete }" :disabled="submitting" @click="goToStep(0)">
           基础
         </button>
         <button
@@ -333,7 +348,7 @@ function clearAutoAdvance() {
           type="button"
           class="step-pill"
           :class="{ active: activeStepIndex === index + 1, done: Boolean(form.answers[question.questionCode]) }"
-          :disabled="!canOpenStep(index + 1)"
+          :disabled="submitting || !canOpenStep(index + 1)"
           @click="goToStep(index + 1)"
         >
           {{ index + 1 }}
@@ -502,6 +517,7 @@ function clearAutoAdvance() {
             :model-value="form.answers[activeQuestion.questionCode]"
             :question="activeQuestion"
             :question-index="activeQuestionIndex + 1"
+            :disabled="submitting"
             :total-questions="questions.length"
             @update:model-value="selectAnswer(activeQuestion.questionCode, $event)"
           />
@@ -514,6 +530,7 @@ function clearAutoAdvance() {
         <div class="action-summary">
           <strong>{{ stepCaption }}</strong>
           <span>{{ actionSummaryText }}</span>
+          <span v-if="submitting" class="submit-lock">正在生成，请不要关闭页面</span>
           <span class="auto-advance-track" :class="{ active: autoAdvancePending }" aria-hidden="true">
             <i></i>
           </span>
@@ -987,6 +1004,11 @@ function clearAutoAdvance() {
 .sticky-action span {
   color: #697674;
   font-size: 13px;
+}
+
+.submit-lock {
+  color: #2f6f5e;
+  font-weight: 900;
 }
 
 .auto-advance-track {

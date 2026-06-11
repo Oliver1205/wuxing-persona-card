@@ -6,6 +6,7 @@ defineProps<{
   modelValue?: string;
   questionIndex?: number;
   totalQuestions?: number;
+  disabled?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -31,6 +32,7 @@ const emit = defineEmits<{
         class="option"
         :class="{ active: modelValue === option.optionCode }"
         :aria-pressed="modelValue === option.optionCode"
+        :disabled="disabled"
         @click="emit('update:modelValue', option.optionCode)"
       >
         <span class="option-mark">{{ String.fromCharCode(65 + optionIndex) }}</span>
@@ -124,6 +126,16 @@ h3 {
 .option:hover {
   transform: translateY(-1px);
   border-color: rgba(47, 111, 94, 0.26);
+}
+
+.option:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+  transform: none;
+}
+
+.option:disabled:hover {
+  border-color: rgba(36, 48, 47, 0.14);
 }
 
 .option.active {
