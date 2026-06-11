@@ -201,7 +201,8 @@ docker compose --env-file deploy/.env -f deploy/docker-compose.yml up --build -d
 BASE_URL=http://127.0.0.1:8088 ADMIN_TOKEN=dev-token scripts/docker-smoke-test.sh
 BASE_URL=http://127.0.0.1:8088 ADMIN_TOKEN=dev-token SHORTLINK_HITS=30 \
 MAX_SHORTLINK_AVG_MS=120 MAX_SHORTLINK_P95_MS=200 \
-MAX_ADMIN_AVG_MS=200 MAX_ADMIN_P95_MS=350 scripts/performance-smoke-test.sh
+MAX_ADMIN_AVG_MS=200 MAX_ADMIN_P95_MS=350 \
+MAX_ASYNC_QUEUE_SIZE=0 MAX_ASYNC_DROPPED_EVENTS=0 scripts/performance-smoke-test.sh
 ```
 
 面试要点：
@@ -209,7 +210,7 @@ MAX_ADMIN_AVG_MS=200 MAX_ADMIN_P95_MS=350 scripts/performance-smoke-test.sh
 - 不能直接暴露 Spring Boot 8080 到公网，公网入口应走 Nginx。
 - MySQL 和 Redis 不暴露公网。
 - 上线前必须替换 `ADMIN_TOKEN`、`HASH_SALT`、数据库密码和 `APP_BASE_URL`。
-- 性能 smoke 不是压测报告，而是回归检查：它会创建一个真实结果，连续访问短链，并重复读取后台总览，用输出的 `shortlinkAvgMs`、`shortlinkP95Ms`、`adminAvgMs` 和 `adminP95Ms` 观察热点链路是否明显退化；设置 `MAX_*_AVG_MS` / `MAX_*_P95_MS` 后也可以把它变成低延迟阈值门。它还会读取访问事件 runtime，输出 `asyncDroppedEvents`，避免只看低延迟却忽略事件丢弃。
+- 性能 smoke 不是压测报告，而是回归检查：它会创建一个真实结果，连续访问短链，并重复读取后台总览，用输出的 `shortlinkAvgMs`、`shortlinkP95Ms`、`adminAvgMs` 和 `adminP95Ms` 观察热点链路是否明显退化；设置 `MAX_*_AVG_MS` / `MAX_*_P95_MS` 后也可以把它变成低延迟阈值门。它还会读取访问事件 runtime，输出 `asyncQueueSize`、`asyncDroppedEvents` 和 `asyncWorkerAlive`；把 `MAX_ASYNC_QUEUE_SIZE=0`、`MAX_ASYNC_DROPPED_EVENTS=0` 打开后，可以防止“接口很快，但事件都堆着或丢了”的假象。
 - 生产压测和告警演练的完整记录模板见 `docs/production-load-alert-runbook.md`；面试中可以讲演练方案和 smoke 证据，但没有真实报告前不要说已经验证生产 QPS。
 
 ## 9. 面试追问速答
@@ -388,7 +389,7 @@ sequenceDiagram
 | 视觉与作品集证据 | `scripts/capture-showcase-screenshots.sh`、`docs/screenshots/showcase/`、`docs-site/showcase.html` | `E2E_BASE_URL=http://127.0.0.1:5174 E2E_ADMIN_TOKEN=dev-token scripts/capture-showcase-screenshots.sh` | 项目展示不只靠文字，已经有 iPhone SE、安卓宽屏和桌面后台三类可复现截图。 |
 | 短码并发冲突 | `backend/src/main/java/com/wuxing/persona/service/shortlink/InternalShortLinkProvider.java`、`backend/src/main/java/com/wuxing/persona/mapper/ShortLinkMapper.java` | `mvn -q -f backend/pom.xml -Dtest=InternalShortLinkProviderTest test` | 当前短码生成依赖 `uk_short_code` 唯一键兜底，插入冲突时重试，避免 `count + insert` 的并发竞态。 |
 | 数据库迁移治理 | `backend/src/main/resources/db/schema.sql`、`backend/src/main/resources/application.yml` | `docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml config` | 当前是初始化脚本和演示环境 DDL，不是成熟迁移体系；生产化应引入 Flyway/Liquibase、版本号和回滚策略。 |
-| 异步事件丢失语义 | `backend/src/main/java/com/wuxing/persona/service/VisitEventService.java`、`docs/production-load-alert-runbook.md` | `mvn -q -f backend/pom.xml -Dtest=VisitEventServiceTest test` | 异步队列优先保护跳转低延迟，队列满或进程重启可能丢低价值事件，所以必须看 `asyncDroppedEvents`，并说明队列容量和批量大小是压测调参项。 |
+| 异步事件丢失语义 | `backend/src/main/java/com/wuxing/persona/service/VisitEventService.java`、`scripts/performance-smoke-test.sh`、`docs/production-load-alert-runbook.md` | `mvn -q -f backend/pom.xml -Dtest=VisitEventServiceTest test` | 异步队列优先保护跳转低延迟，队列满或进程重启可能丢低价值事件；单测覆盖队列满时的丢弃计数，performance smoke 可用 `MAX_ASYNC_DROPPED_EVENTS=0` 把无丢弃变成门禁。 |
 
 学习时建议每读完一张卡，就用自己的话录 30 秒音频。如果说到一半卡住，说明还不是代码没看懂，而是“入口、取舍、证据”三者没有串起来。
 

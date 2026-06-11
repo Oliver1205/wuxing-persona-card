@@ -58,6 +58,8 @@ MAX_SHORTLINK_AVG_MS=120 \
 MAX_SHORTLINK_P95_MS=220 \
 MAX_ADMIN_AVG_MS=250 \
 MAX_ADMIN_P95_MS=500 \
+MAX_ASYNC_QUEUE_SIZE=0 \
+MAX_ASYNC_DROPPED_EVENTS=0 \
 scripts/performance-smoke-test.sh
 ```
 
@@ -72,6 +74,8 @@ asyncQueueSize=
 asyncQueueCapacity=
 asyncDroppedEvents=
 asyncWorkerAlive=
+maxAsyncQueueSize=
+maxAsyncDroppedEvents=
 ```
 
 判断口径：
@@ -80,6 +84,7 @@ asyncWorkerAlive=
 - `asyncQueueSize` 用来看低延迟是否靠堆积事件换来。
 - `asyncDroppedEvents` 如果明显上升，要检查队列容量、批量写库速度和数据库连接池。
 - `asyncWorkerAlive=false` 是严重故障，必须停止压测并看后端日志。
+- `MAX_ASYNC_QUEUE_SIZE` 和 `MAX_ASYNC_DROPPED_EVENTS` 默认留空只观察；设为 `0` 时，smoke 会把“无积压、无丢弃”变成硬性门禁。
 - 短链列表里的 `metricSource` 用于区分统计口径：`live_event` 表示实时事件聚合，`daily_metric` 表示日聚合表，`external` 表示独立短链服务统计。压测复盘时不要把三种口径混在一起比较。
 
 压测调参入口：
@@ -150,5 +155,5 @@ asyncWorkerAlive=
 
 - 将 `performance-smoke-test.sh` 的输出保存为时间戳日志。
 - 用 `wrk` 或 `k6` 增加单接口压测脚本，先只测 `/s/{shortCode}`。
-- 为 `/api/admin/visit-events/runtime` 增加脚本化阈值检查。
+- 将 `/api/admin/visit-events/runtime` 的队列积压、丢弃数和 worker 存活检查纳入每次 smoke 输出。
 - 接入真实告警平台前，先把健康检查和 runtime 检查加入部署验收清单。

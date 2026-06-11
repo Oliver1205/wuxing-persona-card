@@ -383,3 +383,9 @@ multi-role review support. The main outcomes are:
 - Architecture priority: make external short-link consistency boundaries explicit instead of hiding cross-system failures behind optimistic fallback language.
 - Backend change: external short-code duplicate-key collisions now reuse the existing fallback path, while a successful external create followed by local binding write failure returns an explicit 500 requiring manual or compensating cleanup.
 - Interview value: the project can now explain which external failures are safe to degrade and which ones need a production compensation mechanism such as delete/disable API, outbox, or reconciliation.
+
+### Phase 54
+
+- Reliability priority: prove the async visit-event queue does not hide low-latency success behind invisible event drops.
+- Test change: `VisitEventServiceTest` now forces a queue capacity of one and blocks the worker so the third async event must increment `droppedAsyncEvents`.
+- Tooling change: `scripts/performance-smoke-test.sh` now requires the async worker to be alive, prints queue threshold settings, and supports optional `MAX_ASYNC_QUEUE_SIZE` / `MAX_ASYNC_DROPPED_EVENTS` guards.

@@ -2,6 +2,7 @@ package com.wuxing.persona.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
@@ -15,6 +16,8 @@ import com.wuxing.persona.enums.EventType;
 import com.wuxing.persona.mapper.VisitEventMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -125,6 +128,39 @@ class VisitEventServiceTest {
             assertEquals(7, customService.runtime().getQueueCapacity());
             assertEquals(3, customService.runtime().getDrainLimit());
         } finally {
+            customService.shutdown();
+        }
+    }
+
+    @Test
+    void recordAsyncShouldDropWhenQueueIsFullAndExposeRuntimeCounter() throws InterruptedException {
+        AppProperties appProperties = new AppProperties();
+        AppProperties.VisitEventProperties visitEventProperties = new AppProperties.VisitEventProperties();
+        visitEventProperties.setAsyncQueueCapacity(1);
+        visitEventProperties.setAsyncDrainLimit(1);
+        appProperties.setVisitEvent(visitEventProperties);
+        CountDownLatch firstBatchStarted = new CountDownLatch(1);
+        CountDownLatch releaseWorker = new CountDownLatch(1);
+        when(visitEventMapper.insertBatch(any())).thenAnswer(invocation -> {
+            firstBatchStarted.countDown();
+            releaseWorker.await(2, TimeUnit.SECONDS);
+            return 1;
+        });
+        stubRequest("/s/abc123");
+        VisitEventService customService = new VisitEventService(visitEventMapper, appProperties);
+
+        try {
+            customService.recordAsync(EventType.SHORT_LINK_VISIT, "/s/abc123", "R1", "abc123", "client-a", request);
+            assertTrue(firstBatchStarted.await(1, TimeUnit.SECONDS));
+            customService.recordAsync(EventType.SHORT_LINK_VISIT, "/s/abc123", "R1", "abc123", "client-b", request);
+            customService.recordAsync(EventType.SHORT_LINK_VISIT, "/s/abc123", "R1", "abc123", "client-c", request);
+
+            assertEquals(1, customService.runtime().getQueueCapacity());
+            assertEquals(1, customService.runtime().getQueueSize());
+            assertEquals(1, customService.runtime().getDroppedAsyncEvents());
+            assertTrue(customService.runtime().isWorkerAlive());
+        } finally {
+            releaseWorker.countDown();
             customService.shutdown();
         }
     }

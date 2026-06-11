@@ -10,6 +10,8 @@ MAX_SHORTLINK_AVG_MS="${MAX_SHORTLINK_AVG_MS:-0}"
 MAX_ADMIN_AVG_MS="${MAX_ADMIN_AVG_MS:-0}"
 MAX_SHORTLINK_P95_MS="${MAX_SHORTLINK_P95_MS:-0}"
 MAX_ADMIN_P95_MS="${MAX_ADMIN_P95_MS:-0}"
+MAX_ASYNC_QUEUE_SIZE="${MAX_ASYNC_QUEUE_SIZE:-}"
+MAX_ASYNC_DROPPED_EVENTS="${MAX_ASYNC_DROPPED_EVENTS:-}"
 
 fail() {
   echo "ERROR: $*" >&2
@@ -81,6 +83,8 @@ command -v python3 >/dev/null 2>&1 || fail "python3 is required"
 [[ "$MAX_ADMIN_AVG_MS" =~ ^[0-9]+$ ]] || fail "MAX_ADMIN_AVG_MS must be a non-negative integer"
 [[ "$MAX_SHORTLINK_P95_MS" =~ ^[0-9]+$ ]] || fail "MAX_SHORTLINK_P95_MS must be a non-negative integer"
 [[ "$MAX_ADMIN_P95_MS" =~ ^[0-9]+$ ]] || fail "MAX_ADMIN_P95_MS must be a non-negative integer"
+[[ -z "$MAX_ASYNC_QUEUE_SIZE" || "$MAX_ASYNC_QUEUE_SIZE" =~ ^[0-9]+$ ]] || fail "MAX_ASYNC_QUEUE_SIZE must be empty or a non-negative integer"
+[[ -z "$MAX_ASYNC_DROPPED_EVENTS" || "$MAX_ASYNC_DROPPED_EVENTS" =~ ^[0-9]+$ ]] || fail "MAX_ASYNC_DROPPED_EVENTS must be empty or a non-negative integer"
 
 body_file="$(mktemp)"
 create_response="$(mktemp)"
@@ -172,6 +176,9 @@ async_queue_capacity="$(json_get "$runtime_response" data.queueCapacity)"
 async_drain_limit="$(json_get "$runtime_response" data.drainLimit)"
 async_dropped_events="$(json_get "$runtime_response" data.droppedAsyncEvents)"
 async_worker_alive="$(json_get "$runtime_response" data.workerAlive)"
+[[ -n "$async_queue_size" ]] || fail "async queue size missing"
+[[ -n "$async_dropped_events" ]] || fail "async dropped events missing"
+[[ "$async_worker_alive" == "true" ]] || fail "async worker is not alive"
 if [[ "$MAX_SHORTLINK_AVG_MS" -gt 0 && "$short_avg_ms" -gt "$MAX_SHORTLINK_AVG_MS" ]]; then
   fail "shortlink average ${short_avg_ms}ms exceeded MAX_SHORTLINK_AVG_MS=${MAX_SHORTLINK_AVG_MS}"
 fi
@@ -183,6 +190,12 @@ if [[ "$MAX_SHORTLINK_P95_MS" -gt 0 && "$short_p95_ms" -gt "$MAX_SHORTLINK_P95_M
 fi
 if [[ "$MAX_ADMIN_P95_MS" -gt 0 && "$admin_p95_ms" -gt "$MAX_ADMIN_P95_MS" ]]; then
   fail "admin p95 ${admin_p95_ms}ms exceeded MAX_ADMIN_P95_MS=${MAX_ADMIN_P95_MS}"
+fi
+if [[ -n "$MAX_ASYNC_QUEUE_SIZE" && "$async_queue_size" -gt "$MAX_ASYNC_QUEUE_SIZE" ]]; then
+  fail "async queue size ${async_queue_size} exceeded MAX_ASYNC_QUEUE_SIZE=${MAX_ASYNC_QUEUE_SIZE}"
+fi
+if [[ -n "$MAX_ASYNC_DROPPED_EVENTS" && "$async_dropped_events" -gt "$MAX_ASYNC_DROPPED_EVENTS" ]]; then
+  fail "async dropped events ${async_dropped_events} exceeded MAX_ASYNC_DROPPED_EVENTS=${MAX_ASYNC_DROPPED_EVENTS}"
 fi
 
 echo "Performance smoke test passed"
@@ -206,3 +219,5 @@ echo "asyncQueueCapacity=${async_queue_capacity}"
 echo "asyncDrainLimit=${async_drain_limit}"
 echo "asyncDroppedEvents=${async_dropped_events}"
 echo "asyncWorkerAlive=${async_worker_alive}"
+echo "maxAsyncQueueSize=${MAX_ASYNC_QUEUE_SIZE}"
+echo "maxAsyncDroppedEvents=${MAX_ASYNC_DROPPED_EVENTS}"
