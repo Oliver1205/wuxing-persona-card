@@ -79,6 +79,7 @@ const displayQuestions = computed<Question[]>(() => questions.value.map((questio
   options: [...question.options].sort((left, right) => optionRank(question.questionCode, left.optionCode) - optionRank(question.questionCode, right.optionCode)),
 })));
 const isBirthStep = computed(() => activeStepIndex.value === 0);
+const canGoPrevious = computed(() => activeStepIndex.value > 0 && !submitting.value);
 const activeQuestionIndex = computed(() => Math.max(0, activeStepIndex.value - 1));
 const activeQuestion = computed(() => displayQuestions.value[activeQuestionIndex.value]);
 const activeQuestionAnswered = computed(() => {
@@ -538,18 +539,18 @@ function clearAutoAdvance() {
         <div class="action-summary">
           <strong>{{ stepCaption }}</strong>
           <span>{{ actionSummaryText }}</span>
+          <RouterLink class="home-inline-link" to="/">返回首页</RouterLink>
           <span v-if="submitting" class="submit-lock">正在生成，请不要关闭页面</span>
           <span class="auto-advance-track" :class="{ active: autoAdvancePending }" aria-hidden="true">
             <i></i>
           </span>
         </div>
-        <button type="button" class="secondary nav-button" :disabled="activeStepIndex === 0 || submitting" @click="goPrevious">
+        <button v-if="canGoPrevious" type="button" class="secondary nav-button" @click="goPrevious">
           上一张
         </button>
         <button type="button" class="primary-action-button" :disabled="submitting || loading" @click="goNext">
           {{ primaryActionText }}
         </button>
-        <RouterLink class="button-link secondary" to="/">返回首页</RouterLink>
       </div>
 
       <p class="notice">
@@ -1050,7 +1051,7 @@ function clearAutoAdvance() {
   bottom: 14px;
   z-index: 5;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 12px;
   align-items: center;
   border: 1px solid rgba(36, 48, 47, 0.14);
@@ -1063,6 +1064,18 @@ function clearAutoAdvance() {
 .action-summary {
   display: grid;
   gap: 3px;
+}
+
+.home-inline-link {
+  width: fit-content;
+  color: #2f6f5e;
+  font-size: 12px;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.home-inline-link:hover {
+  text-decoration: underline;
 }
 
 .sticky-action span {
@@ -1175,11 +1188,10 @@ function clearAutoAdvance() {
   }
 
   .sticky-action a {
-    order: 3;
+    order: initial;
   }
 
-  .sticky-action button,
-  .sticky-action a {
+  .sticky-action button {
     width: 100%;
   }
 

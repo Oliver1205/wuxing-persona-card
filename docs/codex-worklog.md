@@ -236,3 +236,9 @@ multi-role review support. The main outcomes are:
 - Showcase priority: make the static docs site first screen feel like a product entry before an engineering defense.
 - Docs-site change: the hero now leads with H5 experience, result screenshot, and engineering evidence actions, plus a compact result-card preview that shows identity, keywords, ratio, and share actions.
 - Product value: ordinary visitors can understand what the H5 produces before reading the deeper architecture and interview material.
+
+### Phase 30
+
+- Visitor priority: reduce first-step action noise before users enter the question flow.
+- Frontend change: the birth-info step no longer shows a disabled previous button, and the home link is demoted into the summary area while the main "进入第 1 题" action stays prominent.
+- Browser value: local H2 + Vite verification confirmed the first step has no previous button, while question steps still show "上一张" when returning is useful.
