@@ -83,3 +83,9 @@ multi-role review support. The main outcomes are:
 - Verification priority: make the burst-traffic story repeatable without introducing heavy benchmark infrastructure.
 - Tooling change: added `scripts/performance-smoke-test.sh` to create a real result, read the result, repeatedly hit the same short link, and repeat admin overview reads.
 - Interview value: the script output gives concrete `shortlinkAvgMs` and `adminAvgMs` values for explaining why short-link redirects and admin aggregate refreshes were optimized separately.
+
+### Phase 5
+
+- Frontend priority: reduce the repeated tap friction in the mobile question flow while keeping the final submit action explicit.
+- Frontend change: choosing an answer now briefly confirms the selection and auto-advances to the next question, except on the last question where the user still taps "生成我的人格卡".
+- Test update: mobile e2e was adjusted to follow the faster answer flow instead of requiring a manual "下一题" tap after every answer.

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { fetchQuestions } from '../api/questions';
 import { createResult } from '../api/results';
@@ -14,6 +14,7 @@ const loading = ref(true);
 const submitting = ref(false);
 const error = ref('');
 const formStarted = ref(false);
+const autoAdvanceTimer = ref<number | null>(null);
 
 const form = reactive<{
   birthYear: number | null;
@@ -108,6 +109,10 @@ onMounted(async () => {
   }
 });
 
+onBeforeUnmount(() => {
+  clearAutoAdvance();
+});
+
 async function submit() {
   error.value = '';
   track('TEST_SUBMIT_ATTEMPT', '/test');
@@ -150,8 +155,17 @@ function markFormStart() {
 
 function selectAnswer(questionCode: string, optionCode: string) {
   markFormStart();
+  clearAutoAdvance();
   form.answers[questionCode] = optionCode;
   track('QUESTION_ANSWER_SELECT', '/test');
+
+  if (!isLastQuestion.value) {
+    autoAdvanceTimer.value = window.setTimeout(() => {
+      if (form.answers[questionCode] === optionCode && activeQuestion.value?.questionCode === questionCode) {
+        goNext();
+      }
+    }, 320);
+  }
 }
 
 function selectBirthYear(year: number) {
@@ -211,11 +225,13 @@ function optionRank(questionCode: string, optionCode: string) {
 
 function goPrevious() {
   error.value = '';
+  clearAutoAdvance();
   activeStepIndex.value = Math.max(0, activeStepIndex.value - 1);
 }
 
 function goNext() {
   error.value = '';
+  clearAutoAdvance();
   if (isBirthStep.value) {
     if (!birthInfoComplete.value) {
       error.value = '请先选择出生年份和月份';
@@ -254,7 +270,16 @@ function goToStep(index: number) {
     return;
   }
   error.value = '';
+  clearAutoAdvance();
   activeStepIndex.value = index;
+}
+
+function clearAutoAdvance() {
+  if (autoAdvanceTimer.value === null) {
+    return;
+  }
+  window.clearTimeout(autoAdvanceTimer.value);
+  autoAdvanceTimer.value = null;
 }
 </script>
 
@@ -467,7 +492,7 @@ function goToStep(index: number) {
         <div class="action-summary">
           <strong>{{ stepCaption }}</strong>
           <span>
-            {{ isBirthStep ? (birthInfoComplete ? '可以进入问答卡片' : '出生年月是必填项') : (activeQuestionAnswered ? '已选择，继续下一张' : '按第一反应选择一个答案') }}
+            {{ isBirthStep ? (birthInfoComplete ? '可以进入问答卡片' : '出生年月是必填项') : (activeQuestionAnswered ? (isLastQuestion ? '确认无误后生成卡片' : '已选择，即将进入下一题') : '按第一反应选择一个答案') }}
           </span>
         </div>
         <button type="button" class="secondary nav-button" :disabled="activeStepIndex === 0 || submitting" @click="goPrevious">
