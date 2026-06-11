@@ -31,6 +31,7 @@
 - 角色 Agent 编排：`docs/agent-workflow-orchestration.md`
 - 下一轮角色 Backlog：`docs/next-iteration-role-backlog.md`
 - 八小时完成度审计：`docs/eight-hour-completion-audit.md`
+- 真实用户与设备验收清单：`docs/real-user-validation-checklist.md`
 - Codex 八小时工作日志：`docs/codex-worklog.md`
 - 外部短链服务对接说明：`docs/external-shortlink-integration-guide.md`
 - 外部短链接入隐私审计报告：`docs/external-shortlink-privacy-audit.md`

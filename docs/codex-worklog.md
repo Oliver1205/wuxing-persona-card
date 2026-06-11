@@ -242,3 +242,9 @@ multi-role review support. The main outcomes are:
 - Visitor priority: reduce first-step action noise before users enter the question flow.
 - Frontend change: the birth-info step no longer shows a disabled previous button, and the home link is demoted into the summary area while the main "进入第 1 题" action stays prominent.
 - Browser value: local H2 + Vite verification confirmed the first step has no previous button, while question steps still show "上一张" when returning is useful.
+
+### Phase 31
+
+- Validation priority: turn "natural interaction" into observable user and device checks.
+- Documentation change: added a real-user validation checklist covering first-visit understanding, birth-info friction, answer pacing, result resonance, sharing, friend return flow, device matrix, screenshots, and interview wording.
+- Product value: the next UX iteration can be judged with user evidence instead of only role-agent heuristics.

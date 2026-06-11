@@ -76,6 +76,7 @@
       <a href="docs/agent-workflow-orchestration.md">角色 Agent 编排</a><br>
       <a href="docs/next-iteration-role-backlog.md">下一轮角色 Backlog</a><br>
       <a href="docs/eight-hour-completion-audit.md">八小时完成度审计</a><br>
+      <a href="docs/real-user-validation-checklist.md">真实用户验收清单</a><br>
       <a href="#项目状态">项目状态</a><br>
       <a href="#核心亮点">核心亮点</a><br>
       <a href="#在线地址">在线地址</a><br>
