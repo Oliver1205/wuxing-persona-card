@@ -486,6 +486,18 @@ scripts/performance-smoke-test.sh
 mvn -q -f backend/pom.xml -Pcontainer-it verify
 ```
 
+移动端 E2E 与多视口 showcase 截图：
+
+```bash
+cd frontend
+npm install
+npx playwright install chromium
+npm run e2e:mobile
+npm run e2e:showcase
+```
+
+也可以从仓库根目录运行 `scripts/mobile-e2e.sh` 和 `scripts/capture-showcase-screenshots.sh`；截图默认输出到 `docs/screenshots/showcase/`。
+
 ## 验证结果
 
 已通过：

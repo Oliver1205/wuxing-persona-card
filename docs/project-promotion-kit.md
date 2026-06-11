@@ -84,7 +84,7 @@ E2E_ADMIN_TOKEN=dev-token \
 scripts/capture-showcase-screenshots.sh
 ```
 
-脚本会在 Playwright 可用时生成首页、出生信息卡、问答卡、结果页、分享回流页和后台总览截图，默认输出到 `docs/screenshots/showcase/`。如果本机尚未安装 Playwright，脚本会给出安装提示并退出，不影响默认质量门禁。
+脚本会在 Playwright 可用时生成首页、出生信息卡、问答卡、结果页、分享回流页和后台总览截图，默认输出到 `docs/screenshots/showcase/`。`@playwright/test` 已纳入前端依赖；新机器需要先执行 `npm install` 和 `npx playwright install chromium`。
 
 当前脚本会覆盖三类展示视口：
 

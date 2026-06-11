@@ -297,3 +297,9 @@ multi-role review support. The main outcomes are:
 - Visual evidence priority: make the showcase screenshot workflow useful for product, ordinary-user, and art-manager review rather than a single mobile viewport.
 - Tooling change: the Playwright showcase spec now captures the full product flow for iPhone SE and wide Android mobile viewports, plus the desktop admin overview.
 - Documentation value: the promotion kit, role matrix, and completion audit now distinguish "multi-viewport screenshot script exists" from "real generated screenshot artifacts still need to be archived."
+
+### Phase 40
+
+- Reproducibility priority: make mobile E2E and showcase screenshot commands available from a clean frontend install.
+- Tooling change: added `@playwright/test` to frontend dev dependencies and exposed `npm run e2e:mobile` / `npm run e2e:showcase`, with root scripts delegating to those commands.
+- Documentation value: README and historical scorecards now distinguish "Playwright dependency is present" from the remaining CI/browser-install and screenshot-archive work.

@@ -63,7 +63,7 @@
 | HTTPS/HSTS 和告警演练未归档 | 生产安全与运维证据不足 | 补 Nginx/TLS 检查、健康检查、告警触发和恢复记录 |
 | 多机型截图产物尚未归档 | 脚本已支持 iPhone SE、安卓宽屏和桌面后台，但宣传材料还缺真实生成图片 | 运行 `scripts/capture-showcase-screenshots.sh` 并提交或归档 `docs/screenshots/showcase/` 产物 |
 | 真实普通用户访谈不足 | 交互“自然”还主要来自角色启发式评审 | 找 3 到 5 位普通用户记录首次使用卡点 |
-| Playwright 截图依赖未纳入 CI | 截图流程仍依赖本机是否安装 Playwright | 将前端 e2e 依赖和 showcase 截图脚本接入 CI |
+| Playwright 浏览器和截图归档未纳入 CI | `@playwright/test` 已进入前端依赖，但浏览器安装与截图产物归档仍依赖本机执行 | 将 `npx playwright install chromium`、移动端 E2E 和 showcase 截图脚本接入 CI |
 
 ## 6. 下一阶段建议
 

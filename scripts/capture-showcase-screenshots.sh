@@ -13,10 +13,10 @@ export E2E_ADMIN_TOKEN
 export SHOWCASE_SCREENSHOT_DIR
 
 if ! npm exec -- playwright --version >/dev/null 2>&1; then
-  echo "Playwright is not installed. Run: cd frontend && npm install -D @playwright/test && npx playwright install chromium" >&2
+  echo "Playwright is not installed. Run: cd frontend && npm install && npx playwright install chromium" >&2
   exit 1
 fi
 
 mkdir -p "$SHOWCASE_SCREENSHOT_DIR"
-npm exec -- playwright test e2e/showcase-screenshots.spec.mjs --browser=chromium
+npm run e2e:showcase
 echo "Showcase screenshots saved to $SHOWCASE_SCREENSHOT_DIR"
