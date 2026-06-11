@@ -586,6 +586,37 @@ h3 {
   font-weight: 700;
 }
 
+.showcase-wall {
+  display: grid;
+  grid-template-columns: 0.78fr 0.9fr 1.45fr;
+  gap: 16px;
+  align-items: start;
+  margin-top: 24px;
+}
+
+.showcase-wall figure {
+  margin: 0;
+}
+
+.showcase-wall img {
+  display: block;
+  width: 100%;
+  max-height: 620px;
+  object-fit: cover;
+  object-position: top center;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #f7f4ed;
+  box-shadow: 0 16px 42px rgb(42 54 47 / 10%);
+}
+
+.showcase-wall figcaption {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .material-board {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -696,6 +727,7 @@ h3 {
   .doc-grid,
   .preview-actions,
   .material-board,
+  .showcase-wall,
   .diagram-strip,
   .flow,
   .two-column,
