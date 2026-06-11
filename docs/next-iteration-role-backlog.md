@@ -34,7 +34,7 @@
 
 | 优先级 | 问题 | 峰值风险 | 相关位置 | 验证方式 |
 | --- | --- | --- | --- | --- |
-| P0 | 访问事件仍在请求线程同步写库 | 微信群或朋友圈集中打开短链时，`/s/{shortCode}` 每次 302 都同步 `INSERT visit_event`，数据库抖动会拖慢跳转 | `InternalShortLinkProvider`、`VisitEventService` | 扩展 `scripts/performance-smoke-test.sh`，将 `SHORTLINK_HITS` 提到 500/1000，对比短链平均耗时和 TP95，并检查事件落库/丢弃计数 |
+| P0 | 访问事件单机异步后仍缺少可配置延迟阈值 | 微信群或朋友圈集中打开短链时，需要在回归验证中及时发现 302 平均耗时退化 | `scripts/performance-smoke-test.sh`、`VisitEventService` | 已在 Phase 37 加入 `MAX_SHORTLINK_AVG_MS` / `MAX_ADMIN_AVG_MS` 可选阈值；后续再补 TP95 和事件丢弃计数输出 |
 | P0 | 后台短链列表仍可能实时扫访问明细 | 事件表增长后，后台 `COUNT(DISTINCT ...) GROUP BY short_code` 会和线上写入抢 IO/CPU | `AdminStatService`、`VisitEventMapper`、`ShortLinkDailyMetricMapper` | 造多日访问数据，先执行聚合，再对比 `/api/admin/short-links` SQL 耗时和结果一致性 |
 | P1 | external 模式统计缺少短缓存 | 一页短链可能触发多次外部 HTTP 统计请求，外部慢会拖慢后台 | `ExternalShortLinkStatsAdapter`、`RestExternalShortLinkClient` | mock 外部服务加 500ms 延迟，连续访问后台列表，第二次应命中缓存 |
 | P1 | 热短码计数还没有 Redis 增量缓冲 | 如果未来恢复短链表实时计数，热点行会被高频更新 | `ShortLinkMapper`、`InternalShortLinkProvider` | 同一短码高并发访问时，MySQL `UPDATE short_link` 次数应接近周期级而不是请求级 |
@@ -53,6 +53,7 @@
 - external 统计缓存已在 Phase 24 落地，适合后续再扩展为 external mock 慢响应场景的集成测试。
 - 短链 Redis 命中不碰 DB、last_visit_at 触碰失败不影响 302 已在 Phase 33 落地。
 - `/api/events` 前端埋点异步入队已在 Phase 34 落地，保留结果创建等核心业务事件的同步记录边界；异步 worker 批量 insert 已在 Phase 35 落地。
+- 性能 smoke 可选低延迟阈值已在 Phase 37 落地，默认只输出耗时，设置阈值后可用于拦截明显退化。
 - Flyway/Liquibase 迁移治理价值很高，但会影响启动和部署方式，适合作为独立生产化任务。
 
 ## 5. 待补充审视

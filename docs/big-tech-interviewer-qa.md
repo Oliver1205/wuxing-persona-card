@@ -16,9 +16,9 @@
 
 仓库证据：
 
-- `backend/src/main/java/com/wuxing/controller/ShortLinkController.java`
-- `backend/src/main/java/com/wuxing/service/InternalShortLinkProvider.java`
-- `backend/src/main/java/com/wuxing/mapper/ShortLinkMapper.java`
+- `backend/src/main/java/com/wuxing/persona/controller/ShortLinkController.java`
+- `backend/src/main/java/com/wuxing/persona/service/InternalShortLinkProvider.java`
+- `backend/src/main/java/com/wuxing/persona/mapper/ShortLinkMapper.java`
 
 回答要点：
 
@@ -39,7 +39,7 @@
 
 仓库证据：
 
-- `backend/src/main/java/com/wuxing/service/VisitEventService.java`
+- `backend/src/main/java/com/wuxing/persona/service/VisitEventService.java`
 - `backend/src/test/java/com/wuxing/service/VisitEventServiceTest.java`
 - `backend/src/test/java/com/wuxing/service/InternalShortLinkProviderTest.java`
 
@@ -62,9 +62,9 @@
 
 仓库证据：
 
-- `backend/src/main/java/com/wuxing/service/AdminStatService.java`
-- `backend/src/main/java/com/wuxing/service/AnalyticsAggregationService.java`
-- `backend/src/main/java/com/wuxing/service/RedisCacheService.java`
+- `backend/src/main/java/com/wuxing/persona/service/AdminStatService.java`
+- `backend/src/main/java/com/wuxing/persona/service/AnalyticsAggregationService.java`
+- `backend/src/main/java/com/wuxing/persona/service/RedisCacheService.java`
 
 回答要点：
 
@@ -85,7 +85,7 @@
 
 仓库证据：
 
-- `backend/src/main/java/com/wuxing/service/ExternalShortLinkStatsAdapter.java`
+- `backend/src/main/java/com/wuxing/persona/service/ExternalShortLinkStatsAdapter.java`
 - `backend/src/test/java/com/wuxing/service/ExternalShortLinkStatsAdapterTest.java`
 - `docs/external-shortlink-integration-guide.md`
 
@@ -108,9 +108,9 @@
 
 仓库证据：
 
-- `backend/src/main/java/com/wuxing/service/RedisCacheService.java`
+- `backend/src/main/java/com/wuxing/persona/service/RedisCacheService.java`
 - `backend/src/test/java/com/wuxing/service/RedisCacheServiceTest.java`
-- `backend/src/main/java/com/wuxing/service/ResultService.java`
+- `backend/src/main/java/com/wuxing/persona/service/ResultService.java`
 
 回答要点：
 
@@ -131,10 +131,10 @@
 
 仓库证据：
 
-- `backend/src/main/resources/schema.sql`
-- `backend/src/main/resources/schema-local.sql`
-- `backend/src/main/java/com/wuxing/mapper/VisitEventMapper.java`
-- `backend/src/main/java/com/wuxing/mapper/ShortLinkMapper.java`
+- `backend/src/main/resources/db/schema.sql`
+- `backend/src/main/resources/db/schema-local.sql`
+- `backend/src/main/java/com/wuxing/persona/mapper/VisitEventMapper.java`
+- `backend/src/main/java/com/wuxing/persona/mapper/ShortLinkMapper.java`
 
 回答要点：
 
@@ -155,8 +155,8 @@
 
 仓库证据：
 
-- `backend/src/main/resources/schema.sql`
-- `backend/src/main/resources/schema-local.sql`
+- `backend/src/main/resources/db/schema.sql`
+- `backend/src/main/resources/db/schema-local.sql`
 - `backend/src/main/resources/application.yml`
 - `docs/deploy.md`
 
@@ -177,9 +177,9 @@
 
 仓库证据：
 
-- `backend/src/main/java/com/wuxing/service/ExternalShortLinkProvider.java`
-- `backend/src/main/java/com/wuxing/service/RestExternalShortLinkClient.java`
-- `backend/src/main/java/com/wuxing/config/AppProperties.java`
+- `backend/src/main/java/com/wuxing/persona/service/ExternalShortLinkProvider.java`
+- `backend/src/main/java/com/wuxing/persona/service/RestExternalShortLinkClient.java`
+- `backend/src/main/java/com/wuxing/persona/config/AppProperties.java`
 - `docs/external-shortlink-integration-guide.md`
 
 回答要点：

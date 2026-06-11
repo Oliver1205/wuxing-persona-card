@@ -100,15 +100,16 @@ sequenceDiagram
     P->>DB: select short_link
     P->>C: cache shortCode -> resultId
   end
-  P->>DB: insert SHORT_LINK_VISIT event
-  P->>DB: touch last_visit_at
+  P->>P: enqueue SHORT_LINK_VISIT event
+  P->>DB: touch last_visit_at if stale
   P-->>B: 302 /result/{resultId}?sc={shortCode}
+  P-->>DB: async batch insert visit_event
 ```
 
 面试要点：
 
 - 短链是传播峰值入口，必须低延迟。
-- 当前优化点是：跳转请求不再同步做 PV/UV/UIP 三次实时聚合，只记录事件和轻量更新时间。
+- 当前优化点是：Redis 命中时直接用 cached resultId 返回，不再为了跳转回查 `short_link`；访问事件进入有界队列，由后台 worker 批量写库。
 - 后台统计仍可从事件表或日聚合表计算，用户跳转链路不被统计查询拖慢。
 
 ## 4. 数据模型
@@ -153,11 +154,11 @@ erDiagram
 
 高峰场景回答模板：
 
-> 如果某张人格卡在群里突然传播，最大压力会落在 `/s/{shortCode}`。我的处理是短码解析优先走 Redis，未命中才查 MySQL；访问事件保留用于统计，但跳转链路不再同步做三次 `COUNT DISTINCT`，只轻量更新最后访问时间。后台统计可以走事件表或日聚合表，这样用户 302 延迟不会被运营查询拖慢。
+> 如果某张人格卡在群里突然传播，最大压力会落在 `/s/{shortCode}`。我的处理是短码解析优先走 Redis，命中时直接拿 resultId 返回，未命中才查 MySQL；访问事件保留用于统计，但请求线程只入有界队列，后台 worker 再批量写 `visit_event`。后台统计可以走事件表或日聚合表，这样用户 302 延迟不会被运营查询拖慢。
 
 短链跳转写放大的回答可以这样补充：
 
-> 访问事件每次都写，因为这是统计明细的事实来源；但 `short_link.last_visit_at` 只是列表展示字段，不需要每次跳转都同步刷新。我把它改成至少间隔 30 秒才更新一次，减少同一热门短码在瞬时传播时对 `short_link` 行的反复写压力。
+> 访问事件是统计明细的事实来源，所以不能简单丢掉；但它不需要卡住 302 跳转。我把低价值访问事件改成异步入队、后台批量 insert，批量失败时再降级单条写入。`short_link.last_visit_at` 只是列表展示字段，也改成至少间隔 30 秒才更新一次，减少同一热门短码在瞬时传播时对 `short_link` 行的反复写压力。
 
 Admin overview 的回答可以这样补充：
 
@@ -198,7 +199,8 @@ cp deploy/.env.example deploy/.env
 scripts/deploy-preflight.sh deploy/.env
 docker compose --env-file deploy/.env -f deploy/docker-compose.yml up --build -d
 BASE_URL=http://127.0.0.1:8088 ADMIN_TOKEN=dev-token scripts/docker-smoke-test.sh
-BASE_URL=http://127.0.0.1:8088 ADMIN_TOKEN=dev-token SHORTLINK_HITS=30 scripts/performance-smoke-test.sh
+BASE_URL=http://127.0.0.1:8088 ADMIN_TOKEN=dev-token SHORTLINK_HITS=30 \
+MAX_SHORTLINK_AVG_MS=120 MAX_ADMIN_AVG_MS=200 scripts/performance-smoke-test.sh
 ```
 
 面试要点：
@@ -206,7 +208,7 @@ BASE_URL=http://127.0.0.1:8088 ADMIN_TOKEN=dev-token SHORTLINK_HITS=30 scripts/p
 - 不能直接暴露 Spring Boot 8080 到公网，公网入口应走 Nginx。
 - MySQL 和 Redis 不暴露公网。
 - 上线前必须替换 `ADMIN_TOKEN`、`HASH_SALT`、数据库密码和 `APP_BASE_URL`。
-- 性能 smoke 不是压测报告，而是回归检查：它会创建一个真实结果，连续访问短链，并重复读取后台总览，用输出的 `shortlinkAvgMs` 和 `adminAvgMs` 观察热点链路是否明显退化。
+- 性能 smoke 不是压测报告，而是回归检查：它会创建一个真实结果，连续访问短链，并重复读取后台总览，用输出的 `shortlinkAvgMs` 和 `adminAvgMs` 观察热点链路是否明显退化；设置 `MAX_SHORTLINK_AVG_MS` / `MAX_ADMIN_AVG_MS` 后也可以把它变成低延迟阈值门。
 
 ## 9. 面试追问速答
 
@@ -249,8 +251,9 @@ flowchart TB
   Cache -- no --> DB["MySQL 查 short_link"]
   DB --> Fill["回填 Redis"]
   Fill --> Redirect
-  Redirect --> Event["写 SHORT_LINK_VISIT 明细"]
-  Event --> Admin["后台异步/聚合口径查看"]
+  Redirect --> Event["入队 SHORT_LINK_VISIT"]
+  Event --> Batch["后台批量写 visit_event"]
+  Batch --> Admin["后台异步/聚合口径查看"]
 ```
 
 这张图用于回答高并发。核心句子是：短链跳转先保证 302 低延迟，统计查询不阻塞用户跳转。
@@ -287,7 +290,7 @@ flowchart LR
 - Nginx 作为公网入口，后端、MySQL、Redis 在内网。
 - 结果详情和短码映射优先走 Redis。
 - 短链跳转不做实时 distinct 聚合，避免传播入口被统计查询拖慢。
-- 事件写入失败只记录告警，不阻断结果读取和短链跳转。
+- 低价值访问事件异步入队和批量写入；队列满或写入失败只记录告警，不阻断结果读取和短链跳转。
 - 后台统计使用索引、日聚合、短缓存和批量查询控制压力。
 
 这一级适合个人作品集、实习面试和小规模上线验证。
@@ -315,9 +318,9 @@ flowchart LR
 
 这一阶段要避免把状态塞进单个后端进程，否则多实例扩容会失效。
 
-### 再下一阶段：异步化与削峰
+### 再下一阶段：外部化异步削峰
 
-如果短链传播峰值继续放大，访问事件可以从同步写库演进为异步写入：
+当前项目已经完成单机内存队列 + 后台批量写库，适合单机作品阶段。如果短链传播峰值继续放大，下一步可以把访问事件从进程内队列演进为 MQ 或日志管道：
 
 ```mermaid
 sequenceDiagram
@@ -348,7 +351,7 @@ sequenceDiagram
 
 面试收束句：
 
-> 当前项目已经完成单机阶段的热路径优化、缓存、索引、降级和质量门禁；如果流量继续放大，我会按“多实例、异步事件、数据分层、观测告警”的顺序演进，而不是一开始就堆 MQ 和分库分表。
+> 当前项目已经完成单机阶段的热路径优化、缓存、索引、访问事件异步批量写、降级和质量门禁；如果流量继续放大，我会按“多实例、外部消息队列、数据分层、观测告警”的顺序演进，而不是一开始就堆 MQ 和分库分表。
 
 ## 12. 代码阅读路线
 
@@ -381,7 +384,7 @@ sequenceDiagram
 
 ### 150-240 秒：讲高峰值取舍
 
-> 这个项目最容易被追问的是短链传播高峰。我的设计是让 `/s/{shortCode}` 跳转尽量轻：短码解析优先查 Redis，未命中才查 MySQL；访问事件作为事实明细写入，但不在跳转链路实时做 PV/UV/UIP 聚合；`last_visit_at` 这种展示字段也做低频更新，避免同一个热门短码把一行反复打热。后台统计可以走 live 查询、日聚合和 45 秒 overview 缓存。
+> 这个项目最容易被追问的是短链传播高峰。我的设计是让 `/s/{shortCode}` 跳转尽量轻：短码解析优先查 Redis，命中时不回查 MySQL，未命中才查 `short_link`；访问事件作为事实明细保留，但请求线程只入队，后台 worker 批量写库；`last_visit_at` 这种展示字段也做低频更新，避免同一个热门短码把一行反复打热。后台统计可以走 live 查询、日聚合和 45 秒 overview 缓存。
 
 ### 240-300 秒：讲隐私、验证和边界
 
@@ -393,7 +396,7 @@ sequenceDiagram
 | --- | --- |
 | 你这是不是玩具项目？ | 我用人格测试做轻产品入口，但工程闭环是真实的：短链、访问事件、后台统计、缓存、部署和质量门禁都有落地。 |
 | 为什么不用 MQ？ | 当前单机阶段先优化热路径、索引、缓存和降级，避免过早复杂化；MQ 是流量继续放大后的下一步。 |
-| 统计会不会拖慢跳转？ | 跳转链路只做短码解析、事件写入和轻量字段更新，不同步做 distinct 聚合，后台统计走独立查询路径。 |
+| 统计会不会拖慢跳转？ | 跳转链路只做短码解析、事件入队和低频展示字段更新，不同步做 distinct 聚合，后台统计走独立查询路径。 |
 | Redis 挂了是不是全挂？ | 不会。结果和短码缓存读取失败会回源 MySQL，写缓存失败只记录 warn，不阻断用户核心链路。 |
 | UV 准不准？ | 匿名项目只能做到相对可信：优先 clientId hash，缺失时用 IP/User-Agent 兜底；它适合运营观察，不等同登录用户数。 |
 

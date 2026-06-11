@@ -6,6 +6,8 @@ ADMIN_TOKEN="${ADMIN_TOKEN:-dev-token}"
 CLIENT_ID_PREFIX="${CLIENT_ID_PREFIX:-wuxing-perf-smoke}"
 SHORTLINK_HITS="${SHORTLINK_HITS:-30}"
 ADMIN_HITS="${ADMIN_HITS:-2}"
+MAX_SHORTLINK_AVG_MS="${MAX_SHORTLINK_AVG_MS:-0}"
+MAX_ADMIN_AVG_MS="${MAX_ADMIN_AVG_MS:-0}"
 
 fail() {
   echo "ERROR: $*" >&2
@@ -52,6 +54,8 @@ command -v curl >/dev/null 2>&1 || fail "curl is required"
 command -v python3 >/dev/null 2>&1 || fail "python3 is required"
 [[ "$SHORTLINK_HITS" =~ ^[0-9]+$ && "$SHORTLINK_HITS" -gt 0 ]] || fail "SHORTLINK_HITS must be a positive integer"
 [[ "$ADMIN_HITS" =~ ^[0-9]+$ && "$ADMIN_HITS" -gt 0 ]] || fail "ADMIN_HITS must be a positive integer"
+[[ "$MAX_SHORTLINK_AVG_MS" =~ ^[0-9]+$ ]] || fail "MAX_SHORTLINK_AVG_MS must be a non-negative integer"
+[[ "$MAX_ADMIN_AVG_MS" =~ ^[0-9]+$ ]] || fail "MAX_ADMIN_AVG_MS must be a non-negative integer"
 
 body_file="$(mktemp)"
 create_response="$(mktemp)"
@@ -123,6 +127,12 @@ admin_avg_ms=$((admin_elapsed_ms / ADMIN_HITS))
 
 result_created="$(json_get "$overview_response" data.resultCreated)"
 [[ "$result_created" -ge 1 ]] || fail "admin overview did not record result creation"
+if [[ "$MAX_SHORTLINK_AVG_MS" -gt 0 && "$short_avg_ms" -gt "$MAX_SHORTLINK_AVG_MS" ]]; then
+  fail "shortlink average ${short_avg_ms}ms exceeded MAX_SHORTLINK_AVG_MS=${MAX_SHORTLINK_AVG_MS}"
+fi
+if [[ "$MAX_ADMIN_AVG_MS" -gt 0 && "$admin_avg_ms" -gt "$MAX_ADMIN_AVG_MS" ]]; then
+  fail "admin average ${admin_avg_ms}ms exceeded MAX_ADMIN_AVG_MS=${MAX_ADMIN_AVG_MS}"
+fi
 
 echo "Performance smoke test passed"
 echo "baseUrl=${BASE_URL}"
@@ -131,6 +141,8 @@ echo "shortCode=${short_code}"
 echo "shortlinkHits=${SHORTLINK_HITS}"
 echo "shortlinkTotalMs=${short_elapsed_ms}"
 echo "shortlinkAvgMs=${short_avg_ms}"
+echo "maxShortlinkAvgMs=${MAX_SHORTLINK_AVG_MS}"
 echo "adminHits=${ADMIN_HITS}"
 echo "adminTotalMs=${admin_elapsed_ms}"
 echo "adminAvgMs=${admin_avg_ms}"
+echo "maxAdminAvgMs=${MAX_ADMIN_AVG_MS}"

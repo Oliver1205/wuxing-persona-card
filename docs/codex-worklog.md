@@ -279,3 +279,9 @@ multi-role review support. The main outcomes are:
 - Frontend change: the external short-link runtime block now sits in a collapsed debug panel after the core KPI cards, the funnel table keeps human-readable step labels first, and raw event codes move to a secondary code column.
 - Detail change: short-link visit rows now lead with source, visit action, channel, campaign, device, and referer; anonymous hashes and raw event code remain available inside an inline technical detail disclosure.
 - Verification value: local H2 + Vite browser verification confirmed the debug panel is collapsed by default, short-link visits show readable attribution, and expanding "查看" still reveals event code plus anonymous visitor/IP/device fingerprints.
+
+### Phase 37
+
+- Performance priority: make low-latency smoke evidence enforceable when a target environment has agreed thresholds.
+- Tooling change: `scripts/performance-smoke-test.sh` now accepts optional `MAX_SHORTLINK_AVG_MS` and `MAX_ADMIN_AVG_MS` guards; the default `0` keeps the old observation-only behavior.
+- Learning value: interview docs now describe the current short-link path as Redis-first, async queued, and batch-written, and the code evidence paths match the actual `com/wuxing/persona` package layout.
