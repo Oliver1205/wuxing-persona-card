@@ -56,6 +56,8 @@ export interface AdminOverview {
   shortLinkCreated: number;
   shortLinkVisits: number;
   completionRate: number;
+  metricSource: 'live_event' | 'daily_metric' | 'mixed';
+  aggregatedThroughDate: string | null;
   dailyTrends: DailyMetric[];
   funnelSteps: FunnelStep[];
   topChannels: NameCount[];
@@ -64,6 +66,14 @@ export interface AdminOverview {
   popularStarOfficers: NameCount[];
   recentResults: RecentResult[];
   recentShortLinks: ShortLinkListItem[];
+}
+
+export interface AnalyticsAggregation {
+  startDate: string;
+  endDate: string;
+  daysAggregated: number;
+  shortLinkRowsAggregated: number;
+  aggregatedAt: string;
 }
 
 export interface FunnelStep {

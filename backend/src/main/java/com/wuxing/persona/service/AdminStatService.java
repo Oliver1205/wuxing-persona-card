@@ -1,12 +1,14 @@
 package com.wuxing.persona.service;
 
 import com.wuxing.persona.common.BusinessException;
+import com.wuxing.persona.entity.SiteDailyMetricEntity;
 import com.wuxing.persona.entity.ShortLinkEntity;
 import com.wuxing.persona.entity.UserResultEntity;
 import com.wuxing.persona.entity.VisitEventEntity;
 import com.wuxing.persona.enums.ElementType;
 import com.wuxing.persona.enums.EventType;
 import com.wuxing.persona.mapper.ShortLinkMapper;
+import com.wuxing.persona.mapper.SiteDailyMetricMapper;
 import com.wuxing.persona.mapper.UserResultMapper;
 import com.wuxing.persona.mapper.VisitEventMapper;
 import com.wuxing.persona.service.shortlink.ExternalShortLinkStatsAdapter;
@@ -40,15 +42,18 @@ public class AdminStatService {
     private final UserResultMapper userResultMapper;
     private final ShortLinkMapper shortLinkMapper;
     private final VisitEventMapper visitEventMapper;
+    private final SiteDailyMetricMapper siteDailyMetricMapper;
     private final ExternalShortLinkStatsAdapter externalShortLinkStatsAdapter;
 
     public AdminStatService(UserResultMapper userResultMapper,
                             ShortLinkMapper shortLinkMapper,
                             VisitEventMapper visitEventMapper,
+                            SiteDailyMetricMapper siteDailyMetricMapper,
                             ExternalShortLinkStatsAdapter externalShortLinkStatsAdapter) {
         this.userResultMapper = userResultMapper;
         this.shortLinkMapper = shortLinkMapper;
         this.visitEventMapper = visitEventMapper;
+        this.siteDailyMetricMapper = siteDailyMetricMapper;
         this.externalShortLinkStatsAdapter = externalShortLinkStatsAdapter;
     }
 
@@ -70,7 +75,10 @@ public class AdminStatService {
         overview.setShortLinkVisits(visitEventMapper.countByEventTypeBetween(EventType.SHORT_LINK_VISIT.name(),
                 range.getStartAt(), range.getEndExclusive()));
         overview.setCompletionRate(startClicks == 0 ? 0 : Math.round(resultCreated * 10000.0 / startClicks) / 100.0);
-        overview.setDailyTrends(buildDailyTrends(range));
+        DailyTrendResult dailyTrendResult = buildDailyTrends(range);
+        overview.setDailyTrends(dailyTrendResult.records());
+        overview.setMetricSource(dailyTrendResult.metricSource());
+        overview.setAggregatedThroughDate(dailyTrendResult.aggregatedThroughDate());
         overview.setFunnelSteps(buildFunnelSteps(range));
         overview.setTopChannels(toNameCounts(visitEventMapper.listTopChannelsBetween(TOP_ATTRIBUTION_LIMIT,
                 range.getStartAt(), range.getEndExclusive())));
@@ -157,7 +165,7 @@ public class AdminStatService {
                 range.getStartAt(), range.getEndExclusive()), records);
     }
 
-    private List<DailyMetricVO> buildDailyTrends(AdminDateRange range) {
+    private DailyTrendResult buildDailyTrends(AdminDateRange range) {
         LocalDate today = LocalDate.now();
         LocalDate endDate = range.getEndDate() == null ? today : range.getEndDate();
         LocalDate startDate = range.getStartDate() == null
@@ -172,21 +180,37 @@ public class AdminStatService {
         }
 
         List<DailyMetricVO> trends = new ArrayList<>();
+        boolean usedAggregate = false;
+        boolean usedLive = false;
+        LocalDate aggregatedThrough = null;
         LocalDate cursor = startDate;
         while (!cursor.isAfter(endDate)) {
-            LocalDateTime dayStart = cursor.atStartOfDay();
-            LocalDateTime dayEnd = cursor.plusDays(1).atStartOfDay();
             DailyMetricVO metric = new DailyMetricVO();
-            metric.setDate(cursor.toString());
-            metric.setPv(visitEventMapper.countAllBetween(dayStart, dayEnd));
-            metric.setResultCreated(userResultMapper.countAllBetween(dayStart, dayEnd));
-            metric.setShortLinkCreated(shortLinkMapper.countAllBetween(dayStart, dayEnd));
-            metric.setShortLinkVisits(visitEventMapper.countByEventTypeBetween(EventType.SHORT_LINK_VISIT.name(),
-                    dayStart, dayEnd));
+            SiteDailyMetricEntity aggregated = cursor.isBefore(today) ? siteDailyMetricMapper.selectByMetricDate(cursor) : null;
+            if (aggregated != null) {
+                metric.setDate(aggregated.getMetricDate().toString());
+                metric.setPv(aggregated.getPv());
+                metric.setResultCreated(aggregated.getResultCreated());
+                metric.setShortLinkCreated(aggregated.getShortLinkCreated());
+                metric.setShortLinkVisits(aggregated.getShortLinkVisits());
+                usedAggregate = true;
+                aggregatedThrough = aggregated.getMetricDate();
+            } else {
+                LocalDateTime dayStart = cursor.atStartOfDay();
+                LocalDateTime dayEnd = cursor.plusDays(1).atStartOfDay();
+                metric.setDate(cursor.toString());
+                metric.setPv(visitEventMapper.countAllBetween(dayStart, dayEnd));
+                metric.setResultCreated(userResultMapper.countAllBetween(dayStart, dayEnd));
+                metric.setShortLinkCreated(shortLinkMapper.countAllBetween(dayStart, dayEnd));
+                metric.setShortLinkVisits(visitEventMapper.countByEventTypeBetween(EventType.SHORT_LINK_VISIT.name(),
+                        dayStart, dayEnd));
+                usedLive = true;
+            }
             trends.add(metric);
             cursor = cursor.plusDays(1);
         }
-        return trends;
+        String source = usedAggregate && usedLive ? "mixed" : usedAggregate ? "daily_metric" : "live_event";
+        return new DailyTrendResult(trends, source, aggregatedThrough == null ? null : aggregatedThrough.toString());
     }
 
     private List<FunnelStepVO> buildFunnelSteps(AdminDateRange range) {
@@ -380,5 +404,8 @@ public class AdminStatService {
     }
 
     private record FunnelDefinition(EventType eventType, String label) {
+    }
+
+    private record DailyTrendResult(List<DailyMetricVO> records, String metricSource, String aggregatedThroughDate) {
     }
 }

@@ -450,6 +450,10 @@ v2.0 先做产品化闭环，是因为测评类产品最核心的增长路径通
 
 v2.1 进一步把增长漏斗从“事件命名”推进到“事件可归因”。前端会为每次浏览会话生成 sessionId，并从 URL 中识别 `channel`、`campaign`、`utm_source`、`utm_campaign`。后端只保存 session hash，不保存明文 sessionId，同时写入渠道、活动、设备类型和事件日期。这样后台能回答更接近运营的问题：用户从哪个渠道来、哪种分享带来短链回流、从首页到结果再到分享之间哪一步掉得最多。
 
+v2.2-v2.4 再把“可归因”推进到“可运营”。原始 `visit_event` 明细适合审计和精确回溯，但后台趋势如果长期实时扫描明细表，数据量增长后会越来越慢。因此 v2.2 新增 `site_daily_metric` 和 `short_link_daily_metric`，把已闭合日期沉淀成日快照；今天仍走实时事件，历史日期优先读聚合表。聚合接口禁止聚合当天，是为了避免半天数据在第二天被误当成完整历史数据。
+
+v2.3 的生产 smoke、备份、恢复、回滚和 Nginx 限流脚本，体现的是上线后的工程责任：不仅要能部署成功，还要能验证主链路、保护入口、保存数据、出问题时回到上一版。v2.4 的结果页和分享图增强，则继续围绕测评产品最核心的传播路径：让用户看得懂、愿意保存、愿意分享，但不引入登录、付费、AI 深度解读或朋友匹配。
+
 ## 14. 后续学习建议
 
 优先读代码顺序：
@@ -464,3 +468,5 @@ v2.1 进一步把增长漏斗从“事件命名”推进到“事件可归因”
 8. `VisitEventService`：理解 PV/UV/UIP 和隐私。
 9. `AdminStatService`：理解后台聚合、日期筛选和统计来源切换。
 10. `frontend/src/api/request.ts` 和 `tracker.ts`：理解前端如何把匿名 ID 和埋点接入后端。
+11. `AnalyticsAggregationService`：理解明细事件如何沉淀为日聚合。
+12. `scripts/production-smoke-test.sh`、`backup-mysql.sh`、`restore-mysql.sh`、`deploy-rollback.sh`：理解生产验证和故障恢复资产。

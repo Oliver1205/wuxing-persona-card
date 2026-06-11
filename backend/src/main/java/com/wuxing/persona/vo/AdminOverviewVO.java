@@ -14,6 +14,8 @@ public class AdminOverviewVO {
     private long shortLinkCreated;
     private long shortLinkVisits;
     private double completionRate;
+    private String metricSource;
+    private String aggregatedThroughDate;
     private List<DailyMetricVO> dailyTrends;
     private List<FunnelStepVO> funnelSteps;
     private List<NameCountVO> topChannels;
@@ -101,6 +103,22 @@ public class AdminOverviewVO {
 
     public void setCompletionRate(double completionRate) {
         this.completionRate = completionRate;
+    }
+
+    public String getMetricSource() {
+        return metricSource;
+    }
+
+    public void setMetricSource(String metricSource) {
+        this.metricSource = metricSource;
+    }
+
+    public String getAggregatedThroughDate() {
+        return aggregatedThroughDate;
+    }
+
+    public void setAggregatedThroughDate(String aggregatedThroughDate) {
+        this.aggregatedThroughDate = aggregatedThroughDate;
     }
 
     public List<DailyMetricVO> getDailyTrends() {

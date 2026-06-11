@@ -43,30 +43,41 @@ function drawBackground(ctx: CanvasRenderingContext2D) {
 function drawTitle(ctx: CanvasRenderingContext2D, result: ResultDetail) {
   ctx.fillStyle = '#7b5d35';
   ctx.font = '700 28px sans-serif';
-  ctx.fillText(result.starOfficerName, 100, 140);
+  ctx.fillText('五行人格卡', 100, 132);
 
   ctx.fillStyle = '#24302f';
   ctx.font = '900 58px sans-serif';
-  ctx.fillText(`${result.primaryElementName}${result.secondaryElementName}人格卡`, 100, 218);
+  ctx.fillText(`${result.primaryElementName}${result.secondaryElementName}型${result.keywords[0] ?? '人格'}`, 100, 212);
+
+  ctx.fillStyle = '#596764';
+  ctx.font = '700 28px sans-serif';
+  ctx.fillText(result.starOfficerName, 100, 258);
 }
 
 function drawElementBlock(ctx: CanvasRenderingContext2D, result: ResultDetail) {
   ctx.fillStyle = '#2f6f5e';
-  roundRect(ctx, 100, 270, 700, 180, 24);
+  roundRect(ctx, 100, 300, 700, 190, 24);
   ctx.fill();
 
   ctx.fillStyle = '#ffffff';
-  ctx.font = '900 76px sans-serif';
-  ctx.fillText(result.primaryElementName, 150, 382);
+  ctx.font = '900 88px sans-serif';
+  ctx.fillText(result.primaryElementName, 148, 420);
 
   ctx.font = '800 34px sans-serif';
-  ctx.fillText(`${result.primaryPercent}% ${result.primaryElementName}`, 310, 342);
-  ctx.fillText(`${result.secondaryPercent}% ${result.secondaryElementName}`, 310, 396);
+  ctx.fillText(`${result.primaryPercent}% ${result.primaryElementName}`, 320, 370);
+  ctx.fillText(`${result.secondaryPercent}% ${result.secondaryElementName}`, 320, 424);
+
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.24)';
+  roundRect(ctx, 148, 448, 604, 16, 8);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  roundRect(ctx, 148, 448, Math.max(20, Math.round(604 * result.primaryPercent / 100)), 16, 8);
+  ctx.fill();
 }
 
 function drawKeywords(ctx: CanvasRenderingContext2D, result: ResultDetail) {
   let x = 100;
-  let y = 520;
+  let y = 560;
   ctx.font = '700 26px sans-serif';
   for (const keyword of result.keywords) {
     const width = ctx.measureText(keyword).width + 42;
@@ -86,20 +97,20 @@ function drawKeywords(ctx: CanvasRenderingContext2D, result: ResultDetail) {
 function drawTexts(ctx: CanvasRenderingContext2D, result: ResultDetail) {
   ctx.fillStyle = '#24302f';
   ctx.font = '800 30px sans-serif';
-  ctx.fillText('性格亮点', 100, 670);
-  drawWrappedText(ctx, result.strengthText, 100, 720, 700, 34, 3);
+  ctx.fillText('性格亮点', 100, 700);
+  drawWrappedText(ctx, result.strengthText, 100, 750, 700, 34, 3);
 
   ctx.font = '800 30px sans-serif';
-  ctx.fillText('相处优势', 100, 860);
-  drawWrappedText(ctx, result.relationshipText, 100, 910, 700, 34, 3);
+  ctx.fillText('相处优势', 100, 890);
+  drawWrappedText(ctx, result.relationshipText, 100, 940, 700, 34, 3);
 }
 
 function drawFooter(ctx: CanvasRenderingContext2D, result: ResultDetail) {
   ctx.fillStyle = '#596764';
   ctx.font = '500 22px sans-serif';
-  drawWrappedText(ctx, '传统文化元素启发下的娱乐性人格解读，不构成现实决策建议。', 100, 1060, 700, 30, 2);
+  drawWrappedText(ctx, '传统文化元素启发下的娱乐性人格解读，不构成现实决策建议。', 100, 1082, 700, 30, 2);
   ctx.font = '700 20px sans-serif';
-  ctx.fillText(result.shortUrl, 100, 1130);
+  drawWrappedText(ctx, result.shortUrl, 100, 1140, 700, 26, 2);
 }
 
 function drawWrappedText(

@@ -71,3 +71,35 @@ CREATE INDEX idx_visit_event_session ON visit_event(session_id_hash);
 CREATE INDEX idx_visit_event_channel_created ON visit_event(channel, created_at);
 CREATE INDEX idx_visit_event_campaign_created ON visit_event(campaign, created_at);
 CREATE INDEX idx_visit_event_event_date ON visit_event(event_date);
+
+CREATE TABLE site_daily_metric (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    metric_date DATE UNIQUE NOT NULL,
+    pv BIGINT NOT NULL DEFAULT 0,
+    uv BIGINT NOT NULL DEFAULT 0,
+    uip BIGINT NOT NULL DEFAULT 0,
+    home_views BIGINT NOT NULL DEFAULT 0,
+    start_clicks BIGINT NOT NULL DEFAULT 0,
+    test_submits BIGINT NOT NULL DEFAULT 0,
+    result_created BIGINT NOT NULL DEFAULT 0,
+    short_link_created BIGINT NOT NULL DEFAULT 0,
+    short_link_visits BIGINT NOT NULL DEFAULT 0,
+    aggregated_at TIMESTAMP NOT NULL
+);
+
+CREATE INDEX idx_site_daily_metric_aggregated_at ON site_daily_metric(aggregated_at);
+
+CREATE TABLE short_link_daily_metric (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    metric_date DATE NOT NULL,
+    short_code VARCHAR(32) NOT NULL,
+    pv BIGINT NOT NULL DEFAULT 0,
+    uv BIGINT NOT NULL DEFAULT 0,
+    uip BIGINT NOT NULL DEFAULT 0,
+    last_visit_at TIMESTAMP NULL,
+    aggregated_at TIMESTAMP NOT NULL,
+    UNIQUE(metric_date, short_code)
+);
+
+CREATE INDEX idx_short_link_daily_metric_code ON short_link_daily_metric(short_code, metric_date);
+CREATE INDEX idx_short_link_daily_metric_pv ON short_link_daily_metric(metric_date, pv);

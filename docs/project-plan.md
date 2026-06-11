@@ -2,7 +2,7 @@
 
 规划日期：2026-06-08
 
-当前状态：第一版 MVP 主链路已实现，并通过本地构建、后端集成测试、H2 演示模式浏览器验收和 Docker Compose 容器全链路验收。v0.2 已新增短链 Provider 适配层，v0.3 已补 external 模式真实 HTTP 联调配置和后台日期筛选统计，v0.4 已完成外部短链服务级联调和外部 PV / UV / UIP 统计适配，v0.5 已接入外部短链访问明细，v0.6 已建立 v1.0 前的统一质量门禁，v0.7 已完成生产路由与部署预检，v0.8 已增强后台运营可读性，v0.9 已完成稳定性与隐私审计加固，v1.0 已完成稳定版收口，v1.1 已推进 external 生产接入准备，v1.2-v1.4 已完成生产质量增强包，v2.0 已启动商业级产品化基线，v2.1 已落地增长分析基础，将 session、channel、campaign、device 和 eventDate 接入事件数据与后台漏斗视图。
+当前状态：第一版 MVP 主链路已实现，并通过本地构建、后端集成测试、H2 演示模式浏览器验收和 Docker Compose 容器全链路验收。v0.2 已新增短链 Provider 适配层，v0.3 已补 external 模式真实 HTTP 联调配置和后台日期筛选统计，v0.4 已完成外部短链服务级联调和外部 PV / UV / UIP 统计适配，v0.5 已接入外部短链访问明细，v0.6 已建立 v1.0 前的统一质量门禁，v0.7 已完成生产路由与部署预检，v0.8 已增强后台运营可读性，v0.9 已完成稳定性与隐私审计加固，v1.0 已完成稳定版收口，v1.1 已推进 external 生产接入准备，v1.2-v1.4 已完成生产质量增强包，v2.0 已启动商业级产品化基线，v2.1 已落地增长分析基础，v2.2-v2.4 已补日聚合、生产 smoke/备份/恢复/回滚/限流和前端传播体验增强。
 
 关联文档：
 
@@ -22,6 +22,7 @@
 - v1.1 外部短链生产级接入增强：`docs/v1.1-external-shortlink-production-readiness.md`
 - v1.2-v1.4 生产质量增强包：`docs/v1.2-v1.4-production-quality-suite.md`
 - v2.0 商业级产品化方案：`docs/v2.0-commercial-product-system.md`
+- v2.2-v2.4 商业增长与生产体验增强：`docs/v2.2-v2.4-commercial-growth-suite.md`
 - 外部短链服务对接说明：`docs/external-shortlink-integration-guide.md`
 - 外部短链接入隐私审计报告：`docs/external-shortlink-privacy-audit.md`
 - 教学手册：`docs/teaching-manual.md`
@@ -308,6 +309,15 @@ flowchart LR
 - 短链访问详情新增 Channel、Campaign 和设备类型。
 - 后端集成测试覆盖事件归因、漏斗指标、渠道排行、短链来源跳转和访问明细来源字段。
 
+### 阶段 22：v2.2-v2.4 商业增长与生产体验增强
+
+- 新增 `site_daily_metric` 和 `short_link_daily_metric`，把事件明细沉淀为日聚合。
+- 新增管理端手动聚合接口，只允许聚合昨天及更早日期，避免半天快照污染历史数据。
+- 后台日趋势返回 `metricSource` 和 `aggregatedThroughDate`。
+- 新增生产域名 smoke、MySQL 备份、MySQL 恢复、部署回滚和移动端 E2E 脚本。
+- Nginx 增加分区限流、安全响应头、请求体限制和代理超时。
+- 首页、结果页、分享模块和 Canvas 分享图增强传播表达。
+
 ## 5. 当前验证
 
 已通过：
@@ -418,9 +428,15 @@ v2.1 新增验证：
 - Compose config 确认默认部署编排仍可解析。
 - 本地 H2 + Vite 浏览器验收确认后台增长漏斗、Top Channel 和 Top Campaign 正常展示。
 
+v2.2-v2.4 新增验证：
+
+- 后端测试覆盖手动聚合、聚合幂等、拒绝当天聚合和历史趋势读聚合表。
+- 前端构建覆盖后台聚合刷新入口、趋势来源展示、结果页身份表达和分享图调整。
+- 质量脚本新增生产 smoke、备份、恢复、回滚、移动端 E2E 脚本语法检查。
+
 ## 6. 下一阶段建议
 
-1. v2.2 优先补 `site_daily_metric` / `short_link_daily_metric` 聚合表、定时聚合任务和后台趋势查询降本。
-2. v2.2 同步补 Playwright 移动端 E2E、线上 smoke、备份恢复、回滚脚本、HTTPS、限流和告警。
-3. v2.3 再评估运营活动、多套卡片和轻量报告增强。
+1. 下一阶段优先引入 Flyway 或 Liquibase，解决 schema 演进治理。
+2. 将 `scripts/mobile-e2e.sh` 接入 CI，并补浏览器依赖缓存。
+3. 上线域名后完成 HTTPS、HSTS、备份恢复演练和线上 smoke 常态化。
 4. 登录、付费、AI 深度解读、朋友匹配和社区功能必须单独立项，不并入当前产品化基线。

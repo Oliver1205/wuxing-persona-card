@@ -5,12 +5,18 @@
         <p class="eyebrow">东方人格灵感测试</p>
         <h1>生成你的五行人格卡</h1>
         <p class="lead">
-          用出生月份和 5 道价值取向题，得到一个适合分享的五行人格画像。
+          90 秒完成 5 道价值取向题，得到一个有身份名、关键词和分享短链的人格画像。
         </p>
         <div class="hero-metrics" aria-label="测试特点">
           <span>约 90 秒</span>
           <span>5 道题</span>
           <span>结果可分享</span>
+        </div>
+        <div class="persona-preview-line" aria-label="结果样式">
+          <span>身份名</span>
+          <span>五行比例</span>
+          <span>人格关键词</span>
+          <span>专属短链</span>
         </div>
         <div class="actions">
           <RouterLink class="button-link primary-cta" to="/test" @click="start">开始测试</RouterLink>
@@ -33,6 +39,11 @@
           <p class="preview-label">样例人格卡</p>
           <h2>金水观察者</h2>
           <p>清醒判断 · 细腻洞察 · 稳定边界</p>
+          <div class="preview-tags" aria-label="样例关键词">
+            <span>规则感</span>
+            <span>观察力</span>
+            <span>低消耗社交</span>
+          </div>
           <div class="preview-ratio">
             <strong>68% 金</strong>
             <span></span>
@@ -93,6 +104,25 @@ function start() {
   color: #344542;
   font-size: 14px;
   font-weight: 800;
+}
+
+.persona-preview-line {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  max-width: 540px;
+}
+
+.persona-preview-line span {
+  min-height: 42px;
+  border: 1px solid rgba(36, 48, 47, 0.12);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.66);
+  color: #253634;
+  font-size: 13px;
+  font-weight: 850;
+  text-align: center;
 }
 
 .primary-cta {
@@ -166,6 +196,22 @@ function start() {
   color: #50615f;
 }
 
+.preview-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.preview-tags span {
+  border-radius: 999px;
+  padding: 8px 10px;
+  background: #24302f;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 850;
+}
+
 .preview-ratio {
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -188,6 +234,10 @@ function start() {
 
   .hero-shell {
     grid-template-columns: 1fr;
+  }
+
+  .persona-preview-line {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .preview-card {

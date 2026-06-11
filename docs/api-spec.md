@@ -154,6 +154,7 @@ v2.1 归因规则：
 - `/api/events` 也支持在 body 中传 `sessionId`、`channel`、`campaign`。
 - 后端只保存 `session_id_hash`，不保存明文 sessionId。
 - 后端会根据 User-Agent 自动写入 `device_type`。
+- v2.2 起，后台趋势会返回 `metricSource` 和 `aggregatedThroughDate`，用于说明日趋势来自实时事件还是日聚合表。
 
 ## 7. 管理后台总览
 
@@ -175,6 +176,8 @@ X-Admin-Token: <admin-token>
 - 增长漏斗 `funnelSteps`
 - Top Channel `topChannels`
 - Top Campaign `topCampaigns`
+- 日趋势来源 `metricSource`
+- 已聚合截止日期 `aggregatedThroughDate`
 - 热门五行组合
 - 热门星官
 - 最近结果
@@ -197,3 +200,33 @@ X-Admin-Token: <admin-token>
 ```
 
 返回单条短链访问日志，只展示 hash 后的匿名标识。
+
+## 10. 手动刷新增长聚合
+
+```http
+POST /api/admin/analytics/aggregate?startDate=2026-06-10&endDate=2026-06-10
+X-Admin-Token: <admin-token>
+```
+
+行为：
+
+- 只允许聚合今天以前的已闭合日期。
+- 单次最多聚合 31 天。
+- 重复聚合同一天会先删除旧快照再写入新快照，避免重复数据。
+- 生成 `site_daily_metric` 和 `short_link_daily_metric`。
+
+返回：
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "startDate": "2026-06-10",
+    "endDate": "2026-06-10",
+    "daysAggregated": 1,
+    "shortLinkRowsAggregated": 3,
+    "aggregatedAt": "2026-06-11T14:00:00"
+  }
+}
+```

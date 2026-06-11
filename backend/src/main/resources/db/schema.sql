@@ -80,3 +80,34 @@ CREATE INDEX idx_visit_event_session_id ON visit_event(session_id_hash);
 CREATE INDEX idx_visit_event_channel_created ON visit_event(channel, created_at);
 CREATE INDEX idx_visit_event_campaign_created ON visit_event(campaign, created_at);
 CREATE INDEX idx_visit_event_event_date ON visit_event(event_date);
+
+CREATE TABLE IF NOT EXISTS site_daily_metric (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    metric_date DATE NOT NULL,
+    pv BIGINT NOT NULL DEFAULT 0,
+    uv BIGINT NOT NULL DEFAULT 0,
+    uip BIGINT NOT NULL DEFAULT 0,
+    home_views BIGINT NOT NULL DEFAULT 0,
+    start_clicks BIGINT NOT NULL DEFAULT 0,
+    test_submits BIGINT NOT NULL DEFAULT 0,
+    result_created BIGINT NOT NULL DEFAULT 0,
+    short_link_created BIGINT NOT NULL DEFAULT 0,
+    short_link_visits BIGINT NOT NULL DEFAULT 0,
+    aggregated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_site_daily_metric_date(metric_date),
+    INDEX idx_site_daily_metric_aggregated_at(aggregated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS short_link_daily_metric (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    metric_date DATE NOT NULL,
+    short_code VARCHAR(32) NOT NULL,
+    pv BIGINT NOT NULL DEFAULT 0,
+    uv BIGINT NOT NULL DEFAULT 0,
+    uip BIGINT NOT NULL DEFAULT 0,
+    last_visit_at DATETIME NULL,
+    aggregated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_short_link_daily_metric(metric_date, short_code),
+    INDEX idx_short_link_daily_metric_code(short_code, metric_date),
+    INDEX idx_short_link_daily_metric_pv(metric_date, pv)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

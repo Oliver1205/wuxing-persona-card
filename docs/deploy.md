@@ -1,6 +1,6 @@
 # 部署说明
 
-当前状态：Docker Compose 初版已配置，并已完成容器运行验收。MySQL、Redis、backend、nginx 均可启动，Nginx 入口可完成 API、短链 302 和后台统计验证。v0.4 已补齐 external 短链创建和统计配置，v0.7 已补生产短链路由示例和部署预检脚本，v1.0 已补稳定版发布检查表，v1.1 已新增 external 模式 Compose overlay、环境样例、预检脚本和 smoke 联调脚本，v1.2-v1.4 已新增 GitHub Actions、Docker smoke 脚本和 Testcontainers profile。默认仍使用 `internal` 模式。
+当前状态：Docker Compose 初版已配置，并已完成容器运行验收。MySQL、Redis、backend、nginx 均可启动，Nginx 入口可完成 API、短链 302 和后台统计验证。v0.4 已补齐 external 短链创建和统计配置，v0.7 已补生产短链路由示例和部署预检脚本，v1.0 已补稳定版发布检查表，v1.1 已新增 external 模式 Compose overlay、环境样例、预检脚本和 smoke 联调脚本，v1.2-v1.4 已新增 GitHub Actions、Docker smoke 脚本和 Testcontainers profile，v2.2-v2.4 已补生产 smoke、备份、恢复、回滚脚本和 Nginx 限流安全头。默认仍使用 `internal` 模式。
 
 ## 1. 部署架构
 
@@ -246,6 +246,32 @@ WUXING_BASE_URL=http://127.0.0.1:8088 \
 ADMIN_TOKEN=<your-admin-token> \
 EXPECTED_STAT_SOURCE=external \
 scripts/external-shortlink-smoke-test.sh
+```
+
+生产域名 smoke：
+
+```bash
+BASE_URL=https://your-domain.com \
+ADMIN_TOKEN=change-me \
+scripts/production-smoke-test.sh
+```
+
+MySQL 备份：
+
+```bash
+ENV_FILE=deploy/.env BACKUP_DIR=backups scripts/backup-mysql.sh
+```
+
+MySQL 恢复：
+
+```bash
+CONFIRM_RESTORE=yes ENV_FILE=deploy/.env scripts/restore-mysql.sh backups/wuxing-mysql-yyyymmddhhmmss.sql.gz
+```
+
+版本回滚：
+
+```bash
+TARGET_REF=v2.1.0-growth-analytics-foundation ENV_FILE=deploy/.env scripts/deploy-rollback.sh
 ```
 
 如果外部短链服务尚未接管短链入口，`EXPECTED_STAT_SOURCE` 可以不传，只验证五行兼容入口 `/s/{shortCode}` 仍可跳转。

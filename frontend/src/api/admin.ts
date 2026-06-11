@@ -1,6 +1,7 @@
 import { request } from './request';
 import type {
   AdminOverview,
+  AnalyticsAggregation,
   ExternalShortLinkRuntime,
   PageResult,
   ShortLinkListItem,
@@ -50,6 +51,13 @@ export function fetchExternalShortLinkRuntime(token: string, probe = false) {
   return request<ExternalShortLinkRuntime>(
     `/api/admin/external-shortlink/status?probe=${String(probe)}`,
     { adminToken: token },
+  );
+}
+
+export function aggregateAdminAnalytics(token: string, filter: AdminDateFilter = {}) {
+  return request<AnalyticsAggregation>(
+    `/api/admin/analytics/aggregate${toQuery(filter)}`,
+    { method: 'POST', adminToken: token },
   );
 }
 

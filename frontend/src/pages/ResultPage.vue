@@ -22,6 +22,20 @@ const identityTitle = computed(() => {
   return `${result.value.primaryElementName}${result.value.secondaryElementName} · ${result.value.starOfficerName}`;
 });
 
+const archetypeName = computed(() => {
+  if (!result.value) {
+    return '';
+  }
+  return `${result.value.primaryElementName}${result.value.secondaryElementName}型${result.value.keywords[0] ?? '探索者'}`;
+});
+
+const personaLine = computed(() => {
+  if (!result.value) {
+    return '';
+  }
+  return `你可能是那种既有${result.value.primaryElementName}的主心骨，也保留${result.value.secondaryElementName}的弹性空间的人。`;
+});
+
 onMounted(async () => {
   try {
     result.value = await fetchResult(String(route.params.resultId));
@@ -79,11 +93,24 @@ function sharedLandingStart() {
           <p class="eyebrow">你的五行人格身份</p>
           <h1>{{ identityTitle }}</h1>
           <p>{{ result.keywords.join(' · ') }}</p>
+          <div class="result-identity-grid" aria-label="结果摘要">
+            <span>{{ archetypeName }}</span>
+            <span>{{ result.primaryPercent }}% {{ result.primaryElementName }}</span>
+            <span>{{ result.secondaryPercent }}% {{ result.secondaryElementName }}</span>
+          </div>
         </div>
 
         <div class="panel">
           <PersonaCard :result="result" />
         </div>
+
+        <section class="identity-statement">
+          <p class="eyebrow">一句话人格感</p>
+          <h2>{{ personaLine }}</h2>
+          <p>
+            {{ result.starOfficerName }} 让你的表达更有辨识度：{{ result.keywords.slice(0, 3).join('、') }}。
+          </p>
+        </section>
 
         <div class="panel stack">
           <h2>五行布局解释</h2>
@@ -116,6 +143,11 @@ function sharedLandingStart() {
             我也要测
           </RouterLink>
         </div>
+        <div class="share-guidance">
+          <span>保存图适合发朋友圈</span>
+          <span>短链适合发私聊</span>
+          <span>朋友打开就是这张卡</span>
+        </div>
         <p v-if="shareImageStatus" class="muted">{{ shareImageStatus }}</p>
       </template>
     </section>
@@ -134,7 +166,9 @@ function sharedLandingStart() {
   border: 1px solid rgba(36, 48, 47, 0.12);
   border-radius: 8px;
   padding: 24px;
-  background: rgba(255, 255, 255, 0.76);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(236, 244, 239, 0.92)),
+    radial-gradient(circle at 80% 20%, rgba(215, 155, 67, 0.2), transparent 34%);
 }
 
 .result-hero h1 {
@@ -149,9 +183,78 @@ function sharedLandingStart() {
   font-weight: 800;
 }
 
+.result-identity-grid {
+  display: grid;
+  grid-template-columns: 1.2fr repeat(2, minmax(0, 0.8fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.result-identity-grid span {
+  min-height: 44px;
+  border: 1px solid rgba(36, 48, 47, 0.12);
+  border-radius: 8px;
+  padding: 11px 12px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #253634;
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.identity-statement {
+  display: grid;
+  gap: 10px;
+  border-radius: 8px;
+  padding: 24px;
+  background: #24302f;
+  color: #fff;
+}
+
+.identity-statement .eyebrow {
+  color: #e7c783;
+}
+
+.identity-statement h2 {
+  max-width: 780px;
+  margin: 0;
+  color: #fff;
+  font-size: 28px;
+}
+
+.identity-statement p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.share-guidance {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.share-guidance span {
+  border: 1px solid rgba(36, 48, 47, 0.12);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.68);
+  color: #40514e;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+}
+
 @media (max-width: 760px) {
   .result-hero h1 {
     font-size: 30px;
+  }
+
+  .result-identity-grid,
+  .share-guidance {
+    grid-template-columns: 1fr;
+  }
+
+  .identity-statement h2 {
+    font-size: 22px;
   }
 }
 </style>

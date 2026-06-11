@@ -3,9 +3,11 @@ package com.wuxing.persona.controller;
 import com.wuxing.persona.common.ApiResponse;
 import com.wuxing.persona.common.BusinessException;
 import com.wuxing.persona.config.AppProperties;
+import com.wuxing.persona.service.AnalyticsAggregationService;
 import com.wuxing.persona.service.AdminDateRange;
 import com.wuxing.persona.service.AdminStatService;
 import com.wuxing.persona.service.shortlink.ExternalShortLinkRuntimeService;
+import com.wuxing.persona.vo.AnalyticsAggregationVO;
 import com.wuxing.persona.vo.AdminShortLinkExportVO;
 import com.wuxing.persona.vo.AdminOverviewVO;
 import com.wuxing.persona.vo.ExternalShortLinkRuntimeVO;
@@ -21,6 +23,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -33,13 +36,16 @@ public class AdminController {
     private final AdminStatService adminStatService;
     private final AppProperties appProperties;
     private final ExternalShortLinkRuntimeService externalShortLinkRuntimeService;
+    private final AnalyticsAggregationService analyticsAggregationService;
 
     public AdminController(AdminStatService adminStatService,
                            AppProperties appProperties,
-                           ExternalShortLinkRuntimeService externalShortLinkRuntimeService) {
+                           ExternalShortLinkRuntimeService externalShortLinkRuntimeService,
+                           AnalyticsAggregationService analyticsAggregationService) {
         this.adminStatService = adminStatService;
         this.appProperties = appProperties;
         this.externalShortLinkRuntimeService = externalShortLinkRuntimeService;
+        this.analyticsAggregationService = analyticsAggregationService;
     }
 
     @GetMapping("/overview")
@@ -104,6 +110,17 @@ public class AdminController {
             @RequestParam(defaultValue = "false") boolean probe) {
         checkToken(token);
         return ApiResponse.success(externalShortLinkRuntimeService.status(probe));
+    }
+
+    @PostMapping("/analytics/aggregate")
+    public ApiResponse<AnalyticsAggregationVO> aggregateAnalytics(
+            @RequestHeader(value = "X-Admin-Token", required = false) String token,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        checkToken(token);
+        return ApiResponse.success(analyticsAggregationService.aggregate(AdminDateRange.of(startDate, endDate)));
     }
 
     private void checkToken(String token) {

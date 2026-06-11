@@ -12,9 +12,9 @@
 
 | 项 | 说明 |
 | --- | --- |
-| 当前版本 | `v2.1-growth-analytics-foundation` |
+| 当前版本 | `v2.4-commercial-growth-suite` |
 | 稳定分支 | `main` |
-| 当前开发分支 | `codex/v2.1-growth-analytics-foundation` |
+| 当前开发分支 | `codex/v2.2-v2.4-commercial-growth-suite` |
 | MVP 状态 | v0.1 已完成完整单人测算闭环 |
 | v0.2 状态 | 已完成短链接 Provider 适配层，可配置 `internal` / `external` 模式 |
 | v0.3 状态 | 已增强 external 真实 HTTP 联调配置，并为后台总览、短链列表、访问日志增加日期筛选 |
@@ -29,7 +29,8 @@
 | v1.2-v1.4 状态 | 已补 CI/CD、运行态治理、后台工具、安全加固、Testcontainers 能力和分享图 |
 | v2.0 状态 | 商业级产品化基线启动，已升级首页、测试流、结果页分享体验和增长埋点 |
 | v2.1 状态 | 已落地 session、channel、campaign、device、eventDate 事件归因和后台增长漏斗 |
-| 最新自评 | MVP 工程基线 99 / 100；v2.1 商业化初评 91 / 100，详见 [quality-scorecard.md](docs/quality-scorecard.md) |
+| v2.2-v2.4 状态 | 已补日聚合、生产 smoke/备份/回滚/限流和结果页传播体验增强 |
+| 最新自评 | MVP 工程基线 99 / 100；v2.4 商业化初评 94 / 100，详见 [quality-scorecard.md](docs/quality-scorecard.md) |
 | GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics`、`v0.4.0-external-shortlink-service-integration`、`v0.5.0-external-shortlink-access-records`、`v0.6.0-quality-gates-and-roadmap`、`v0.7.0-production-routing-hardening`、`v0.8.0-admin-operational-insights`、`v0.9.0-stability-privacy-audit`、`v1.0.0-stable`、`v1.1.0-external-shortlink-production-readiness`、`v1.4.0-production-quality-suite` |
 
 ## 核心亮点
@@ -53,6 +54,7 @@
 - **商业级产品化基线**：v2.0 以“愿意测、感觉被看见、愿意分享、朋友继续测”为主循环，重做首页承诺、答题进度、结果身份表达、完整五行分布和分享面板。
 - **增长漏斗埋点**：新增测试开始、答题选择、提交尝试、分享面板、原生分享、保存分享图、二次测试等事件，为后续渠道、留存和传播分析预留数据口径。
 - **增长归因基础**：v2.1 将 session、channel、campaign、device、eventDate 写入事件表，分享短链自动带来源参数，后台展示增长漏斗、Top Channel 和 Top Campaign。
+- **商业增长增强**：v2.2-v2.4 新增日聚合表、手动聚合接口、生产 smoke、备份恢复、回滚脚本、Nginx 限流安全头和更适合传播的结果页/分享图。
 - **教学沉淀**：项目计划、质量评分、短链集成方案、教学手册均已文档化。
 
 ## 目录
@@ -118,6 +120,11 @@
 └── scripts/
     ├── deploy-preflight.sh
     ├── docker-smoke-test.sh
+    ├── production-smoke-test.sh
+    ├── backup-mysql.sh
+    ├── restore-mysql.sh
+    ├── deploy-rollback.sh
+    ├── mobile-e2e.sh
     ├── external-shortlink-preflight.sh
     ├── external-shortlink-smoke-test.sh
     └── quality-check.sh
@@ -462,6 +469,20 @@ admin pv/uv/uip: 1/1/1
 ## 开发进度记录
 
 <details open>
+<summary><strong>2026-06-11｜v2.2-v2.4 商业增长与生产体验增强</strong></summary>
+
+- 新建分支：`codex/v2.2-v2.4-commercial-growth-suite`。
+- v2.2 新增 `site_daily_metric` 和 `short_link_daily_metric`，用于站点和短链日聚合。
+- 新增 `POST /api/admin/analytics/aggregate`，支持管理员手动聚合已闭合日期，禁止聚合当天。
+- 后台日趋势展示 `metricSource` 和 `aggregatedThroughDate`，历史日期优先读聚合表，缺失或当天回退实时事件。
+- v2.3 新增 `production-smoke-test.sh`、`backup-mysql.sh`、`restore-mysql.sh`、`deploy-rollback.sh` 和 `mobile-e2e.sh`。
+- Nginx 增加 `/api/**`、`/api/events`、`/s/**` 分区限流、基础安全响应头和请求体限制。
+- v2.4 增强首页首屏、结果页身份摘要、一句话人格感、分享模块和 Canvas 分享图布局。
+- 新增 [v2.2-v2.4 商业增长与生产体验增强](docs/v2.2-v2.4-commercial-growth-suite.md)。
+
+</details>
+
+<details>
 <summary><strong>2026-06-11｜v2.1 增长分析基础</strong></summary>
 
 - 新建分支：`codex/v2.1-growth-analytics-foundation`。
@@ -682,10 +703,10 @@ admin pv/uv/uip: 1/1/1
 
 ## 后续建议
 
-1. 先完成 v2.0 产品化闭环验收：移动端首屏、答题进度、结果页分享、短链回流和后台漏斗事件均可解释。
-2. v2.1 优先补渠道参数、分享来源、会话标识和日聚合表，让后台从“看访问量”升级为“看增长路径”。
-3. v2.2 优先补 Playwright 移动端 E2E、线上 smoke、备份恢复、回滚脚本、HTTPS、限流和告警。
-4. v2.3 再评估商业化功能，例如多套卡片、运营活动页、轻量报告增强；登录、付费、AI 深度解读和朋友匹配必须单独立项。
+1. v2.5 优先引入 Flyway 或 Liquibase，治理线上 schema 演进。
+2. 将 `scripts/mobile-e2e.sh` 接入 GitHub Actions，并配置浏览器依赖缓存。
+3. 生产域名上线后完成 HTTPS、HSTS、备份恢复演练和线上 smoke 常态化。
+4. 再评估商业化功能，例如运营活动页、多套卡片和轻量报告增强；登录、付费、AI 深度解读和朋友匹配必须单独立项。
 
 ## 娱乐声明与隐私说明
 

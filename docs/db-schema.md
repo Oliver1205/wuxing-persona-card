@@ -90,6 +90,57 @@ v2.1 起，增长归因字段说明：
 - `device_type`：根据 User-Agent 粗略归类为 `mobile`、`tablet`、`desktop`、`bot`、`unknown`。
 - `event_date`：事件日期，便于后续演进日聚合表。
 
+## 日聚合表
+
+### `site_daily_metric`
+
+v2.2 新增，用于保存站点级日聚合指标。
+
+关键字段：
+
+```text
+id
+metric_date
+pv
+uv
+uip
+home_views
+start_clicks
+test_submits
+result_created
+short_link_created
+short_link_visits
+aggregated_at
+```
+
+规则：
+
+- 只聚合今天以前的闭合日期。
+- `metric_date` 唯一。
+- 后台日趋势优先读该表，缺失日期回退 `visit_event` 实时查询。
+
+### `short_link_daily_metric`
+
+v2.2 新增，用于保存短链维度日聚合指标。
+
+关键字段：
+
+```text
+id
+metric_date
+short_code
+pv
+uv
+uip
+last_visit_at
+aggregated_at
+```
+
+规则：
+
+- `metric_date + short_code` 唯一。
+- 由 `visit_event` 中 `SHORT_LINK_VISIT` 事件聚合生成。
+
 ## 短链项目库
 
 建议库名：`link`

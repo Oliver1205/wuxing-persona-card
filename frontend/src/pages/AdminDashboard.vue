@@ -1,13 +1,20 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import {
+  aggregateAdminAnalytics,
   exportAdminShortLinks,
   fetchAdminOverview,
   fetchAdminShortLinks,
   fetchExternalShortLinkRuntime,
 } from '../api/admin';
 import type { AdminDateFilter } from '../api/admin';
-import type { AdminOverview, ExternalShortLinkRuntime, PageResult, ShortLinkListItem } from '../api/types';
+import type {
+  AdminOverview,
+  AnalyticsAggregation,
+  ExternalShortLinkRuntime,
+  PageResult,
+  ShortLinkListItem,
+} from '../api/types';
 import StatCard from '../components/StatCard.vue';
 
 const token = ref(localStorage.getItem('wuxing_admin_token') || '');
@@ -18,9 +25,11 @@ const statSource = ref<'local' | 'external' | ''>('');
 const overview = ref<AdminOverview | null>(null);
 const shortLinks = ref<PageResult<ShortLinkListItem> | null>(null);
 const runtime = ref<ExternalShortLinkRuntime | null>(null);
+const aggregation = ref<AnalyticsAggregation | null>(null);
 const error = ref('');
 const loading = ref(false);
 const exporting = ref(false);
+const aggregating = ref(false);
 
 onMounted(() => {
   if (token.value) {
@@ -60,6 +69,19 @@ async function checkExternalRuntime() {
     error.value = err instanceof Error ? err.message : '外部短链状态检查失败';
   } finally {
     loading.value = false;
+  }
+}
+
+async function refreshAggregation() {
+  error.value = '';
+  aggregating.value = true;
+  try {
+    aggregation.value = await aggregateAdminAnalytics(token.value, dateFilter());
+    overview.value = await fetchAdminOverview(token.value, dateFilter());
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : '增长聚合刷新失败';
+  } finally {
+    aggregating.value = false;
   }
 }
 
@@ -121,6 +143,16 @@ function runtimeReachableLabel(value: boolean | null) {
     return '不可达';
   }
   return '未探测';
+}
+
+function metricSourceLabel(value: AdminOverview['metricSource']) {
+  if (value === 'daily_metric') {
+    return '日聚合';
+  }
+  if (value === 'mixed') {
+    return '聚合 + 实时';
+  }
+  return '实时事件';
 }
 
 function formatDateTime(value: string | null) {
@@ -224,7 +256,22 @@ function formatDateTime(value: string | null) {
         </div>
 
         <div class="panel stack">
-          <h2>日趋势</h2>
+          <div class="section-head">
+            <div>
+              <h2>日趋势</h2>
+              <p class="muted">
+                来源：{{ metricSourceLabel(overview.metricSource) }}
+                <span v-if="overview.aggregatedThroughDate">，已聚合至 {{ overview.aggregatedThroughDate }}</span>
+              </p>
+            </div>
+            <button class="secondary" type="button" :disabled="aggregating" @click="refreshAggregation">
+              {{ aggregating ? '聚合中...' : '刷新聚合' }}
+            </button>
+          </div>
+          <p v-if="aggregation" class="muted">
+            最近聚合：{{ aggregation.startDate }} 至 {{ aggregation.endDate }}，
+            {{ aggregation.daysAggregated }} 天，短链明细 {{ aggregation.shortLinkRowsAggregated }} 行。
+          </p>
           <div class="table-wrap">
             <table class="compact-table">
               <thead>

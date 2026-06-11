@@ -224,4 +224,19 @@ public interface VisitEventMapper {
     List<java.util.Map<String, Object>> listTopCampaignsBetween(@Param("limit") int limit,
                                                                 @Param("startAt") LocalDateTime startAt,
                                                                 @Param("endAt") LocalDateTime endAt);
+
+    @Select("""
+            SELECT short_code AS shortCode,
+                   COUNT(*) AS pv,
+                   COUNT(DISTINCT client_id_hash) AS uv,
+                   COUNT(DISTINCT ip_hash) AS uip,
+                   MAX(created_at) AS lastVisitAt
+            FROM visit_event
+            WHERE short_code IS NOT NULL AND event_type = 'SHORT_LINK_VISIT'
+              AND created_at >= #{startAt} AND created_at < #{endAt}
+            GROUP BY short_code
+            ORDER BY pv DESC, short_code ASC
+            """)
+    List<java.util.Map<String, Object>> listShortLinkDailyMetricsBetween(@Param("startAt") LocalDateTime startAt,
+                                                                         @Param("endAt") LocalDateTime endAt);
 }

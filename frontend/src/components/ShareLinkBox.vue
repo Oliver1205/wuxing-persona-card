@@ -22,7 +22,7 @@ onMounted(() => {
 });
 
 async function copy() {
-    message.value = '';
+  message.value = '';
   try {
     await navigator.clipboard.writeText(shareUrl.value);
     copied.value = true;
@@ -58,6 +58,10 @@ async function nativeShare() {
     <div>
       <p class="label">专属短链接</p>
       <p class="url">{{ shareUrl }}</p>
+      <div class="share-note">
+        <span>打开即达结果</span>
+        <span>适合私聊分享</span>
+      </div>
     </div>
     <div class="share-actions">
       <button type="button" @click="copy">{{ copied ? '已复制' : '复制' }}</button>
@@ -95,6 +99,22 @@ async function nativeShare() {
   overflow-wrap: anywhere;
   color: #263735;
   font-weight: 700;
+}
+
+.share-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.share-note span {
+  border-radius: 999px;
+  padding: 6px 9px;
+  background: #f1eadc;
+  color: #6d4f29;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .tip {

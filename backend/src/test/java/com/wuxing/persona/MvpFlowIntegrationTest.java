@@ -13,6 +13,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
+import java.sql.Date;
+import java.sql.Timestamp;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +24,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -39,6 +42,8 @@ import org.springframework.test.web.servlet.MvcResult;
 })
 @AutoConfigureMockMvc
 @Sql(statements = {
+        "DELETE FROM short_link_daily_metric",
+        "DELETE FROM site_daily_metric",
         "DELETE FROM visit_event",
         "DELETE FROM short_link",
         "DELETE FROM user_result"
@@ -50,6 +55,9 @@ class MvpFlowIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @MockBean
     private StringRedisTemplate stringRedisTemplate;
@@ -218,6 +226,56 @@ class MvpFlowIntegrationTest {
     }
 
     @Test
+    void shouldAggregateAnalyticsMetricsForAdmin() throws Exception {
+        JsonNode data = createValidResult("client-a");
+        String shortCode = data.get("shortCode").asText();
+        mockMvc.perform(get("/s/" + shortCode)
+                        .header("X-Client-Id", "client-a")
+                        .header("User-Agent", "Mozilla/5.0 iPhone Mobile"))
+                .andExpect(status().is3xxRedirection());
+
+        LocalDate yesterdayDate = LocalDate.now().minusDays(1);
+        moveAllRecordsToDate(yesterdayDate);
+        String yesterday = yesterdayDate.toString();
+        mockMvc.perform(post("/api/admin/analytics/aggregate")
+                        .header("X-Admin-Token", "test-token")
+                        .param("startDate", yesterday)
+                        .param("endDate", yesterday))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.startDate").value(yesterday))
+                .andExpect(jsonPath("$.data.endDate").value(yesterday))
+                .andExpect(jsonPath("$.data.daysAggregated").value(1))
+                .andExpect(jsonPath("$.data.shortLinkRowsAggregated").value(1))
+                .andExpect(jsonPath("$.data.aggregatedAt").exists());
+
+        mockMvc.perform(post("/api/admin/analytics/aggregate")
+                        .header("X-Admin-Token", "test-token")
+                        .param("startDate", yesterday)
+                        .param("endDate", yesterday))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.shortLinkRowsAggregated").value(1));
+
+        mockMvc.perform(get("/api/admin/overview")
+                        .header("X-Admin-Token", "test-token")
+                        .param("startDate", yesterday)
+                        .param("endDate", yesterday))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.metricSource").value("daily_metric"))
+                .andExpect(jsonPath("$.data.aggregatedThroughDate").value(yesterday))
+                .andExpect(jsonPath("$.data.dailyTrends[0].date").value(yesterday))
+                .andExpect(jsonPath("$.data.dailyTrends[0].shortLinkVisits").value(1))
+                .andExpect(jsonPath("$.data.shortLinkVisits").value(1));
+
+        String today = LocalDate.now().toString();
+        mockMvc.perform(post("/api/admin/analytics/aggregate")
+                        .header("X-Admin-Token", "test-token")
+                        .param("startDate", today)
+                        .param("endDate", today))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("aggregation can only include closed dates before today"));
+    }
+
+    @Test
     void shouldRejectInvalidAdminDateRange() throws Exception {
         mockMvc.perform(get("/api/admin/overview")
                         .header("X-Admin-Token", "test-token")
@@ -352,6 +410,14 @@ class MvpFlowIntegrationTest {
                                 }
                                 """.formatted(eventType, pagePath)))
                 .andExpect(status().isOk());
+    }
+
+    private void moveAllRecordsToDate(LocalDate date) {
+        Timestamp timestamp = Timestamp.valueOf(date.atTime(10, 0));
+        jdbcTemplate.update("UPDATE visit_event SET created_at = ?, event_date = ?", timestamp, Date.valueOf(date));
+        jdbcTemplate.update("UPDATE user_result SET created_at = ?, updated_at = ?", timestamp, timestamp);
+        jdbcTemplate.update("UPDATE short_link SET created_at = ?, updated_at = ?, last_visit_at = ?",
+                timestamp, timestamp, timestamp);
     }
 
     private String validResultRequestBody() {
