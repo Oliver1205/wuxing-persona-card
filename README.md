@@ -32,7 +32,7 @@
 | v2.2-v2.4 状态 | 已补日聚合、生产 smoke/备份/回滚/限流和结果页传播体验增强 |
 | v2.5 状态 | 已优化 H5 测试页输入体验、年轻化字体栈、年份滑杆和触控选项 |
 | v2.6 状态 | 已优化年份精确输入、卡片式逐题问答和选项顺序打散 |
-| 最新自评 | MVP 工程基线 99 / 100；v2.6 问答体验初评 96 / 100，详见 [quality-scorecard.md](docs/quality-scorecard.md) |
+| 最新自评 | MVP 工程基线 99 / 100；八小时工作流阶段自评 97 / 100，详见 [quality-scorecard.md](docs/quality-scorecard.md) |
 | GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics`、`v0.4.0-external-shortlink-service-integration`、`v0.5.0-external-shortlink-access-records`、`v0.6.0-quality-gates-and-roadmap`、`v0.7.0-production-routing-hardening`、`v0.8.0-admin-operational-insights`、`v0.9.0-stability-privacy-audit`、`v1.0.0-stable`、`v1.1.0-external-shortlink-production-readiness`、`v1.4.0-production-quality-suite` |
 
 ## 核心亮点
@@ -59,6 +59,7 @@
 - **商业增长增强**：v2.2-v2.4 新增日聚合表、手动聚合接口、生产 smoke、备份恢复、回滚脚本、Nginx 限流安全头和更适合传播的结果页/分享图。
 - **H5 输入体验增强**：v2.5 将测试页出生信息从普通下拉框升级为年份滑杆、横向触控卡片和年轻化字体栈，让大学生和年轻用户更愿意完成测试。
 - **卡片式逐题问答**：v2.6 增加年份 +1/-1 和手动输入，问答改为一题一张卡，并打散选项顺序、移除属性提示。
+- **八小时工作流加固**：围绕普通访问者、前端、架构师、后端和面试官视角，补齐移动端答题节奏、结果页状态、分享图质感、短链热路径降压、后台忙碌态和可讲述证据链。
 - **教学沉淀**：项目计划、质量评分、短链集成方案、教学手册均已文档化。
 
 ## 快速导航
@@ -529,6 +530,17 @@ admin pv/uv/uip: 1/1/1
 ## 开发进度记录
 
 <details open>
+<summary><strong>2026-06-11｜八小时工作流阶段加固</strong></summary>
+
+- 按产品经理、普通访问者、美术经理、前端开发、资深架构师、后端开发和大厂面试官视角推进改动。
+- 移动端问答流补默认年份生效、选项确认反馈、答题防重复提交和底部安全间距。
+- 结果页补加载 / 错误状态卡片，生成分享图升级身份层级、短码标识和五行分布。
+- 短链热路径去掉实时 distinct 聚合压力，`last_visit_at` 限频更新，并让事件写入失败不阻断主流程。
+- 后台总览增加短缓存、指标解释、加载忙碌态和短链列表批量统计。
+- 新增或更新多角色矩阵、项目宣传包、架构视觉图、截图流程、面试讲解稿和工作日志。
+
+</details>
+<details>
 <summary><strong>2026-06-11｜v2.6 卡片式问答体验优化</strong></summary>
 
 - 新建分支：`codex/v2.6-card-question-flow`。

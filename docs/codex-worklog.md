@@ -127,3 +127,33 @@ multi-role review support. The main outcomes are:
 - Visitor priority: make the question flow feel calmer and more predictable on mobile.
 - Frontend change: the displayed default birth year is now also the selected birth year, answer auto-advance pauses long enough to show a confirmation state, and the mobile question stage has enough bottom safe area for the sticky action bar.
 - Verification value: browser-checked `/test` with local backend and frontend preview; selecting a month now unlocks the first question, selecting an answer shows the confirmation state, and the final option remains reachable above the sticky controls after scrolling.
+
+### Phase 12
+
+- Documentation priority: make the workflow useful after this session ends.
+- Documentation change: added a project promotion poster, architecture map, role review matrix, showcase screenshot flow, and a five-minute interview walkthrough.
+- Interview value: the project can now be explained from product loop, hot path, analytics, deployment, and tradeoff angles instead of only listing features.
+
+### Phase 13
+
+- Frontend priority: make non-happy paths feel intentional.
+- Frontend change: the result page now uses polished loading and error cards, and the test page locks navigation and submission while a result is being created.
+- User value: slow network or impatient repeated taps no longer produce confusing duplicate actions.
+
+### Phase 14
+
+- Backend priority: keep non-critical analytics writes off the critical path.
+- Backend change: visit-event insert failures are logged and degraded without breaking result reads or short-link redirects.
+- Verification value: `VisitEventServiceTest` covers the failure path, and the full quality gate passed after the change.
+
+### Phase 15
+
+- Admin priority: reduce accidental repeated operations during refresh or export.
+- Frontend change: admin filters, refresh, export, aggregation, and runtime-check actions now share a busy guard while data is loading.
+- Product value: the admin page behaves more like an operations tool and less like a static demo page.
+
+### Phase 16
+
+- Quality-score priority: keep the final self-assessment honest.
+- Documentation change: updated README and `docs/quality-scorecard.md` with an eight-hour workflow stage score, explicit evidence, and remaining risks.
+- Boundary: this is not marked as a new large business version; it is a hardening and evidence stage on top of v2.6.
