@@ -10,11 +10,14 @@ import com.wuxing.persona.service.VisitEventService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class InternalShortLinkProvider implements ShortLinkProvider {
 
+    private static final Logger log = LoggerFactory.getLogger(InternalShortLinkProvider.class);
     private static final long LAST_VISIT_TOUCH_INTERVAL_SECONDS = 30;
 
     private final SecureRandom secureRandom = new SecureRandom();
@@ -69,13 +72,10 @@ public class InternalShortLinkProvider implements ShortLinkProvider {
             resultId = entity.getResultId();
             redisCacheService.setShortLinkResultId(shortCode, resultId);
         }
-        if (entity == null) {
-            entity = shortLinkMapper.selectByShortCode(shortCode);
-        }
         visitEventService.recordAsync(EventType.SHORT_LINK_VISIT, "/s/" + shortCode, resultId, shortCode,
                 clientId, request);
         touchLastVisitAtIfStale(shortCode);
-        return entity == null ? resultId : entity.getResultId();
+        return resultId;
     }
 
     @Override
@@ -114,6 +114,11 @@ public class InternalShortLinkProvider implements ShortLinkProvider {
 
     private void touchLastVisitAtIfStale(String shortCode) {
         LocalDateTime now = LocalDateTime.now();
-        shortLinkMapper.touchLastVisitAtIfStale(shortCode, now, now.minusSeconds(LAST_VISIT_TOUCH_INTERVAL_SECONDS));
+        try {
+            shortLinkMapper.touchLastVisitAtIfStale(shortCode, now, now.minusSeconds(LAST_VISIT_TOUCH_INTERVAL_SECONDS));
+        } catch (RuntimeException ex) {
+            log.warn("Short link last visit touch failed, shortCode={}, error={}: {}",
+                    shortCode, ex.getClass().getSimpleName(), ex.getMessage());
+        }
     }
 }

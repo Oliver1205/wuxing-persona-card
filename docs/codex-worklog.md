@@ -248,3 +248,15 @@ multi-role review support. The main outcomes are:
 - Validation priority: turn "natural interaction" into observable user and device checks.
 - Documentation change: added a real-user validation checklist covering first-visit understanding, birth-info friction, answer pacing, result resonance, sharing, friend return flow, device matrix, screenshots, and interview wording.
 - Product value: the next UX iteration can be judged with user evidence instead of only role-agent heuristics.
+
+### Phase 32
+
+- Promotion priority: keep the public project package aligned with the latest result-page and validation work.
+- Documentation change: updated the promotion kit to call out result resonance cards, near-card sharing actions, and real-user validation assets.
+- Showcase value: the marketing-facing story now mentions not only the business loop, but also why the result feels shareable and how that claim will be checked.
+
+### Phase 33
+
+- Backend priority: keep warm short-link redirects from touching MySQL on the read path.
+- Backend change: internal short-link resolution now returns the cached resultId directly when Redis has the short-code mapping, and the low-value last-visit touch degrades to a warning if MySQL is busy.
+- Verification value: targeted unit tests prove Redis-hit redirects do not call `selectByShortCode` and still return the resultId when `touchLastVisitAtIfStale` throws.

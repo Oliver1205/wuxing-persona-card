@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -131,16 +132,31 @@ class InternalShortLinkProviderTest {
     void resolveAndRecordShouldUseRedisMappingWithoutRealtimeAggregation() {
         when(redisCacheService.isNullShortLink("abc123")).thenReturn(false);
         when(redisCacheService.getShortLinkResultId("abc123")).thenReturn("R3");
-        when(shortLinkMapper.selectByShortCode("abc123")).thenReturn(shortLink("R3", "abc123"));
 
         String resultId = provider.resolveAndRecord("abc123", "client-a", request);
 
         assertEquals("R3", resultId);
+        verify(shortLinkMapper, never()).selectByShortCode(anyString());
         verify(visitEventService).recordAsync(eq(EventType.SHORT_LINK_VISIT),
                 eq("/s/abc123"), eq("R3"), eq("abc123"), eq("client-a"), eq(request));
         verify(shortLinkMapper).touchLastVisitAtIfStale(eq("abc123"), any(), any());
         verify(shortLinkMapper, never()).touchLastVisitAt(eq("abc123"), any());
         verify(shortLinkMapper, never()).updateCounters(anyString(), anyLong(), anyLong(), anyLong(), any());
+    }
+
+    @Test
+    void resolveAndRecordShouldKeepRedirectWhenLastVisitTouchFails() {
+        when(redisCacheService.isNullShortLink("abc123")).thenReturn(false);
+        when(redisCacheService.getShortLinkResultId("abc123")).thenReturn("R4");
+        doThrow(new RuntimeException("database busy"))
+                .when(shortLinkMapper).touchLastVisitAtIfStale(eq("abc123"), any(), any());
+
+        String resultId = provider.resolveAndRecord("abc123", "client-a", request);
+
+        assertEquals("R4", resultId);
+        verify(shortLinkMapper, never()).selectByShortCode(anyString());
+        verify(visitEventService).recordAsync(eq(EventType.SHORT_LINK_VISIT),
+                eq("/s/abc123"), eq("R4"), eq("abc123"), eq("client-a"), eq(request));
     }
 
     private ShortLinkEntity shortLink(String resultId, String shortCode) {
