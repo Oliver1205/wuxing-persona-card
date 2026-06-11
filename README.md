@@ -99,6 +99,7 @@
     <td valign="top" width="25%">
       <strong>质量与路线</strong><br>
       <a href="docs/interview-learning-manual.md">面试学习手册</a><br>
+      <a href="docs/big-tech-interviewer-qa.md">大厂面试官追问</a><br>
       <a href="#质量门禁">质量门禁</a><br>
       <a href="#验证结果">验证结果</a><br>
       <a href="#开发进度记录">开发进度记录</a><br>

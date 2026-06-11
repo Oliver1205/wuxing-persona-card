@@ -27,6 +27,7 @@
 - v2.6 卡片式问答体验优化：`docs/v2.6-card-question-flow.md`
 - 项目宣传包：`docs/project-promotion-kit.md`
 - 面试学习手册：`docs/interview-learning-manual.md`
+- 大厂面试官压力追问清单：`docs/big-tech-interviewer-qa.md`
 - 角色 Agent 编排：`docs/agent-workflow-orchestration.md`
 - 下一轮角色 Backlog：`docs/next-iteration-role-backlog.md`
 - 八小时完成度审计：`docs/eight-hour-completion-audit.md`

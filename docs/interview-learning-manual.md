@@ -397,6 +397,8 @@ sequenceDiagram
 | Redis 挂了是不是全挂？ | 不会。结果和短码缓存读取失败会回源 MySQL，写缓存失败只记录 warn，不阻断用户核心链路。 |
 | UV 准不准？ | 匿名项目只能做到相对可信：优先 clientId hash，缺失时用 IP/User-Agent 兜底；它适合运营观察，不等同登录用户数。 |
 
+更完整的 10 题压力追问、代码证据和边界口径见 `docs/big-tech-interviewer-qa.md`。
+
 ## 14. 8 小时学习路线
 
 | 时间 | 学习目标 |

@@ -212,3 +212,9 @@ multi-role review support. The main outcomes are:
 - Visitor priority: keep auto-advance useful without making users feel rushed.
 - Frontend change: answer confirmation now stays visible for 1100 ms, and the sticky action text tells users they can tap next immediately or wait for automatic progress.
 - Product value: the question flow still feels fast, but users have a clearer moment to confirm or correct a choice.
+
+### Phase 26
+
+- Interview priority: turn big-tech-style scrutiny into a study artifact the owner can rehearse.
+- Documentation change: added a pressure-question guide covering short-link hot paths, async events, admin statistics, external stats caching, Redis degradation, indexing, migration, external dependency failure, frontend product choices, and honest QPS boundaries.
+- Learning value: every answer now separates repository evidence from current limitations, so the project can be presented confidently without overstating production readiness.
