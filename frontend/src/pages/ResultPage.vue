@@ -83,12 +83,30 @@ function sharedLandingStart() {
 <template>
   <main class="page result-page">
     <section class="shell stack">
-      <div v-if="loading" class="panel">结果加载中...</div>
-      <div v-else-if="error" class="panel stack">
-        <h2>结果没有找到</h2>
+      <section v-if="loading" class="result-state-card" aria-live="polite">
+        <p class="eyebrow">正在展开你的五行人格卡</p>
+        <div class="loading-mark" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <h2>结果马上就好</h2>
+        <p class="muted">正在读取人格身份、五行比例和专属短链。</p>
+        <div class="skeleton-lines" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </section>
+      <section v-else-if="error" class="result-state-card error-state">
+        <p class="eyebrow">这张人格卡暂时打不开</p>
+        <h2>可能是链接失效，或结果还没有生成完成</h2>
         <p class="muted">{{ error }}</p>
-        <RouterLink class="button-link" to="/test">重新测试</RouterLink>
-      </div>
+        <div class="actions">
+          <RouterLink class="button-link" to="/test">重新测一张</RouterLink>
+          <RouterLink class="button-link secondary" to="/">返回首页</RouterLink>
+        </div>
+      </section>
       <template v-else-if="result">
         <section v-if="sharedEntry" class="shared-entry-banner" aria-label="分享来源提示">
           <div>
@@ -214,6 +232,86 @@ function sharedLandingStart() {
   font-size: 16px;
 }
 
+.result-state-card {
+  display: grid;
+  gap: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(36, 48, 47, 0.12);
+  border-radius: 8px;
+  padding: 28px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(237, 247, 242, 0.94)),
+    radial-gradient(circle at 88% 18%, rgba(215, 155, 67, 0.16), transparent 34%);
+  box-shadow: 0 12px 36px rgba(31, 48, 43, 0.08);
+}
+
+.result-state-card h2 {
+  max-width: 560px;
+  margin: 0;
+  font-size: 30px;
+}
+
+.result-state-card p {
+  margin: 0;
+}
+
+.loading-mark {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 28px;
+}
+
+.loading-mark span {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #2f6f5e;
+  animation: resultPulse 1.15s ease-in-out infinite;
+}
+
+.loading-mark span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+
+.loading-mark span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+.skeleton-lines {
+  display: grid;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.skeleton-lines span {
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(47, 111, 94, 0.12), rgba(215, 155, 67, 0.18), rgba(47, 111, 94, 0.12));
+}
+
+.skeleton-lines span:nth-child(1) {
+  width: min(100%, 520px);
+}
+
+.skeleton-lines span:nth-child(2) {
+  width: min(86%, 430px);
+}
+
+.skeleton-lines span:nth-child(3) {
+  width: min(64%, 320px);
+}
+
+.error-state {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(255, 240, 237, 0.92)),
+    radial-gradient(circle at 88% 18%, rgba(157, 57, 41, 0.12), transparent 34%);
+}
+
+.error-state .eyebrow {
+  color: #9d3929;
+}
+
 .result-hero h1 {
   max-width: 720px;
   font-size: 46px;
@@ -299,6 +397,19 @@ function sharedLandingStart() {
 
   .identity-statement h2 {
     font-size: 22px;
+  }
+}
+
+@keyframes resultPulse {
+  0%,
+  100% {
+    opacity: 0.32;
+    transform: translateY(0);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateY(-4px);
   }
 }
 </style>
