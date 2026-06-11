@@ -473,10 +473,12 @@ SHORTLINK_HITS=30 \
 ADMIN_HITS=2 \
 MAX_SHORTLINK_AVG_MS=120 \
 MAX_ADMIN_AVG_MS=200 \
+MAX_SHORTLINK_P95_MS=200 \
+MAX_ADMIN_P95_MS=350 \
 scripts/performance-smoke-test.sh
 ```
 
-`MAX_SHORTLINK_AVG_MS` 和 `MAX_ADMIN_AVG_MS` 为可选阈值，默认 `0` 表示只输出耗时不拦截；设置后平均耗时超标会让 smoke 失败。
+`MAX_*_AVG_MS` 和 `MAX_*_P95_MS` 为可选阈值，默认 `0` 表示只输出耗时不拦截；设置后平均耗时或 TP95 超标会让 smoke 失败。
 
 可选 Testcontainers 集成测试：
 

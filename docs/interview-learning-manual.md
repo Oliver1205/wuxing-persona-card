@@ -200,7 +200,8 @@ scripts/deploy-preflight.sh deploy/.env
 docker compose --env-file deploy/.env -f deploy/docker-compose.yml up --build -d
 BASE_URL=http://127.0.0.1:8088 ADMIN_TOKEN=dev-token scripts/docker-smoke-test.sh
 BASE_URL=http://127.0.0.1:8088 ADMIN_TOKEN=dev-token SHORTLINK_HITS=30 \
-MAX_SHORTLINK_AVG_MS=120 MAX_ADMIN_AVG_MS=200 scripts/performance-smoke-test.sh
+MAX_SHORTLINK_AVG_MS=120 MAX_SHORTLINK_P95_MS=200 \
+MAX_ADMIN_AVG_MS=200 MAX_ADMIN_P95_MS=350 scripts/performance-smoke-test.sh
 ```
 
 面试要点：
@@ -208,7 +209,7 @@ MAX_SHORTLINK_AVG_MS=120 MAX_ADMIN_AVG_MS=200 scripts/performance-smoke-test.sh
 - 不能直接暴露 Spring Boot 8080 到公网，公网入口应走 Nginx。
 - MySQL 和 Redis 不暴露公网。
 - 上线前必须替换 `ADMIN_TOKEN`、`HASH_SALT`、数据库密码和 `APP_BASE_URL`。
-- 性能 smoke 不是压测报告，而是回归检查：它会创建一个真实结果，连续访问短链，并重复读取后台总览，用输出的 `shortlinkAvgMs` 和 `adminAvgMs` 观察热点链路是否明显退化；设置 `MAX_SHORTLINK_AVG_MS` / `MAX_ADMIN_AVG_MS` 后也可以把它变成低延迟阈值门。
+- 性能 smoke 不是压测报告，而是回归检查：它会创建一个真实结果，连续访问短链，并重复读取后台总览，用输出的 `shortlinkAvgMs`、`shortlinkP95Ms`、`adminAvgMs` 和 `adminP95Ms` 观察热点链路是否明显退化；设置 `MAX_*_AVG_MS` / `MAX_*_P95_MS` 后也可以把它变成低延迟阈值门。
 
 ## 9. 面试追问速答
 
