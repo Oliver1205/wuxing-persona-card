@@ -2,6 +2,7 @@ package com.wuxing.persona.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -88,6 +89,9 @@ class VisitEventServiceTest {
         verify(visitEventMapper, timeout(1000)).insertBatch(captor.capture());
         assertEquals("SHORT_LINK_VISIT", captor.getValue().get(0).getEventType());
         assertEquals("abc123", captor.getValue().get(0).getShortCode());
+        assertEquals(1, service.runtime().getTotalFlushedEvents());
+        assertEquals(1, service.runtime().getLastBatchSize());
+        assertNotNull(service.runtime().getLastFlushAt());
     }
 
     @Test
@@ -112,6 +116,8 @@ class VisitEventServiceTest {
 
         verify(visitEventMapper, timeout(1000).atLeastOnce()).insertBatch(any());
         verify(visitEventMapper, timeout(1000).atLeastOnce()).insert(any(VisitEventEntity.class));
+        assertEquals(1, service.runtime().getBatchWriteFailures());
+        assertEquals(1, service.runtime().getTotalFlushedEvents());
     }
 
     @Test

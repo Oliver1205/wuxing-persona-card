@@ -478,10 +478,11 @@ MAX_SHORTLINK_P95_MS=200 \
 MAX_ADMIN_P95_MS=350 \
 MAX_ASYNC_QUEUE_SIZE=0 \
 MAX_ASYNC_DROPPED_EVENTS=0 \
+MAX_ASYNC_BATCH_FAILURES=0 \
 scripts/performance-smoke-test.sh
 ```
 
-`MAX_*_AVG_MS` 和 `MAX_*_P95_MS` 为可选阈值，默认 `0` 表示只输出耗时不拦截；设置后平均耗时或 TP95 超标会让 smoke 失败。`MAX_ASYNC_QUEUE_SIZE` 和 `MAX_ASYNC_DROPPED_EVENTS` 默认留空表示只观察，设置为 `0` 时要求 smoke 结束后没有队列积压和事件丢弃。脚本还会输出 `asyncQueueSize`、`asyncDroppedEvents` 和 `asyncWorkerAlive`，用于判断低延迟是否伴随事件队列积压或丢弃。
+`MAX_*_AVG_MS` 和 `MAX_*_P95_MS` 为可选阈值，默认 `0` 表示只输出耗时不拦截；设置后平均耗时或 TP95 超标会让 smoke 失败。`MAX_ASYNC_QUEUE_SIZE`、`MAX_ASYNC_DROPPED_EVENTS` 和 `MAX_ASYNC_BATCH_FAILURES` 默认留空表示只观察，设置为 `0` 时要求 smoke 结束后没有队列积压、事件丢弃和批量写失败。脚本还会输出 `asyncQueueSize`、`asyncDroppedEvents`、`asyncTotalFlushedEvents`、`asyncBatchWriteFailures` 和 `asyncWorkerAlive`，用于判断低延迟是否伴随事件队列积压、丢弃或后台 writer 排水异常。
 
 更完整的生产压测、告警触发和恢复记录模板见 [生产压测与告警演练 Runbook](docs/production-load-alert-runbook.md)。在真实服务器、固定数据规模和固定并发模型验证前，不应宣传为已验证生产 QPS。
 

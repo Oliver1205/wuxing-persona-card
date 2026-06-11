@@ -60,6 +60,7 @@ MAX_ADMIN_AVG_MS=250 \
 MAX_ADMIN_P95_MS=500 \
 MAX_ASYNC_QUEUE_SIZE=0 \
 MAX_ASYNC_DROPPED_EVENTS=0 \
+MAX_ASYNC_BATCH_FAILURES=0 \
 scripts/performance-smoke-test.sh
 ```
 
@@ -73,18 +74,26 @@ adminP95Ms=
 asyncQueueSize=
 asyncQueueCapacity=
 asyncDroppedEvents=
+asyncTotalFlushedEvents=
+asyncLastFlushAt=
+asyncLastBatchSize=
+asyncBatchWriteFailures=
 asyncWorkerAlive=
 maxAsyncQueueSize=
 maxAsyncDroppedEvents=
+maxAsyncBatchFailures=
 ```
 
 判断口径：
 
 - `shortlinkAvgMs` 和 `shortlinkP95Ms` 用来观察短链热路径是否退化。
 - `asyncQueueSize` 用来看低延迟是否靠堆积事件换来。
+- `asyncTotalFlushedEvents` 和 `asyncLastFlushAt` 用来看后台 worker 是否持续排水。
+- `asyncLastBatchSize` 用来看当前批量写入是否真的在合并事件。
 - `asyncDroppedEvents` 如果明显上升，要检查队列容量、批量写库速度和数据库连接池。
+- `asyncBatchWriteFailures` 如果上升，要检查数据库写入、表锁、连接池和批量 SQL。
 - `asyncWorkerAlive=false` 是严重故障，必须停止压测并看后端日志。
-- `MAX_ASYNC_QUEUE_SIZE` 和 `MAX_ASYNC_DROPPED_EVENTS` 默认留空只观察；设为 `0` 时，smoke 会把“无积压、无丢弃”变成硬性门禁。
+- `MAX_ASYNC_QUEUE_SIZE`、`MAX_ASYNC_DROPPED_EVENTS` 和 `MAX_ASYNC_BATCH_FAILURES` 默认留空只观察；设为 `0` 时，smoke 会把“无积压、无丢弃、无批量写失败”变成硬性门禁。
 - 短链列表里的 `metricSource` 用于区分统计口径：`live_event` 表示实时事件聚合，`daily_metric` 表示日聚合表，`external` 表示独立短链服务统计。压测复盘时不要把三种口径混在一起比较。
 
 压测调参入口：
@@ -110,7 +119,7 @@ maxAsyncDroppedEvents=
 | 测试入口 | `/s/{shortCode}`、`/api/admin/overview` |
 | 指标 | QPS、avg、P95、P99、错误率 |
 | 系统指标 | CPU、内存、磁盘、网络、DB 连接 |
-| 业务指标 | asyncQueueSize、asyncDroppedEvents、workerAlive |
+| 业务指标 | asyncQueueSize、asyncTotalFlushedEvents、asyncDroppedEvents、asyncBatchWriteFailures、workerAlive |
 | 结论 | 可接受 / 需优化 / 环境异常 |
 
 ## 6. 告警演练清单
@@ -123,6 +132,7 @@ maxAsyncDroppedEvents=
 | Redis 不可用 | 停止 Redis 容器 | 缓存 warn 增加，主链路应回源 DB | 恢复 Redis，观察 warn 下降 |
 | 事件队列积压 | 提高短链访问量或降低数据库写入能力 | `asyncQueueSize` 上升 | 降低流量，检查 DB 写入和队列容量 |
 | 事件丢弃 | 队列满或 worker 异常 | `asyncDroppedEvents` 上升 | 停止压测，排查 worker、DB、队列容量 |
+| 批量写失败 | 模拟数据库写入异常或连接池耗尽 | `asyncBatchWriteFailures` 上升 | 停止压测，查看 DB 锁等待、连接池和批量 SQL |
 | 后台查询变慢 | 增加后台刷新或扩大日期范围 | `adminP95Ms` 上升 | 检查 overview cache、索引、聚合表 |
 | 磁盘空间不足 | 模拟日志/备份占用 | 容器写入失败风险 | 清理日志，验证备份和恢复策略 |
 
@@ -134,10 +144,12 @@ maxAsyncDroppedEvents=
 2. 是 CPU、DB、Redis、网络、连接池还是应用线程成为瓶颈？
 3. `asyncQueueSize` 是否回落？
 4. `asyncDroppedEvents` 是否增加？
-5. 后台 overview 的缓存命中是否有效？
-6. Nginx 限流是否保护了 backend？
-7. 是否出现 5xx、连接超时或重定向错误？
-8. 是否需要调大队列、优化 SQL、增加索引、改限流或引入 MQ？
+5. `asyncTotalFlushedEvents` 是否增长，`asyncLastFlushAt` 是否刷新？
+6. `asyncBatchWriteFailures` 是否增加？
+7. 后台 overview 的缓存命中是否有效？
+8. Nginx 限流是否保护了 backend？
+9. 是否出现 5xx、连接超时或重定向错误？
+10. 是否需要调大队列、优化 SQL、增加索引、改限流或引入 MQ？
 
 ## 8. 面试表达边界
 

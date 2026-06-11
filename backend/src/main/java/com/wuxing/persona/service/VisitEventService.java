@@ -19,6 +19,7 @@ import java.util.Locale;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +42,11 @@ public class VisitEventService {
     private final BlockingQueue<VisitEventEntity> asyncQueue;
     private final AtomicBoolean running = new AtomicBoolean(true);
     private final AtomicLong droppedAsyncEvents = new AtomicLong();
+    private final AtomicLong totalFlushedEvents = new AtomicLong();
+    private final AtomicLong batchWriteFailures = new AtomicLong();
+    private final AtomicInteger lastBatchSize = new AtomicInteger();
     private final Thread asyncWorker;
+    private volatile LocalDateTime lastFlushAt;
 
     public VisitEventService(VisitEventMapper visitEventMapper, AppProperties appProperties) {
         this.visitEventMapper = visitEventMapper;
@@ -110,6 +115,10 @@ public class VisitEventService {
         runtime.setQueueCapacity(asyncQueueCapacity);
         runtime.setDrainLimit(asyncDrainLimit);
         runtime.setDroppedAsyncEvents(droppedAsyncEvents.get());
+        runtime.setTotalFlushedEvents(totalFlushedEvents.get());
+        runtime.setLastFlushAt(lastFlushAt);
+        runtime.setLastBatchSize(lastBatchSize.get());
+        runtime.setBatchWriteFailures(batchWriteFailures.get());
         runtime.setWorkerAlive(asyncWorker.isAlive());
         return runtime;
     }
@@ -158,9 +167,13 @@ public class VisitEventService {
         if (batch.isEmpty()) {
             return;
         }
+        lastBatchSize.set(batch.size());
+        lastFlushAt = LocalDateTime.now();
+        totalFlushedEvents.addAndGet(batch.size());
         try {
             visitEventMapper.insertBatch(List.copyOf(batch));
         } catch (RuntimeException ex) {
+            batchWriteFailures.incrementAndGet();
             log.warn("Visit event batch write failed, size={}, error={}: {}", batch.size(),
                     ex.getClass().getSimpleName(), ex.getMessage());
             for (VisitEventEntity entity : batch) {

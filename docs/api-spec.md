@@ -204,8 +204,6 @@ X-Admin-Token: <admin-token>
 
 返回单条短链访问日志，只展示 hash 后的匿名标识。
 
-## 10. 手动刷新增长聚合
-
 ## 10. 访问事件异步队列状态
 
 ```http
@@ -224,12 +222,16 @@ X-Admin-Token: <admin-token>
     "queueCapacity": 2048,
     "drainLimit": 64,
     "droppedAsyncEvents": 0,
+    "totalFlushedEvents": 120,
+    "lastFlushAt": "2026-06-12T03:30:00",
+    "lastBatchSize": 16,
+    "batchWriteFailures": 0,
     "workerAlive": true
   }
 }
 ```
 
-用于性能 smoke 和后台排查：确认短链访问事件队列是否积压、后台 writer 是否存活，以及低延迟是否以丢弃过多低价值事件为代价。
+用于性能 smoke 和后台排查：确认短链访问事件队列是否积压、后台 writer 是否存活、是否持续排水，以及低延迟是否以丢弃过多低价值事件或批量写失败为代价。
 
 ## 11. 手动刷新增长聚合
 

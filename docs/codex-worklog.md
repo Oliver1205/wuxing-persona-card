@@ -419,3 +419,9 @@ multi-role review support. The main outcomes are:
 - Visual evidence priority: keep long showcase screenshots inspectable without making the portfolio page unwieldy.
 - Docs-site change: result and admin screenshots now sit inside fixed-height scroll frames, so the full Playwright long screenshots remain available instead of being cropped by `object-fit: cover`.
 - Portfolio value: the result-page sharing actions and admin evidence are no longer hidden below a hard crop.
+
+### Phase 60
+
+- Observability priority: prove the async visit-event worker is draining, not merely alive.
+- Backend change: visit-event runtime now reports `totalFlushedEvents`, `lastFlushAt`, `lastBatchSize`, and `batchWriteFailures` alongside queue size, drops, and worker liveness.
+- Tooling change: performance smoke prints the new worker-drain fields and supports `MAX_ASYNC_BATCH_FAILURES` as an optional hard threshold.
