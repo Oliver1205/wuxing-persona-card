@@ -207,6 +207,76 @@ select:disabled {
   font-size: 14px;
 }
 
+.debug-panel summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  color: #263735;
+  font-weight: 800;
+  list-style: none;
+}
+
+.debug-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.debug-panel summary::after {
+  content: "+";
+  flex: 0 0 auto;
+  color: #2f6f5e;
+  font-weight: 900;
+}
+
+.debug-panel[open] summary::after {
+  content: "-";
+}
+
+.debug-panel summary small {
+  color: #7a8783;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.debug-code,
+.inline-debug code {
+  border-radius: 6px;
+  padding: 2px 6px;
+  background: rgba(36, 48, 47, 0.06);
+  color: #40514e;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.inline-debug summary {
+  cursor: pointer;
+  color: #2f6f5e;
+  font-weight: 800;
+}
+
+.inline-debug dl {
+  display: grid;
+  gap: 8px;
+  min-width: 180px;
+  margin: 8px 0 0;
+}
+
+.inline-debug dl div {
+  display: grid;
+  gap: 3px;
+}
+
+.inline-debug dt {
+  color: #697674;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.inline-debug dd {
+  margin: 0;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -290,5 +360,10 @@ td a {
 
   .runtime-grid {
     grid-template-columns: 1fr;
+  }
+
+  .debug-panel summary {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

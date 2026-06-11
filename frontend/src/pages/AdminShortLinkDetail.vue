@@ -42,6 +42,21 @@ function dateFilter(): AdminDateFilter {
     endDate: endDate.value || undefined,
   };
 }
+
+function statSourceLabel(value: ShortLinkVisit['statSource']) {
+  return value === 'external' ? '外部平台' : '本地统计';
+}
+
+function eventTypeLabel(value: string) {
+  if (value === 'SHORT_LINK_VISIT') {
+    return '访问短链';
+  }
+  return value;
+}
+
+function shortHash(value: string) {
+  return value.length > 12 ? `${value.slice(0, 12)}...` : value;
+}
 </script>
 
 <template>
@@ -71,28 +86,46 @@ function dateFilter(): AdminDateFilter {
             <tr>
               <th>时间</th>
               <th>来源</th>
-              <th>事件</th>
-              <th>Client Hash</th>
-              <th>IP Hash</th>
-              <th>User-Agent Hash</th>
-              <th>Channel</th>
-              <th>Campaign</th>
+              <th>访问动作</th>
+              <th>渠道</th>
+              <th>活动</th>
               <th>设备</th>
               <th>Referer</th>
+              <th>技术明细</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="item in visits?.records" :key="`${item.createdAt}-${item.clientIdHash}`">
               <td>{{ item.createdAt }}</td>
-              <td>{{ item.statSource }}</td>
-              <td>{{ item.eventType }}</td>
-              <td>{{ item.clientIdHash }}</td>
-              <td>{{ item.ipHash }}</td>
-              <td>{{ item.userAgentHash }}</td>
+              <td>{{ statSourceLabel(item.statSource) }}</td>
+              <td>{{ eventTypeLabel(item.eventType) }}</td>
               <td>{{ item.channel || '-' }}</td>
               <td>{{ item.campaign || '-' }}</td>
               <td>{{ item.deviceType || '-' }}</td>
               <td>{{ item.referer || '-' }}</td>
+              <td>
+                <details class="inline-debug">
+                  <summary>查看</summary>
+                  <dl>
+                    <div>
+                      <dt>埋点代码</dt>
+                      <dd><code>{{ item.eventType }}</code></dd>
+                    </div>
+                    <div>
+                      <dt>匿名访客</dt>
+                      <dd><code :title="item.clientIdHash">{{ shortHash(item.clientIdHash) }}</code></dd>
+                    </div>
+                    <div>
+                      <dt>匿名 IP</dt>
+                      <dd><code :title="item.ipHash">{{ shortHash(item.ipHash) }}</code></dd>
+                    </div>
+                    <div>
+                      <dt>设备指纹</dt>
+                      <dd><code :title="item.userAgentHash">{{ shortHash(item.userAgentHash) }}</code></dd>
+                    </div>
+                  </dl>
+                </details>
+              </td>
             </tr>
           </tbody>
         </table>

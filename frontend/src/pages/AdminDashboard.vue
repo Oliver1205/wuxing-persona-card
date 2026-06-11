@@ -217,9 +217,29 @@ function formatDateTime(value: string | null) {
       </div>
 
       <template v-if="overview">
-        <div v-if="runtime" class="panel stack">
+        <div class="stats-grid" aria-label="关键指标口径">
+          <StatCard label="总 PV" :value="overview.totalPv" note="当前筛选范围内的事件总次数" />
+          <StatCard label="总 UV" :value="overview.totalUv" note="按匿名 clientId hash 去重" />
+          <StatCard label="总 UIP" :value="overview.totalUip" note="按脱敏 IP hash 去重" />
+          <StatCard label="首页访问" :value="overview.homeViews" note="用户进入产品首屏的次数" />
+          <StatCard label="开始点击" :value="overview.startClicks" note="点击开始测试的行为次数" />
+          <StatCard label="提交次数" :value="overview.testSubmits" note="测试页发起提交的尝试次数" />
+          <StatCard label="结果生成" :value="overview.resultCreated" note="后端成功生成结果的次数" />
+          <StatCard label="短链生成" :value="overview.shortLinkCreated" note="结果绑定专属短码的次数" />
+          <StatCard label="短链访问" :value="overview.shortLinkVisits" note="朋友或本人访问 /s/{code} 的次数" />
+          <StatCard label="完成率" :value="`${overview.completionRate}%`" note="结果生成数 / 开始点击数" />
+        </div>
+
+        <details v-if="runtime" class="panel stack debug-panel">
+          <summary>
+            <span>外部短链调试信息</span>
+            <small>
+              {{ runtime.mode }} · {{ runtimeReachableLabel(runtime.reachable) }} ·
+              {{ runtime.fallbackToInternal ? '可自动降级' : '不降级' }}
+            </small>
+          </summary>
           <div class="section-head">
-            <h2>外部短链状态</h2>
+            <p class="muted">用于排查外部短链服务连通性，日常运营优先看上方核心指标。</p>
             <button class="secondary" type="button" :disabled="busy" @click="checkExternalRuntime">
               {{ loading ? '检查中...' : '检查' }}
             </button>
@@ -234,20 +254,7 @@ function formatDateTime(value: string | null) {
             <span>状态码：{{ runtime.httpStatus ?? '-' }}</span>
             <span>信息：{{ runtime.message }}</span>
           </div>
-        </div>
-
-        <div class="stats-grid" aria-label="关键指标口径">
-          <StatCard label="总 PV" :value="overview.totalPv" note="当前筛选范围内的事件总次数" />
-          <StatCard label="总 UV" :value="overview.totalUv" note="按匿名 clientId hash 去重" />
-          <StatCard label="总 UIP" :value="overview.totalUip" note="按脱敏 IP hash 去重" />
-          <StatCard label="首页访问" :value="overview.homeViews" note="用户进入产品首屏的次数" />
-          <StatCard label="开始点击" :value="overview.startClicks" note="点击开始测试的行为次数" />
-          <StatCard label="提交次数" :value="overview.testSubmits" note="测试页发起提交的尝试次数" />
-          <StatCard label="结果生成" :value="overview.resultCreated" note="后端成功生成结果的次数" />
-          <StatCard label="短链生成" :value="overview.shortLinkCreated" note="结果绑定专属短码的次数" />
-          <StatCard label="短链访问" :value="overview.shortLinkVisits" note="朋友或本人访问 /s/{code} 的次数" />
-          <StatCard label="完成率" :value="`${overview.completionRate}%`" note="结果生成数 / 开始点击数" />
-        </div>
+        </details>
 
         <div class="panel stack">
           <h2>增长漏斗</h2>
@@ -257,17 +264,17 @@ function formatDateTime(value: string | null) {
               <thead>
                 <tr>
                   <th>步骤</th>
-                  <th>事件</th>
                   <th>次数</th>
                   <th>转化率</th>
+                  <th>埋点代码</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="item in overview.funnelSteps" :key="item.eventType">
                   <td>{{ item.label }}</td>
-                  <td>{{ item.eventType }}</td>
                   <td>{{ item.count }}</td>
                   <td>{{ item.conversionRate }}%</td>
+                  <td><code class="debug-code">{{ item.eventType }}</code></td>
                 </tr>
               </tbody>
             </table>

@@ -272,3 +272,10 @@ multi-role review support. The main outcomes are:
 - Backend priority: make the async visit-event worker reduce database round trips instead of only moving them off the request thread.
 - Backend change: async visit events now flush through a MyBatis batch insert, with a per-row degraded fallback if the batch write fails.
 - Verification value: service tests cover batch insertion and fallback, and the MVP integration flow still passes with async frontend event tracking.
+
+### Phase 36
+
+- Admin priority: let operators scan conversion and sharing signals before seeing engineering diagnostics.
+- Frontend change: the external short-link runtime block now sits in a collapsed debug panel after the core KPI cards, the funnel table keeps human-readable step labels first, and raw event codes move to a secondary code column.
+- Detail change: short-link visit rows now lead with source, visit action, channel, campaign, device, and referer; anonymous hashes and raw event code remain available inside an inline technical detail disclosure.
+- Verification value: local H2 + Vite browser verification confirmed the debug panel is collapsed by default, short-link visits show readable attribution, and expanding "查看" still reveals event code plus anonymous visitor/IP/device fingerprints.
