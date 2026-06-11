@@ -303,3 +303,10 @@ multi-role review support. The main outcomes are:
 - Reproducibility priority: make mobile E2E and showcase screenshot commands available from a clean frontend install.
 - Tooling change: added `@playwright/test` to frontend dev dependencies and exposed `npm run e2e:mobile` / `npm run e2e:showcase`, with root scripts delegating to those commands.
 - Documentation value: README and historical scorecards now distinguish "Playwright dependency is present" from the remaining CI/browser-install and screenshot-archive work.
+
+### Phase 41
+
+- CI priority: turn mobile interaction checks and showcase screenshots into a repeatable GitHub Actions signal.
+- Workflow plan: drafted a `browser-e2e` job that starts the backend in local H2 mode, starts Vite against that backend, installs Chromium, runs mobile E2E, captures showcase screenshots, and uploads logs plus screenshots as artifacts.
+- Permission note: pushing `.github/workflows/quality-gate.yml` was blocked because the current GitHub credential lacks `workflow` scope, so the ready-to-apply job is documented in `docs/ci-browser-e2e-plan.md`.
+- Documentation value: README, role matrix, quality scorecard, audit, and learning manual now distinguish prepared CI browser coverage from the remaining workflow-scope, real-device, WeChat, online pressure-test, and alerting evidence gaps.

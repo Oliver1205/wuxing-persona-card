@@ -44,13 +44,13 @@
 | 短链跳转热路径去实时聚合 | `InternalShortLinkProvider` | 资深架构师、后端开发 |
 | 后台 overview 45 秒短缓存 | `AdminStatService`、`RedisCacheService` | 资深架构师、后端开发 |
 | 性能 smoke 脚本 | `scripts/performance-smoke-test.sh` | 架构师、面试官 |
-| 可复现多视口截图流程 | `scripts/capture-showcase-screenshots.sh`、`frontend/e2e/showcase-screenshots.spec.mjs` | 产品经理、普通访问者、美术经理 |
+| 待启用 CI 多视口截图方案 | `docs/ci-browser-e2e-plan.md`、`scripts/capture-showcase-screenshots.sh`、`frontend/e2e/showcase-screenshots.spec.mjs` | 产品经理、普通访问者、美术经理 |
 | 宣传素材分镜 | `docs/project-promotion-kit.md` | 产品经理、美术经理 |
 | 面试讲解图谱 | `docs/interview-learning-manual.md` | 大厂面试官 |
 
 ## 5. 后续推进优先级
 
-1. 执行可复现多视口截图流程，归档 iPhone SE、安卓宽屏和桌面后台 showcase 截图。
+1. 启用 `browser-e2e` 后观察 artifact，归档 iPhone SE、安卓宽屏和桌面后台 showcase 精选截图。
 2. 继续观察真实手机和微信内置浏览器下的结果页、复制短链和保存图展示。
 3. 根据后台指标说明，补一版面试口头讲解练习。
 4. 观察性能 smoke 结果，如果短链平均耗时明显上升，再回到热路径查 DB、Redis、日志写入。

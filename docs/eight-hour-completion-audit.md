@@ -61,15 +61,15 @@
 | --- | --- | --- |
 | 真实线上压测未执行 | 不能声称已验证生产峰值容量 | 选定线上环境后用固定并发、固定数据量、固定日志口径压测 |
 | HTTPS/HSTS 和告警演练未归档 | 生产安全与运维证据不足 | 补 Nginx/TLS 检查、健康检查、告警触发和恢复记录 |
-| 多机型截图产物尚未归档 | 脚本已支持 iPhone SE、安卓宽屏和桌面后台，但宣传材料还缺真实生成图片 | 运行 `scripts/capture-showcase-screenshots.sh` 并提交或归档 `docs/screenshots/showcase/` 产物 |
+| 多机型截图产物尚未归档 | 脚本已支持 iPhone SE、安卓宽屏和桌面后台截图，GitHub Actions 接入方案已整理但受 `workflow` scope 限制尚未启用 | 启用 `browser-e2e` 后从 artifact 中挑选并归档作品集截图 |
 | 真实普通用户访谈不足 | 交互“自然”还主要来自角色启发式评审 | 找 3 到 5 位普通用户记录首次使用卡点 |
-| Playwright 浏览器和截图归档未纳入 CI | `@playwright/test` 已进入前端依赖，但浏览器安装与截图产物归档仍依赖本机执行 | 将 `npx playwright install chromium`、移动端 E2E 和 showcase 截图脚本接入 CI |
+| 真实设备与微信环境未覆盖 | 自动化脚本覆盖 Chromium 移动视口，但不能替代 iOS / Android / 微信内置浏览器 | 用真实设备补复制短链、保存图和回流体验验收 |
 
 ## 6. 下一阶段建议
 
 1. 先补真实设备截图和普通用户访谈，不急着加新业务功能。
 2. 选择一个可控线上环境做短链跳转压测，并记录 QPS、P95、错误率和数据库指标。
-3. 把 `docs/project-promotion-kit.md` 里的分镜产出为真正的作品集长图。
+3. 启用 `browser-e2e` 后从 artifact 中挑选截图，把 `docs/project-promotion-kit.md` 里的分镜产出为真正的作品集长图。
 4. 按 `docs/interview-learning-manual.md` 做一次 5 分钟讲解录音，再根据卡壳点反向补文档。
 
 阶段判断：八小时工作流已经完成一轮高质量产品化加固，适合作为作品集展示和面试讲述版本；但不应宣传为完整生产 SRE 闭环。

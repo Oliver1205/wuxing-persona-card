@@ -301,7 +301,7 @@ flowchart LR
 如果要正式上线，先不要急着上复杂分布式组件，优先把单机质量补齐：
 
 - 接入 HTTPS / HSTS、正式域名、生产日志和告警。
-- 把 Playwright 移动端 E2E、截图捕获和 production smoke 接入 CI。
+- 用具备 `workflow` scope 的凭据启用 Playwright 移动端 E2E 与截图捕获 GitHub Actions 方案，并继续把 production smoke 接入正式线上流水线。
 - 定期做备份恢复演练，验证不是只会备份、不会恢复。
 - 对 `/api/events`、`/s/**`、`/api/results` 分别设置更明确的限流阈值。
 - 为 `visit_event` 增加归档策略，避免明细表无限增长。

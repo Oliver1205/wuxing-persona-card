@@ -447,6 +447,6 @@ v2.2-v2.4 新增验证：
 ## 6. 下一阶段建议
 
 1. 下一阶段优先引入 Flyway 或 Liquibase，解决 schema 演进治理。
-2. 将 `scripts/mobile-e2e.sh` 接入 CI，并补浏览器依赖缓存。
+2. 使用具备 `workflow` scope 的凭据启用 `docs/ci-browser-e2e-plan.md` 中的 `browser-e2e`，再把 showcase screenshot artifact 沉淀为作品集截图。
 3. 上线域名后完成 HTTPS、HSTS、备份恢复演练和线上 smoke 常态化。
 4. 登录、付费、AI 深度解读、朋友匹配和社区功能必须单独立项，不并入当前产品化基线。

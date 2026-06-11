@@ -498,6 +498,8 @@ npm run e2e:showcase
 
 也可以从仓库根目录运行 `scripts/mobile-e2e.sh` 和 `scripts/capture-showcase-screenshots.sh`；截图默认输出到 `docs/screenshots/showcase/`。
 
+`docs/ci-browser-e2e-plan.md` 已整理 GitHub Actions `browser-e2e` 接入方案。当前推送凭据缺少 `workflow` scope，暂不能直接更新 `.github/workflows/quality-gate.yml`；启用后该 job 会在 H2 后端 + Vite 前端模式下安装 Chromium、运行移动端 E2E、捕获 showcase 截图，并把运行日志和截图作为 artifact 上传。
+
 ## 验证结果
 
 已通过：
@@ -824,7 +826,7 @@ admin pv/uv/uip: 1/1/1
 ## 后续建议
 
 1. v2.5 优先引入 Flyway 或 Liquibase，治理线上 schema 演进。
-2. 将 `scripts/mobile-e2e.sh` 接入 GitHub Actions，并配置浏览器依赖缓存。
+2. 使用具备 `workflow` scope 的凭据启用 GitHub Actions `browser-e2e`，再将关键 showcase 截图纳入正式作品集归档。
 3. 生产域名上线后完成 HTTPS、HSTS、备份恢复演练和线上 smoke 常态化。
 4. 再评估商业化功能，例如运营活动页、多套卡片和轻量报告增强；登录、付费、AI 深度解读和朋友匹配必须单独立项。
 
