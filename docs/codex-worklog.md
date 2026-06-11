@@ -371,3 +371,9 @@ multi-role review support. The main outcomes are:
 - Backend resilience change: internal short-code creation now relies on the `uk_short_code` unique key and retries on duplicate-key collisions, removing the old `count + insert` race.
 - Contract change: `ShortLinkListItemVO` now returns `metricSource`, CSV export includes the same field, and the admin table shows a human-readable "口径" column.
 - Interview value: the backend story can separate low-latency hot-path choices from admin query cost, and short-code conflict handling now has code and test evidence instead of a future-only explanation.
+
+### Phase 52
+
+- UX priority: give mobile users control after selecting an answer instead of auto-advancing the card.
+- Frontend change: answer selection now only marks the chosen option; the sticky primary action is disabled until an answer exists, then advances explicitly with "下一题" or submits on the last question.
+- Verification value: mobile E2E and showcase screenshot flows now click "下一题" between answers, so the automated path matches the more deliberate interaction.

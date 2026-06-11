@@ -68,9 +68,13 @@ async function captureMobileFlow(page, viewport) {
   await page.screenshot({ path: screenshotPath(`${viewport.name}-03-test-question-card.png`), fullPage: true });
 
   await page.getByText('标准、边界和清晰判断').click();
+  await page.getByRole('button', { name: '下一题' }).click();
   await page.getByText('提出计划和方向的人').click();
+  await page.getByRole('button', { name: '下一题' }).click();
   await page.getByText('先感受和观察，再慢慢调整').click();
+  await page.getByRole('button', { name: '下一题' }).click();
   await page.getByText('热情表达和感染他人').click();
+  await page.getByRole('button', { name: '下一题' }).click();
   await page.getByText('资源统筹、稳定执行、兜底收尾').click();
   await page.getByRole('button', { name: '生成我的人格卡' }).click();
   await expect(page.getByText('你的五行人格身份')).toBeVisible();

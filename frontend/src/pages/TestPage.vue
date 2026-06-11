@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { fetchQuestions } from '../api/questions';
 import { createResult } from '../api/results';
@@ -8,15 +8,12 @@ import QuestionCard from '../components/QuestionCard.vue';
 import { track } from '../utils/tracker';
 
 const router = useRouter();
-const AUTO_ADVANCE_DELAY_MS = 1100;
 const questions = ref<Question[]>([]);
 const activeStepIndex = ref(0);
 const loading = ref(true);
 const submitting = ref(false);
 const error = ref('');
 const formStarted = ref(false);
-const autoAdvanceTimer = ref<number | null>(null);
-const autoAdvanceQuestionCode = ref<string | null>(null);
 const currentYear = new Date().getFullYear();
 const minBirthYear = 1900;
 const defaultBirthYear = Math.min(currentYear, 2002);
@@ -87,11 +84,6 @@ const activeQuestionAnswered = computed(() => {
   return Boolean(question && form.answers[question.questionCode]);
 });
 const isLastQuestion = computed(() => activeStepIndex.value === questions.value.length);
-const autoAdvancePending = computed(() => Boolean(
-  autoAdvanceTimer.value !== null
-  && activeQuestion.value
-  && autoAdvanceQuestionCode.value === activeQuestion.value.questionCode,
-));
 const primaryActionText = computed(() => {
   if (submitting.value) {
     return '生成中...';
@@ -105,7 +97,10 @@ const primaryActionDisabled = computed(() => {
   if (submitting.value || loading.value) {
     return true;
   }
-  return isBirthStep.value && !birthInfoComplete.value;
+  if (isBirthStep.value) {
+    return !birthInfoComplete.value;
+  }
+  return !activeQuestionAnswered.value;
 });
 const stepCaption = computed(() => {
   if (isBirthStep.value) {
@@ -123,7 +118,7 @@ const actionSummaryText = computed(() => {
   if (isLastQuestion.value) {
     return '确认无误后生成卡片';
   }
-  return autoAdvancePending.value ? '已选择，可点下一题，也可以再点选项修改' : '已选择，可以进入下一题';
+  return '已选择，可以改选或进入下一题';
 });
 
 onMounted(async () => {
@@ -134,10 +129,6 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
-});
-
-onBeforeUnmount(() => {
-  clearAutoAdvance();
 });
 
 async function submit() {
@@ -188,18 +179,8 @@ function selectAnswer(questionCode: string, optionCode: string) {
     return;
   }
   markFormStart();
-  clearAutoAdvance();
   form.answers[questionCode] = optionCode;
   track('QUESTION_ANSWER_SELECT', '/test');
-
-  if (!isLastQuestion.value) {
-    autoAdvanceQuestionCode.value = questionCode;
-    autoAdvanceTimer.value = window.setTimeout(() => {
-      if (form.answers[questionCode] === optionCode && activeQuestion.value?.questionCode === questionCode) {
-        goNext();
-      }
-    }, AUTO_ADVANCE_DELAY_MS);
-  }
 }
 
 function selectBirthYear(year: number) {
@@ -262,7 +243,6 @@ function goPrevious() {
     return;
   }
   error.value = '';
-  clearAutoAdvance();
   activeStepIndex.value = Math.max(0, activeStepIndex.value - 1);
 }
 
@@ -271,7 +251,6 @@ function goNext() {
     return;
   }
   error.value = '';
-  clearAutoAdvance();
   if (isBirthStep.value) {
     if (!birthInfoComplete.value) {
       error.value = '请先选择出生年份和月份';
@@ -313,17 +292,7 @@ function goToStep(index: number) {
     return;
   }
   error.value = '';
-  clearAutoAdvance();
   activeStepIndex.value = index;
-}
-
-function clearAutoAdvance() {
-  if (autoAdvanceTimer.value === null) {
-    return;
-  }
-  window.clearTimeout(autoAdvanceTimer.value);
-  autoAdvanceTimer.value = null;
-  autoAdvanceQuestionCode.value = null;
 }
 </script>
 
@@ -549,9 +518,6 @@ function clearAutoAdvance() {
           <span>{{ actionSummaryText }}</span>
           <RouterLink class="home-inline-link" to="/">返回首页</RouterLink>
           <span v-if="submitting" class="submit-lock">正在生成，请不要关闭页面</span>
-          <span class="auto-advance-track" :class="{ active: autoAdvancePending }" aria-hidden="true">
-            <i></i>
-          </span>
         </div>
         <button v-if="canGoPrevious" type="button" class="secondary nav-button" @click="goPrevious">
           上一张
@@ -1101,46 +1067,6 @@ function clearAutoAdvance() {
 .submit-lock {
   color: #2f6f5e;
   font-weight: 900;
-}
-
-.auto-advance-track {
-  display: block;
-  overflow: hidden;
-  width: min(220px, 100%);
-  height: 4px;
-  border-radius: 999px;
-  background: rgba(47, 111, 94, 0.08);
-  opacity: 0;
-}
-
-.auto-advance-track i {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border-radius: inherit;
-  background: #2f6f5e;
-  transform: translateX(-100%);
-}
-
-.auto-advance-track.active {
-  opacity: 1;
-}
-
-.auto-advance-track.active i {
-  animation: autoAdvanceFill 1100ms linear forwards;
-}
-
-@keyframes autoAdvanceFill {
-  to {
-    transform: translateX(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .auto-advance-track.active i {
-    animation: none;
-    transform: translateX(0);
-  }
 }
 
 @media (max-width: 760px) {
