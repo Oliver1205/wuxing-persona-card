@@ -2,6 +2,7 @@
 defineProps<{
   label: string;
   value: string | number;
+  note?: string;
 }>();
 </script>
 
@@ -9,6 +10,7 @@ defineProps<{
   <article class="stat-card">
     <span>{{ label }}</span>
     <strong>{{ value }}</strong>
+    <small v-if="note">{{ note }}</small>
   </article>
 </template>
 
@@ -30,5 +32,12 @@ span {
 strong {
   color: #263735;
   font-size: 24px;
+}
+
+small {
+  min-height: 34px;
+  color: #7a8783;
+  font-size: 12px;
+  line-height: 1.42;
 }
 </style>

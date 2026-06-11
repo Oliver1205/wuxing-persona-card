@@ -217,17 +217,17 @@ function formatDateTime(value: string | null) {
           </div>
         </div>
 
-        <div class="stats-grid">
-          <StatCard label="总 PV" :value="overview.totalPv" />
-          <StatCard label="总 UV" :value="overview.totalUv" />
-          <StatCard label="总 UIP" :value="overview.totalUip" />
-          <StatCard label="首页访问" :value="overview.homeViews" />
-          <StatCard label="开始点击" :value="overview.startClicks" />
-          <StatCard label="提交次数" :value="overview.testSubmits" />
-          <StatCard label="结果生成" :value="overview.resultCreated" />
-          <StatCard label="短链生成" :value="overview.shortLinkCreated" />
-          <StatCard label="短链访问" :value="overview.shortLinkVisits" />
-          <StatCard label="完成率" :value="`${overview.completionRate}%`" />
+        <div class="stats-grid" aria-label="关键指标口径">
+          <StatCard label="总 PV" :value="overview.totalPv" note="当前筛选范围内的事件总次数" />
+          <StatCard label="总 UV" :value="overview.totalUv" note="按匿名 clientId hash 去重" />
+          <StatCard label="总 UIP" :value="overview.totalUip" note="按脱敏 IP hash 去重" />
+          <StatCard label="首页访问" :value="overview.homeViews" note="用户进入产品首屏的次数" />
+          <StatCard label="开始点击" :value="overview.startClicks" note="点击开始测试的行为次数" />
+          <StatCard label="提交次数" :value="overview.testSubmits" note="测试页发起提交的尝试次数" />
+          <StatCard label="结果生成" :value="overview.resultCreated" note="后端成功生成结果的次数" />
+          <StatCard label="短链生成" :value="overview.shortLinkCreated" note="结果绑定专属短码的次数" />
+          <StatCard label="短链访问" :value="overview.shortLinkVisits" note="朋友或本人访问 /s/{code} 的次数" />
+          <StatCard label="完成率" :value="`${overview.completionRate}%`" note="结果生成数 / 开始点击数" />
         </div>
 
         <div class="panel stack">
