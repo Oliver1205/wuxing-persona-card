@@ -210,6 +210,7 @@ MAX_ADMIN_AVG_MS=200 MAX_ADMIN_P95_MS=350 scripts/performance-smoke-test.sh
 - MySQL 和 Redis 不暴露公网。
 - 上线前必须替换 `ADMIN_TOKEN`、`HASH_SALT`、数据库密码和 `APP_BASE_URL`。
 - 性能 smoke 不是压测报告，而是回归检查：它会创建一个真实结果，连续访问短链，并重复读取后台总览，用输出的 `shortlinkAvgMs`、`shortlinkP95Ms`、`adminAvgMs` 和 `adminP95Ms` 观察热点链路是否明显退化；设置 `MAX_*_AVG_MS` / `MAX_*_P95_MS` 后也可以把它变成低延迟阈值门。它还会读取访问事件 runtime，输出 `asyncDroppedEvents`，避免只看低延迟却忽略事件丢弃。
+- 生产压测和告警演练的完整记录模板见 `docs/production-load-alert-runbook.md`；面试中可以讲演练方案和 smoke 证据，但没有真实报告前不要说已经验证生产 QPS。
 
 ## 9. 面试追问速答
 

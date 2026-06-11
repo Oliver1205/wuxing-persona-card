@@ -101,6 +101,7 @@
       <strong>质量与路线</strong><br>
       <a href="docs/interview-learning-manual.md">面试学习手册</a><br>
       <a href="docs/big-tech-interviewer-qa.md">大厂面试官追问</a><br>
+      <a href="docs/production-load-alert-runbook.md">生产压测与告警演练</a><br>
       <a href="#质量门禁">质量门禁</a><br>
       <a href="#验证结果">验证结果</a><br>
       <a href="#开发进度记录">开发进度记录</a><br>
@@ -479,6 +480,8 @@ scripts/performance-smoke-test.sh
 ```
 
 `MAX_*_AVG_MS` 和 `MAX_*_P95_MS` 为可选阈值，默认 `0` 表示只输出耗时不拦截；设置后平均耗时或 TP95 超标会让 smoke 失败。脚本还会输出 `asyncQueueSize`、`asyncDroppedEvents` 和 `asyncWorkerAlive`，用于判断低延迟是否伴随事件队列积压或丢弃。
+
+更完整的生产压测、告警触发和恢复记录模板见 [生产压测与告警演练 Runbook](docs/production-load-alert-runbook.md)。在真实服务器、固定数据规模和固定并发模型验证前，不应宣传为已验证生产 QPS。
 
 可选 Testcontainers 集成测试：
 
