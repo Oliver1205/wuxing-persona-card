@@ -340,3 +340,9 @@ multi-role review support. The main outcomes are:
 - Visual priority: make the result card's primary/secondary ratio bar reflect the actual five-elements identity instead of a fixed two-color bar.
 - Backend priority: keep high-frequency result page reads from waiting on non-critical analytics writes.
 - Code change: `ElementRatioCard` now uses the real primary/secondary element colors passed by `PersonaCard`, and `ResultService#getByResultId` records `RESULT_VIEW` through the async visit-event queue.
+
+### Phase 47
+
+- Visitor priority: make the first test step feel less blocked by controls on small mobile screens.
+- Frontend change: the birth-info step now keeps the action panel in normal document flow on mobile, clarifies privacy and default-year copy, adds horizontal-scroll hints, and disables the primary action until both year and month are selected.
+- Browser value: verified `/test` locally at a 375px mobile viewport; the birth action panel is static after the birth card, `flowPaddingBottom=0px`, and the primary action changes from "选择月份后继续" to "进入第 1 题" after month selection.

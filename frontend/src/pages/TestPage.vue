@@ -97,9 +97,15 @@ const primaryActionText = computed(() => {
     return '生成中...';
   }
   if (isBirthStep.value) {
-    return '进入第 1 题';
+    return birthInfoComplete.value ? '进入第 1 题' : '选择月份后继续';
   }
   return isLastQuestion.value ? '生成我的人格卡' : '下一题';
+});
+const primaryActionDisabled = computed(() => {
+  if (submitting.value || loading.value) {
+    return true;
+  }
+  return isBirthStep.value && !birthInfoComplete.value;
 });
 const stepCaption = computed(() => {
   if (isBirthStep.value) {
@@ -109,7 +115,7 @@ const stepCaption = computed(() => {
 });
 const actionSummaryText = computed(() => {
   if (isBirthStep.value) {
-    return birthInfoComplete.value ? '可以进入问答卡片' : '出生年月是必填项';
+    return birthInfoComplete.value ? '可以进入问答卡片' : '只需要选年份和月份';
   }
   if (!activeQuestionAnswered.value) {
     return '按第一反应选择一个答案';
@@ -117,7 +123,7 @@ const actionSummaryText = computed(() => {
   if (isLastQuestion.value) {
     return '确认无误后生成卡片';
   }
-  return autoAdvancePending.value ? '已选择，可点下一题或稍等自动进入' : '已选择，可以进入下一题';
+  return autoAdvancePending.value ? '已选择，可点下一题，也可以再点选项修改' : '已选择，可以进入下一题';
 });
 
 onMounted(async () => {
@@ -327,7 +333,7 @@ function clearAutoAdvance() {
       <div class="test-header">
         <p class="eyebrow">五行人格测试</p>
         <h1>用 5 道题找到你的主副五行</h1>
-        <p class="muted">题目没有标准答案，按第一反应选择即可。出生日期和时段可以不透露。</p>
+        <p class="muted">题目没有标准答案，按第一反应选择即可。无需登录和姓名，出生日期、时段可以不透露。</p>
         <div class="progress-card" aria-label="答题进度">
           <div class="progress-meta">
             <span>完成 {{ completedProgressUnits }} / {{ totalProgressUnits }}</span>
@@ -356,14 +362,14 @@ function clearAutoAdvance() {
         </button>
       </div>
 
-      <div class="flow-stage" :class="{ 'question-mode': !isBirthStep }">
+      <div class="flow-stage" :class="{ 'question-mode': !isBirthStep, 'birth-mode': isBirthStep }">
         <Transition name="card-slide" mode="out-in">
           <div v-if="isBirthStep" key="birth" class="panel stack birth-panel input-panel flow-card">
             <div class="birth-panel-head">
               <div>
                 <p class="section-kicker">STEP 00</p>
                 <h2>先选出生年月</h2>
-                <p class="muted">这里只需要年份和月份；日期、时段是可选补充，默认不透露也可以继续。</p>
+                <p class="muted">这里只需要年份和月份，用来让解读更有个人感；日期、时段默认不透露也可以继续。</p>
               </div>
               <div class="birth-status" :class="{ active: birthInfoComplete }">
                 <span>{{ birthInfoComplete ? '已完成' : '待选择' }}</span>
@@ -380,7 +386,7 @@ function clearAutoAdvance() {
                 <div class="year-picker">
                   <div class="year-display">
                     <strong>{{ yearPickerValue }}</strong>
-                    <span>{{ form.birthYear ? '已锁定年份' : '滑动刻度、微调或直接输入' }}</span>
+                    <span>{{ form.birthYear ? '默认可改，选错也能随时调整' : '滑动刻度、微调或直接输入' }}</span>
                   </div>
                   <div class="year-control-row" aria-label="出生年份精确调节">
                     <button type="button" class="year-step-button" data-testid="birth-year-minus" @click="adjustBirthYear(-1)">
@@ -437,6 +443,7 @@ function clearAutoAdvance() {
                   <span id="birth-month-label">出生月份</span>
                   <strong>{{ form.birthMonth ? form.birthMonth + ' 月' : '请选择' }}</strong>
                 </div>
+                <p class="rail-hint">横向滑动可以看到 12 个月。</p>
                 <div class="choice-rail month-rail" role="list" aria-label="出生月份">
                   <button
                     v-for="month in 12"
@@ -464,6 +471,7 @@ function clearAutoAdvance() {
                       <span id="birth-day-label">出生日期</span>
                       <strong>{{ form.birthDay ? form.birthDay + ' 日' : '可不透露' }}</strong>
                     </div>
+                    <p class="rail-hint">不知道或不想填，可以保持“不透露”。</p>
                     <div class="choice-rail day-rail" role="list" aria-label="出生日期">
                       <button
                         type="button"
@@ -535,7 +543,7 @@ function clearAutoAdvance() {
 
       <p v-if="error" class="error-text">{{ error }}</p>
 
-      <div class="sticky-action">
+      <div class="sticky-action" :class="{ 'birth-action': isBirthStep }">
         <div class="action-summary">
           <strong>{{ stepCaption }}</strong>
           <span>{{ actionSummaryText }}</span>
@@ -548,7 +556,7 @@ function clearAutoAdvance() {
         <button v-if="canGoPrevious" type="button" class="secondary nav-button" @click="goPrevious">
           上一张
         </button>
-        <button type="button" class="primary-action-button" :disabled="submitting || loading" @click="goNext">
+        <button type="button" class="primary-action-button" :disabled="primaryActionDisabled" @click="goNext">
           {{ primaryActionText }}
         </button>
       </div>
@@ -759,6 +767,13 @@ function clearAutoAdvance() {
 .field-head strong {
   color: #24302f;
   font-size: 14px;
+}
+
+.rail-hint {
+  margin: -2px 0 0;
+  color: #7a8582;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .optional-birth-details {
@@ -1154,6 +1169,11 @@ function clearAutoAdvance() {
     padding-bottom: 178px;
   }
 
+  .flow-stage.birth-mode {
+    min-height: 0;
+    padding-bottom: 0;
+  }
+
   .step-pill {
     min-width: 44px;
   }
@@ -1166,6 +1186,12 @@ function clearAutoAdvance() {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     bottom: 10px;
     gap: 8px;
+  }
+
+  .sticky-action.birth-action {
+    position: static;
+    grid-template-columns: 1fr;
+    margin-top: 2px;
   }
 
   .action-summary,
