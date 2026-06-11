@@ -181,3 +181,9 @@ multi-role review support. The main outcomes are:
 - Admin priority: make cold-start and no-result states readable in the main dashboard.
 - Frontend change: recent results, recent short links, and the short-link list now show explicit empty states instead of blank tables.
 - Browser value: local admin verification with a future date range confirmed all three empty states render correctly.
+
+### Phase 21
+
+- Visitor priority: remove the expectation gap between the homepage promise and the first test step.
+- Frontend change: the homepage now promises "birth year/month + 5 questions", and the test page defaults to a simpler birth-year/month step while folding optional day/time controls into a secondary section.
+- Browser value: local mobile verification confirmed the optional day/time section is closed by default, can be expanded, and still exposes the existing date/time controls.

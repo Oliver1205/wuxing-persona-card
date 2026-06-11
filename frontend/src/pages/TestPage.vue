@@ -361,8 +361,8 @@ function clearAutoAdvance() {
             <div class="birth-panel-head">
               <div>
                 <p class="section-kicker">STEP 00</p>
-                <h2>先确认你的出生信息</h2>
-                <p class="muted">只需要出生年份和月份；日期、时段可以不透露。</p>
+                <h2>先选出生年月</h2>
+                <p class="muted">这里只需要年份和月份；日期、时段是可选补充，默认不透露也可以继续。</p>
               </div>
               <div class="birth-status" :class="{ active: birthInfoComplete }">
                 <span>{{ birthInfoComplete ? '已完成' : '待选择' }}</span>
@@ -452,57 +452,65 @@ function clearAutoAdvance() {
                 </div>
               </section>
 
-              <section class="field-block" aria-labelledby="birth-day-label">
-                <div class="field-head">
-                  <span id="birth-day-label">出生日期</span>
-                  <strong>{{ form.birthDay ? form.birthDay + ' 日' : '可不透露' }}</strong>
-                </div>
-                <div class="choice-rail day-rail" role="list" aria-label="出生日期">
-                  <button
-                    type="button"
-                    class="choice-chip day-chip optional"
-                    :class="{ active: form.birthDay === null }"
-                    data-testid="birth-day-none"
-                    @click="selectBirthDay(null)"
-                  >
-                    <strong>不透露</strong>
-                    <span>默认</span>
-                  </button>
-                  <button
-                    v-for="day in days"
-                    :key="day"
-                    type="button"
-                    class="choice-chip day-chip"
-                    :class="{ active: form.birthDay === day }"
-                    :data-testid="'birth-day-' + day"
-                    @click="selectBirthDay(day)"
-                  >
-                    <strong>{{ day }}</strong>
-                    <span>日</span>
-                  </button>
-                </div>
-              </section>
+              <details class="optional-birth-details">
+                <summary>
+                  <span>补充日期和时段</span>
+                  <strong>{{ form.birthDay ? form.birthDay + ' 日' : '日期不透露' }} / {{ timeOptions.find((item) => item.value === form.birthTimeRange)?.label ?? '时段不透露' }}</strong>
+                </summary>
+                <div class="optional-birth-content">
+                  <section class="field-block" aria-labelledby="birth-day-label">
+                    <div class="field-head">
+                      <span id="birth-day-label">出生日期</span>
+                      <strong>{{ form.birthDay ? form.birthDay + ' 日' : '可不透露' }}</strong>
+                    </div>
+                    <div class="choice-rail day-rail" role="list" aria-label="出生日期">
+                      <button
+                        type="button"
+                        class="choice-chip day-chip optional"
+                        :class="{ active: form.birthDay === null }"
+                        data-testid="birth-day-none"
+                        @click="selectBirthDay(null)"
+                      >
+                        <strong>不透露</strong>
+                        <span>默认</span>
+                      </button>
+                      <button
+                        v-for="day in days"
+                        :key="day"
+                        type="button"
+                        class="choice-chip day-chip"
+                        :class="{ active: form.birthDay === day }"
+                        :data-testid="'birth-day-' + day"
+                        @click="selectBirthDay(day)"
+                      >
+                        <strong>{{ day }}</strong>
+                        <span>日</span>
+                      </button>
+                    </div>
+                  </section>
 
-              <section class="field-block" aria-labelledby="birth-time-label">
-                <div class="field-head">
-                  <span id="birth-time-label">出生时段</span>
-                  <strong>{{ timeOptions.find((item) => item.value === form.birthTimeRange)?.label ?? '不透露' }}</strong>
+                  <section class="field-block" aria-labelledby="birth-time-label">
+                    <div class="field-head">
+                      <span id="birth-time-label">出生时段</span>
+                      <strong>{{ timeOptions.find((item) => item.value === form.birthTimeRange)?.label ?? '不透露' }}</strong>
+                    </div>
+                    <div class="time-grid" aria-label="出生时段">
+                      <button
+                        v-for="option in timeOptions"
+                        :key="option.label"
+                        type="button"
+                        class="time-chip"
+                        :class="{ active: form.birthTimeRange === option.value }"
+                        :data-testid="'birth-time-' + (option.value ?? 'NONE')"
+                        @click="selectBirthTime(option.value)"
+                      >
+                        <strong>{{ option.label }}</strong>
+                        <span>{{ option.hint }}</span>
+                      </button>
+                    </div>
+                  </section>
                 </div>
-                <div class="time-grid" aria-label="出生时段">
-                  <button
-                    v-for="option in timeOptions"
-                    :key="option.label"
-                    type="button"
-                    class="time-chip"
-                    :class="{ active: form.birthTimeRange === option.value }"
-                    :data-testid="'birth-time-' + (option.value ?? 'NONE')"
-                    @click="selectBirthTime(option.value)"
-                  >
-                    <strong>{{ option.label }}</strong>
-                    <span>{{ option.hint }}</span>
-                  </button>
-                </div>
-              </section>
+              </details>
             </div>
           </div>
 
@@ -750,6 +758,62 @@ function clearAutoAdvance() {
 .field-head strong {
   color: #24302f;
   font-size: 14px;
+}
+
+.optional-birth-details {
+  border: 1px dashed rgba(36, 48, 47, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.optional-birth-details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 54px;
+  padding: 0 14px;
+  color: #40514e;
+  font-size: 14px;
+  font-weight: 950;
+  cursor: pointer;
+  list-style: none;
+}
+
+.optional-birth-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.optional-birth-details summary::after {
+  content: "+";
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(47, 111, 94, 0.1);
+  color: #2f6f5e;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.optional-birth-details[open] summary::after {
+  content: "-";
+}
+
+.optional-birth-details summary strong {
+  min-width: 0;
+  color: #6a7774;
+  font-size: 13px;
+  text-align: right;
+}
+
+.optional-birth-content {
+  display: grid;
+  gap: 18px;
+  border-top: 1px solid rgba(36, 48, 47, 0.08);
+  padding: 14px;
 }
 
 .year-picker {

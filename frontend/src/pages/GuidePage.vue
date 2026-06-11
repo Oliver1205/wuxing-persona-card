@@ -5,11 +5,11 @@
         <p class="eyebrow">东方人格灵感测试</p>
         <h1>生成你的五行人格卡</h1>
         <p class="lead">
-          90 秒完成 5 道价值取向题，得到一个有身份名、关键词和分享短链的人格画像。
+          90 秒完成出生年月和 5 道价值取向题，得到一个有身份名、关键词和分享短链的人格画像。
         </p>
         <div class="hero-metrics" aria-label="测试特点">
           <span>约 90 秒</span>
-          <span>5 道题</span>
+          <span>出生年月 + 5 题</span>
           <span>结果可分享</span>
         </div>
         <div class="persona-preview-line" aria-label="结果样式">
