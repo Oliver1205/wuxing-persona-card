@@ -206,3 +206,9 @@ multi-role review support. The main outcomes are:
 - Backend priority: avoid repeated external stats HTTP calls when admins refresh the short-link list.
 - Backend change: external PV/UV/UIP snapshots now use a configurable local TTL cache keyed by short URL, group, enable status, and date range.
 - Verification value: adapter tests cover cache hits and `SHORT_LINK_EXTERNAL_STATS_CACHE_TTL_SECONDS=0` bypass behavior.
+
+### Phase 25
+
+- Visitor priority: keep auto-advance useful without making users feel rushed.
+- Frontend change: answer confirmation now stays visible for 1100 ms, and the sticky action text tells users they can tap next immediately or wait for automatic progress.
+- Product value: the question flow still feels fast, but users have a clearer moment to confirm or correct a choice.

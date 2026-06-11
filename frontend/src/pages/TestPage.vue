@@ -8,7 +8,7 @@ import QuestionCard from '../components/QuestionCard.vue';
 import { track } from '../utils/tracker';
 
 const router = useRouter();
-const AUTO_ADVANCE_DELAY_MS = 650;
+const AUTO_ADVANCE_DELAY_MS = 1100;
 const questions = ref<Question[]>([]);
 const activeStepIndex = ref(0);
 const loading = ref(true);
@@ -116,7 +116,7 @@ const actionSummaryText = computed(() => {
   if (isLastQuestion.value) {
     return '确认无误后生成卡片';
   }
-  return autoAdvancePending.value ? '已选择，正在进入下一题' : '已选择，可以进入下一题';
+  return autoAdvancePending.value ? '已选择，可点下一题或稍等自动进入' : '已选择，可以进入下一题';
 });
 
 onMounted(async () => {
@@ -1099,7 +1099,7 @@ function clearAutoAdvance() {
 }
 
 .auto-advance-track.active i {
-  animation: autoAdvanceFill 650ms linear forwards;
+  animation: autoAdvanceFill 1100ms linear forwards;
 }
 
 @keyframes autoAdvanceFill {
