@@ -8,6 +8,7 @@
 
 ```text
 docs-site/index.html
+docs-site/showcase.html
 ```
 
 ## GitHub Pages

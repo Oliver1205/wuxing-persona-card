@@ -112,6 +112,7 @@ scripts/capture-showcase-screenshots.sh
 
 - [五行人格卡项目主视觉](assets/wuxing-promo-poster.svg)：16:9 SVG，可用于 README、作品集、答辩 PPT 和项目介绍页。
 - [五行人格卡架构与热路径图](assets/wuxing-architecture-map.svg)：16:9 SVG，可用于面试讲解、项目复盘和工程闭环展示。
+- [作品集展示页](../docs-site/showcase.html)：零依赖 HTML 长图式展示页，整合真实截图、产品故事、后端热路径和 5 分钟面试主线。
 
 ## 宣传图建议
 

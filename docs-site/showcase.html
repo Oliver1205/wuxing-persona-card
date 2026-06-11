@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="五行人格卡作品集展示页，整合产品截图、业务闭环、短链架构和面试表达。">
+    <title>五行人格卡｜作品集展示页</title>
+    <link rel="stylesheet" href="./showcase.css">
+  </head>
+  <body>
+    <main class="poster">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Java 全栈作品 · 可分享 H5 · 短链增长闭环</p>
+          <h1>五行人格卡</h1>
+          <p class="lead">
+            90 秒生成一张可分享的人格卡：从匿名测算、结果生成、专属短链、朋友回流到后台 PV / UV / UIP，
+            把一个娱乐化 H5 做成可部署、可观测、可面试讲清楚的完整项目。
+          </p>
+          <div class="badges" aria-label="项目亮点">
+            <span>卡片式逐题问答</span>
+            <span>结果共鸣卡</span>
+            <span>短链 302 热路径</span>
+            <span>匿名统计</span>
+            <span>Docker Compose</span>
+          </div>
+        </div>
+        <figure class="phone-shot">
+          <img src="../docs/screenshots/showcase/iphone-se-04-result.png" alt="五行人格卡 iPhone SE 结果页截图">
+          <figcaption>真实 Playwright 截图 · iPhone SE 结果页</figcaption>
+        </figure>
+      </section>
+
+      <section class="story-grid">
+        <article>
+          <span class="step">01</span>
+          <h2>用户愿意开始</h2>
+          <p>首页用“出生年月 + 5 道题 + 结果可分享”降低决策成本，首屏就能看到开始测试和样例人格卡。</p>
+        </article>
+        <article>
+          <span class="step">02</span>
+          <h2>答题不再像填表</h2>
+          <p>测试页从长表单升级为逐题卡片流，年份支持快速选、精确调和手动输入，移动端操作更自然。</p>
+        </article>
+        <article>
+          <span class="step">03</span>
+          <h2>结果有分享理由</h2>
+          <p>结果页前置身份名、关键词、主副五行比例和“最像你的 3 个表现”，让用户更容易觉得“像我”。</p>
+        </article>
+        <article>
+          <span class="step">04</span>
+          <h2>传播能被观察</h2>
+          <p>每个结果绑定短码，朋友访问 `/s/{shortCode}` 后回到结果页，后台能看到漏斗、来源和短链访问。</p>
+        </article>
+      </section>
+
+      <section class="screens">
+        <div class="section-head">
+          <p class="eyebrow">Showcase Screenshots</p>
+          <h2>产品、分享、后台同屏证明</h2>
+        </div>
+        <div class="screen-grid">
+          <figure>
+            <img src="../docs/screenshots/showcase/iphone-se-01-home.png" alt="iPhone SE 首页截图">
+            <figcaption>首页：3 秒看懂产品价值</figcaption>
+          </figure>
+          <figure>
+            <img src="../docs/screenshots/showcase/android-wide-04-result.png" alt="安卓宽屏结果页截图">
+            <figcaption>结果页：身份感和分享入口</figcaption>
+          </figure>
+          <figure>
+            <img src="../docs/screenshots/showcase/desktop-06-admin-overview.png" alt="桌面后台总览截图">
+            <figcaption>后台：漏斗、来源和短链列表</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="architecture">
+        <div>
+          <p class="eyebrow">Backend Story</p>
+          <h2>面试时讲“短链热路径”，不是只讲用了 Redis</h2>
+          <p>
+            短链传播是峰值入口。当前设计让 `/s/{shortCode}` 优先走 Redis 短码映射，
+            命中时直接拿 resultId 做 302；访问事件只入有界队列，后台 worker 批量写库；
+            后台 overview 使用短缓存，避免运营刷新拖慢用户跳转。
+          </p>
+          <div class="metrics">
+            <span><strong>302</strong> 用户跳转优先</span>
+            <span><strong>Redis</strong> 短码映射与空值缓存</span>
+            <span><strong>Batch</strong> 异步事件批量落库</span>
+            <span><strong>P95</strong> 性能 smoke 阈值可配置</span>
+          </div>
+        </div>
+        <figure>
+          <img src="../docs/assets/wuxing-architecture-map.svg" alt="五行人格卡架构与热路径图">
+          <figcaption>架构与热路径图 · 面试讲解用</figcaption>
+        </figure>
+      </section>
+
+      <section class="interview">
+        <p class="eyebrow">5 分钟讲解主线</p>
+        <ol>
+          <li><strong>产品闭环：</strong>匿名测算、结果页、专属短链、朋友回流、后台统计。</li>
+          <li><strong>工程亮点：</strong>ShortLinkProvider 隔离 internal / external，Redis 与 MySQL 都可降级。</li>
+          <li><strong>抗峰值：</strong>短链跳转与统计写入解耦，后台查询不阻塞用户 302。</li>
+          <li><strong>边界诚实：</strong>当前是单机商业化作品，不夸大成完整分布式 SRE 系统。</li>
+        </ol>
+      </section>
+
+      <footer>
+        <span>五行人格卡仅用于传统文化元素启发下的娱乐性人格解读，不用于现实决策判断。</span>
+        <a href="./index.html">返回项目文档站</a>
+      </footer>
+    </main>
+  </body>
+</html>
