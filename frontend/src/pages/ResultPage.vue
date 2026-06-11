@@ -156,19 +156,12 @@ function sharedLandingStart() {
 
         <div class="panel">
           <PersonaCard :result="result" />
-          <div class="result-quick-actions" aria-label="结果分享快捷操作">
+          <div v-if="!sharedEntry" class="result-quick-actions" aria-label="结果分享快捷操作">
             <div>
-              <strong>这张卡已经可以发给朋友</strong>
-              <span>先保存图，或者让朋友直接从短链打开同一张结果。</span>
+              <strong>这张卡已经可以分享</strong>
+              <span>保存图适合发朋友圈，下面的分享链接适合私聊发给朋友。</span>
             </div>
             <button type="button" @click="downloadShareImage">保存分享图</button>
-            <RouterLink
-              class="button-link"
-              :to="{ path: '/test', query: { channel: 'shared-result', campaign: 'result-card-cta' } }"
-              @click="sharedLandingStart"
-            >
-              我也测一张
-            </RouterLink>
           </div>
         </div>
 
@@ -213,22 +206,23 @@ function sharedLandingStart() {
           @copied="copied"
         />
 
-        <div class="actions">
-          <button type="button" @click="downloadShareImage">保存分享图</button>
+        <section class="result-next-step" :class="{ shared: sharedEntry }">
+          <div>
+            <strong>{{ sharedEntry ? '想看看自己的五行卡？' : '分享链接已经准备好' }}</strong>
+            <span>
+              {{ sharedEntry ? '读完朋友的卡，也可以用出生年月和 5 道题生成一张自己的。' : '复制链接适合私聊，保存图适合朋友圈；想重测也可以从这里开始。' }}
+            </span>
+          </div>
           <RouterLink
+            v-if="sharedEntry"
             class="button-link"
-            :to="{ path: '/test', query: { channel: 'shared-result', campaign: 'result-cta' } }"
+            :to="{ path: '/test', query: { channel: 'shared-result', campaign: 'result-tail-cta' } }"
             @click="sharedLandingStart"
           >
-            我也要测
+            我也测一张
           </RouterLink>
-          <RouterLink class="button-link secondary" to="/test" @click="retake">重新测试</RouterLink>
-        </div>
-        <div class="share-guidance">
-          <span>保存图适合发朋友圈</span>
-          <span>短链适合发私聊</span>
-          <span>朋友打开就是这张卡</span>
-        </div>
+          <RouterLink v-else class="button-link secondary" to="/test" @click="retake">重新测试</RouterLink>
+        </section>
         <p v-if="shareImageStatus" class="muted">{{ shareImageStatus }}</p>
       </template>
     </section>
@@ -476,21 +470,36 @@ function sharedLandingStart() {
   line-height: 1.7;
 }
 
-.share-guidance {
+.result-next-step {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.share-guidance span {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
   border: 1px solid rgba(36, 48, 47, 0.12);
   border-radius: 8px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.68);
-  color: #40514e;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.result-next-step.shared {
+  border-color: rgba(47, 111, 94, 0.22);
+  background: #edf7f2;
+}
+
+.result-next-step div {
+  display: grid;
+  gap: 5px;
+}
+
+.result-next-step strong {
+  color: #24302f;
+  font-size: 16px;
+}
+
+.result-next-step span {
+  color: #60716d;
   font-size: 13px;
-  font-weight: 800;
-  text-align: center;
+  font-weight: 750;
 }
 
 @media (max-width: 760px) {
@@ -502,7 +511,7 @@ function sharedLandingStart() {
   .result-quick-actions,
   .resonance-grid,
   .shared-entry-banner,
-  .share-guidance {
+  .result-next-step {
     grid-template-columns: 1fr;
   }
 

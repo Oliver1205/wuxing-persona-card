@@ -346,3 +346,9 @@ multi-role review support. The main outcomes are:
 - Visitor priority: make the first test step feel less blocked by controls on small mobile screens.
 - Frontend change: the birth-info step now keeps the action panel in normal document flow on mobile, clarifies privacy and default-year copy, adds horizontal-scroll hints, and disables the primary action until both year and month are selected.
 - Browser value: verified `/test` locally at a 375px mobile viewport; the birth action panel is static after the birth card, `flowPaddingBottom=0px`, and the primary action changes from "选择月份后继续" to "进入第 1 题" after month selection.
+
+### Phase 48
+
+- Result-page priority: reduce duplicated share and retest actions so the user has one clear next step.
+- Frontend change: own result pages now promote "保存分享图" near the persona card while `ShareLinkBox` owns copy/native share; shared-result pages use the banner and tail CTA for "我也测一张" instead of repeating save/share buttons.
+- Verification value: updated the mobile E2E shared-result click target to the new `result-banner` campaign and passed `scripts/mobile-e2e.sh`.

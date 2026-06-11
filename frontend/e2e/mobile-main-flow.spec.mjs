@@ -35,8 +35,8 @@ test('mobile user flow creates result, shares short link, and admin sees metrics
 
   await page.goto(shortUrlText);
   await page.waitForURL(/\/result\/.+sc=/);
-  await page.getByRole('link', { name: '我也要测' }).click();
-  await expect(page).toHaveURL(/\/test\?channel=shared-result&campaign=result-cta/);
+  await page.locator('a[href*="campaign=result-banner"]').click();
+  await expect(page).toHaveURL(/\/test\?channel=shared-result&campaign=result-banner/);
 
   await page.goto(`${baseUrl}/admin`);
   await page.getByPlaceholder('输入管理 token').fill(adminToken);
