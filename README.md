@@ -180,6 +180,10 @@ flowchart LR
   External -. external mode .-> Shortlink["独立短链服务"]
 ```
 
+视觉版架构图：
+
+![五行人格卡架构与热路径图](docs/assets/wuxing-architecture-map.svg)
+
 ## 核心流程图
 
 ```mermaid

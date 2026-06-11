@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">五行人格卡架构与热路径图</title>
+  <desc id="desc">展示五行人格卡从移动端访问、Nginx 入口、Spring Boot API、短链热路径、Redis 缓存、MySQL 事件明细到后台统计的架构闭环。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#f9f4e8"/>
+      <stop offset="46%" stop-color="#edf5f0"/>
+      <stop offset="100%" stop-color="#f7eee8"/>
+    </linearGradient>
+    <linearGradient id="dark" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#24302f"/>
+      <stop offset="100%" stop-color="#2f6f5e"/>
+    </linearGradient>
+    <linearGradient id="amber" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#f7d99b"/>
+      <stop offset="100%" stop-color="#c9893a"/>
+    </linearGradient>
+    <filter id="shadow" x="-18%" y="-18%" width="136%" height="136%">
+      <feDropShadow dx="0" dy="22" stdDeviation="26" flood-color="#1f302b" flood-opacity="0.16"/>
+    </filter>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto" markerUnits="strokeWidth">
+      <path d="M2 2 L12 7 L2 12 Z" fill="#7f918c"/>
+    </marker>
+    <style>
+      .font { font-family: PingFang SC, Microsoft YaHei, sans-serif; }
+      .title { fill: #21332f; font-size: 60px; font-weight: 900; }
+      .sub { fill: #4e5d57; font-size: 24px; font-weight: 700; }
+      .kicker { fill: #9b6d32; font-size: 24px; font-weight: 900; }
+      .node-title { font-size: 26px; font-weight: 900; }
+      .node-note { font-size: 18px; font-weight: 750; }
+      .small { font-size: 16px; font-weight: 800; }
+      .line { stroke: #7f918c; stroke-width: 5; stroke-linecap: round; marker-end: url(#arrow); }
+      .thin { stroke: #b5c4bd; stroke-width: 3; stroke-linecap: round; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <circle cx="130" cy="120" r="82" fill="#d79b43" opacity="0.14"/>
+  <circle cx="1448" cy="762" r="120" fill="#2f6f5e" opacity="0.12"/>
+  <circle cx="1288" cy="142" r="66" fill="#b85b48" opacity="0.11"/>
+
+  <g class="font" transform="translate(110 92)">
+    <text class="kicker" x="0" y="0">面试展示图 · 后端抗峰值主线</text>
+    <text class="title" x="0" y="76">五行人格卡架构与热路径</text>
+    <text class="sub" x="0" y="124">体验链路讲产品，短链热路径讲性能，后台统计讲取舍。</text>
+  </g>
+
+  <g class="font" filter="url(#shadow)">
+    <g transform="translate(92 238)">
+      <rect width="260" height="150" rx="28" fill="#fffdf8" stroke="#ded8cc"/>
+      <text class="node-title" x="34" y="58" fill="#21332f">移动端用户</text>
+      <text class="node-note" x="34" y="94" fill="#68756f">首页 / 测试 / 结果</text>
+      <text class="small" x="34" y="122" fill="#2f6f5e">自然交互与分享动机</text>
+    </g>
+
+    <g transform="translate(430 238)">
+      <rect width="260" height="150" rx="28" fill="#eef4f9" stroke="#cddce8"/>
+      <text class="node-title" x="34" y="58" fill="#315f7b">Nginx 入口</text>
+      <text class="node-note" x="34" y="94" fill="#4e6575">静态资源 / API 转发</text>
+      <text class="small" x="34" y="122" fill="#315f7b">限流与安全响应头</text>
+    </g>
+
+    <g transform="translate(768 238)">
+      <rect width="300" height="150" rx="28" fill="url(#dark)"/>
+      <text class="node-title" x="34" y="58" fill="#ffffff">Spring Boot API</text>
+      <text class="node-note" x="34" y="94" fill="#d9eee6">结果生成 / 短链门面</text>
+      <text class="small" x="34" y="122" fill="#e7c783">Controller -> Service -> Mapper</text>
+    </g>
+
+    <g transform="translate(1160 238)">
+      <rect width="260" height="150" rx="28" fill="#fff7e8" stroke="#ead7b6"/>
+      <text class="node-title" x="34" y="58" fill="#8a5c1e">ShortLinkProvider</text>
+      <text class="node-note" x="34" y="94" fill="#6d4f29">internal / external</text>
+      <text class="small" x="34" y="122" fill="#8a5c1e">失败可降级</text>
+    </g>
+  </g>
+
+  <path class="line" d="M352 313 H430"/>
+  <path class="line" d="M690 313 H768"/>
+  <path class="line" d="M1068 313 H1160"/>
+
+  <g class="font" transform="translate(110 460)">
+    <rect width="1380" height="292" rx="34" fill="#fffdf8" stroke="#ded8cc" filter="url(#shadow)"/>
+    <text x="42" y="62" fill="#21332f" font-size="34" font-weight="900">短链峰值访问怎么扛</text>
+    <text x="42" y="102" fill="#68756f" font-size="21" font-weight="750">用户 302 跳转链路保持轻，统计和后台查询放到可控路径处理。</text>
+
+    <g transform="translate(42 142)">
+      <rect width="238" height="96" rx="22" fill="#f4faf7" stroke="#c8ddd3"/>
+      <text class="node-title" x="26" y="40" fill="#1d5948">/s/{shortCode}</text>
+      <text class="node-note" x="26" y="72" fill="#50635c">短链入口</text>
+    </g>
+
+    <g transform="translate(338 142)">
+      <rect width="238" height="96" rx="22" fill="#24302f"/>
+      <text class="node-title" x="26" y="40" fill="#ffffff">Redis 映射</text>
+      <text class="node-note" x="26" y="72" fill="#d9eee6">命中直接拿 resultId</text>
+    </g>
+
+    <g transform="translate(634 142)">
+      <rect width="238" height="96" rx="22" fill="#edf4f9" stroke="#cddce8"/>
+      <text class="node-title" x="26" y="40" fill="#315f7b">MySQL 回源</text>
+      <text class="node-note" x="26" y="72" fill="#4e6575">未命中才查短链表</text>
+    </g>
+
+    <g transform="translate(930 142)">
+      <rect width="238" height="96" rx="22" fill="#f9eeee" stroke="#e7cdca"/>
+      <text class="node-title" x="26" y="40" fill="#8d4038">事件明细</text>
+      <text class="node-note" x="26" y="72" fill="#765c58">每次访问可追踪</text>
+    </g>
+
+    <g transform="translate(1226 142)">
+      <rect width="112" height="96" rx="22" fill="url(#amber)"/>
+      <text x="56" y="42" text-anchor="middle" fill="#ffffff" font-size="24" font-weight="900">302</text>
+      <text x="56" y="72" text-anchor="middle" fill="#fff7e8" font-size="18" font-weight="850">结果页</text>
+    </g>
+
+    <path class="thin" d="M280 190 H338"/>
+    <path class="thin" d="M576 190 H634"/>
+    <path class="thin" d="M872 190 H930"/>
+    <path class="thin" d="M1168 190 H1226"/>
+  </g>
+
+  <g class="font" transform="translate(110 796)">
+    <rect width="480" height="54" rx="18" fill="#24302f"/>
+    <text x="26" y="36" fill="#ffffff" font-size="19" font-weight="900">跳转热路径：缓存优先，低频触碰 last_visit_at</text>
+  </g>
+  <g class="font" transform="translate(622 796)">
+    <rect width="420" height="54" rx="18" fill="#2f6f5e"/>
+    <text x="26" y="36" fill="#ffffff" font-size="19" font-weight="900">后台路径：overview 短缓存，列表批量聚合</text>
+  </g>
+  <g class="font" transform="translate(1074 796)">
+    <rect width="432" height="54" rx="18" fill="#c9893a"/>
+    <text x="26" y="36" fill="#ffffff" font-size="19" font-weight="900">验证证据：集成测试 + quality-check + smoke</text>
+  </g>
+</svg>

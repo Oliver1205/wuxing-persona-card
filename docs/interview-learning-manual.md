@@ -12,6 +12,8 @@
 
 ## 2. 系统架构
 
+![五行人格卡架构与热路径图](assets/wuxing-architecture-map.svg)
+
 ```mermaid
 flowchart LR
   Browser["移动端浏览器"] --> Nginx["Nginx 入口"]

@@ -75,6 +75,7 @@ flowchart LR
 ## 已有视觉资产
 
 - [五行人格卡项目主视觉](assets/wuxing-promo-poster.svg)：16:9 SVG，可用于 README、作品集、答辩 PPT 和项目介绍页。
+- [五行人格卡架构与热路径图](assets/wuxing-architecture-map.svg)：16:9 SVG，可用于面试讲解、项目复盘和工程闭环展示。
 
 ## 宣传图建议
 
