@@ -3,6 +3,7 @@ package com.wuxing.persona.mapper;
 import com.wuxing.persona.entity.ShortLinkDailyMetricEntity;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
@@ -34,4 +35,24 @@ public interface ShortLinkDailyMetricMapper {
             ORDER BY pv DESC, short_code ASC
             """)
     List<ShortLinkDailyMetricEntity> listByMetricDate(@Param("metricDate") LocalDate metricDate);
+
+    @Select("""
+            <script>
+            SELECT short_code AS shortCode,
+                   SUM(pv) AS pv,
+                   SUM(uv) AS uv,
+                   SUM(uip) AS uip
+            FROM short_link_daily_metric
+            WHERE short_code IN
+              <foreach collection="shortCodes" item="shortCode" open="(" separator="," close=")">
+                #{shortCode}
+              </foreach>
+            <if test="startDate != null">AND metric_date &gt;= #{startDate}</if>
+            <if test="endDate != null">AND metric_date &lt;= #{endDate}</if>
+            GROUP BY short_code
+            </script>
+            """)
+    List<Map<String, Object>> listStatsBetweenDates(@Param("shortCodes") List<String> shortCodes,
+                                                    @Param("startDate") LocalDate startDate,
+                                                    @Param("endDate") LocalDate endDate);
 }

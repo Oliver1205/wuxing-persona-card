@@ -306,6 +306,17 @@ class MvpFlowIntegrationTest {
                 .andExpect(jsonPath("$.data.dailyTrends[0].shortLinkVisits").value(1))
                 .andExpect(jsonPath("$.data.shortLinkVisits").value(1));
 
+        mockMvc.perform(get("/api/admin/short-links")
+                        .header("X-Admin-Token", "test-token")
+                        .param("startDate", yesterday)
+                        .param("endDate", yesterday))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.records[0].shortCode").value(shortCode))
+                .andExpect(jsonPath("$.data.records[0].pv").value(1))
+                .andExpect(jsonPath("$.data.records[0].uv").value(1))
+                .andExpect(jsonPath("$.data.records[0].uip").value(1))
+                .andExpect(jsonPath("$.data.records[0].statSource").value("local"));
+
         String today = LocalDate.now().toString();
         mockMvc.perform(post("/api/admin/analytics/aggregate")
                         .header("X-Admin-Token", "test-token")

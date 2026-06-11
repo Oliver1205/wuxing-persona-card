@@ -8,6 +8,7 @@ import com.wuxing.persona.entity.VisitEventEntity;
 import com.wuxing.persona.enums.ElementType;
 import com.wuxing.persona.enums.EventType;
 import com.wuxing.persona.mapper.ShortLinkMapper;
+import com.wuxing.persona.mapper.ShortLinkDailyMetricMapper;
 import com.wuxing.persona.mapper.SiteDailyMetricMapper;
 import com.wuxing.persona.mapper.UserResultMapper;
 import com.wuxing.persona.mapper.VisitEventMapper;
@@ -46,6 +47,7 @@ public class AdminStatService {
     private final ShortLinkMapper shortLinkMapper;
     private final VisitEventMapper visitEventMapper;
     private final SiteDailyMetricMapper siteDailyMetricMapper;
+    private final ShortLinkDailyMetricMapper shortLinkDailyMetricMapper;
     private final ExternalShortLinkStatsAdapter externalShortLinkStatsAdapter;
     private final RedisCacheService redisCacheService;
 
@@ -53,12 +55,14 @@ public class AdminStatService {
                             ShortLinkMapper shortLinkMapper,
                             VisitEventMapper visitEventMapper,
                             SiteDailyMetricMapper siteDailyMetricMapper,
+                            ShortLinkDailyMetricMapper shortLinkDailyMetricMapper,
                             ExternalShortLinkStatsAdapter externalShortLinkStatsAdapter,
                             RedisCacheService redisCacheService) {
         this.userResultMapper = userResultMapper;
         this.shortLinkMapper = shortLinkMapper;
         this.visitEventMapper = visitEventMapper;
         this.siteDailyMetricMapper = siteDailyMetricMapper;
+        this.shortLinkDailyMetricMapper = shortLinkDailyMetricMapper;
         this.externalShortLinkStatsAdapter = externalShortLinkStatsAdapter;
         this.redisCacheService = redisCacheService;
     }
@@ -313,12 +317,7 @@ public class AdminStatService {
                         .toList())
                 .stream()
                 .collect(Collectors.toMap(UserResultEntity::getResultId, Function.identity()));
-        Map<String, ShortLinkStats> localStatsByCode = visitEventMapper.listShortLinkStatsBetween(rows.stream()
-                        .map(ShortLinkEntity::getShortCode)
-                        .distinct()
-                        .toList(), range.getStartAt(), range.getEndExclusive())
-                .stream()
-                .collect(Collectors.toMap(row -> value(row, "shortCode", "short_code").toString(), this::toShortLinkStats));
+        Map<String, ShortLinkStats> localStatsByCode = loadLocalShortLinkStats(rows, range);
         return rows.stream()
                 .map(row -> {
                     UserResultEntity result = resultsById.get(row.getResultId());
@@ -351,6 +350,22 @@ public class AdminStatService {
                     return vo;
                 })
                 .toList();
+    }
+
+    private Map<String, ShortLinkStats> loadLocalShortLinkStats(List<ShortLinkEntity> rows, AdminDateRange range) {
+        List<String> shortCodes = rows.stream()
+                .map(ShortLinkEntity::getShortCode)
+                .distinct()
+                .toList();
+        List<Map<String, Object>> statRows = shouldUseDailyShortLinkMetrics(range)
+                ? shortLinkDailyMetricMapper.listStatsBetweenDates(shortCodes, range.getStartDate(), range.getEndDate())
+                : visitEventMapper.listShortLinkStatsBetween(shortCodes, range.getStartAt(), range.getEndExclusive());
+        return statRows.stream()
+                .collect(Collectors.toMap(row -> value(row, "shortCode", "short_code").toString(), this::toShortLinkStats));
+    }
+
+    private boolean shouldUseDailyShortLinkMetrics(AdminDateRange range) {
+        return range.getEndDate() != null && range.getEndDate().isBefore(LocalDate.now());
     }
 
     private ShortLinkStats toShortLinkStats(Map<String, Object> row) {

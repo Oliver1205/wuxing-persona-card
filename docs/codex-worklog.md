@@ -194,3 +194,9 @@ multi-role review support. The main outcomes are:
 - Backend change: short-link visit events now use a bounded in-memory queue and daemon writer, so `/s/{shortCode}` prepares the event and enqueues it instead of inserting from the request thread.
 - Verification value: targeted unit tests cover async insertion and short-link provider delegation, while the existing synchronous record path keeps its failure-degrade behavior.
 - Local smoke result: with local H2 profile, `SHORTLINK_HITS=100`, `ADMIN_HITS=2`, `shortlinkAvgMs=15`, and `adminAvgMs=34`.
+
+### Phase 23
+
+- Backend priority: keep historical admin short-link list queries from scanning the full visit-event detail table.
+- Backend change: when the selected date range is fully before today, short-link list PV/UV/UIP now comes from `short_link_daily_metric`; today and open-ended ranges still use live visit events.
+- Verification value: the analytics aggregation integration test now verifies that a closed-date short-link list returns the same local PV/UV/UIP from daily metrics.
