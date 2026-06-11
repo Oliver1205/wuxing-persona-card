@@ -115,8 +115,9 @@ h2 {
   margin: 0;
 }
 
-.phone-shot img,
-.screen-grid img {
+.shot-frame {
+  overflow-y: auto;
+  overscroll-behavior: contain;
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -124,10 +125,24 @@ h2 {
   box-shadow: 0 14px 36px rgb(35 47 42 / 12%);
 }
 
-.phone-shot img {
+.shot-frame.tall {
   max-height: 720px;
-  object-fit: cover;
-  object-position: top center;
+}
+
+.shot-frame.compact {
+  max-height: 560px;
+}
+
+.shot-frame.desktop {
+  max-height: 560px;
+}
+
+.shot-frame img {
+  width: 100%;
+  max-width: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 figcaption {
@@ -190,12 +205,6 @@ footer {
 
 .screen-grid figure {
   margin-bottom: 0;
-}
-
-.screen-grid img {
-  max-height: 560px;
-  object-fit: cover;
-  object-position: top center;
 }
 
 .architecture {

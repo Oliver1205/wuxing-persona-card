@@ -413,3 +413,9 @@ multi-role review support. The main outcomes are:
 - UX priority: remove the small dead end after a visitor clicks "先看样例" on the home page.
 - Frontend change: the sample persona card now includes a full-width "生成我的人格卡" action that routes to `/test` and reuses the start-click tracking.
 - Validation value: the real-user checklist now observes whether users can continue from the sample card without scrolling back to the hero CTA.
+
+### Phase 59
+
+- Visual evidence priority: keep long showcase screenshots inspectable without making the portfolio page unwieldy.
+- Docs-site change: result and admin screenshots now sit inside fixed-height scroll frames, so the full Playwright long screenshots remain available instead of being cropped by `object-fit: cover`.
+- Portfolio value: the result-page sharing actions and admin evidence are no longer hidden below a hard crop.
