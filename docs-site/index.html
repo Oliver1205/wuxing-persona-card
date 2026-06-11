@@ -28,10 +28,11 @@
           <a href="#deployment">6. 部署运行</a>
           <a href="#quality">7. 质量门禁</a>
           <a href="#versions">8. 版本进度</a>
-          <a href="#interview">9. 面试表达</a>
-          <a href="#materials">10. 展示素材</a>
-          <a href="#roadmap">11. 后续路线</a>
-          <a href="#documents">12. 文档索引</a>
+          <a href="#workflow">9. 八小时工作流</a>
+          <a href="#interview">10. 面试表达</a>
+          <a href="#materials">11. 展示素材</a>
+          <a href="#roadmap">12. 后续路线</a>
+          <a href="#documents">13. 文档索引</a>
         </nav>
 
         <div class="sidebar-note">
@@ -52,6 +53,7 @@
             <div class="hero-actions" aria-label="快捷入口">
               <a class="primary-action" href="../README.md">查看根 README</a>
               <a class="secondary-action" href="../docs/project-plan.md">项目计划</a>
+              <a class="secondary-action" href="../docs/interview-learning-manual.md">面试学习手册</a>
             </div>
           </div>
           <div class="hero-card" aria-label="项目关键指标">
@@ -116,6 +118,7 @@
               <ul>
                 <li>移动端优先，页面节奏更接近 H5 测试产品。</li>
                 <li>出生年份支持高频选项、滑杆、+1 / -1 和手动输入。</li>
+                <li>默认年份即默认选择，选中答案后先确认再自动进入下一题。</li>
                 <li>题目选项隐藏五行属性提示，降低用户被暗示的感觉。</li>
                 <li>结果页强调身份表达、关键词、五行比例和分享动作。</li>
               </ul>
@@ -205,6 +208,9 @@
               <span>session、channel、campaign、device</span>
             </article>
           </div>
+          <p class="inline-note">
+            最新优化把短链跳转热路径从实时聚合改为事件写入 + 低频展示字段更新；后台短链列表也改为批量拉结果和批量聚合 PV / UV / UIP。
+          </p>
         </section>
 
         <section class="section" id="deployment">
@@ -263,6 +269,41 @@ scripts/docker-smoke-test.sh http://127.0.0.1 dev-token</code></pre>
             </article>
           </div>
           <a class="doc-link" href="../docs/v2.6-card-question-flow.md">查看 v2.6 说明</a>
+        </section>
+
+        <section class="section" id="workflow">
+          <h2>八小时工作流沉淀</h2>
+          <p>
+            当前阶段按产品经理、普通访问者、美术经理、前端开发、资深架构师、后端开发和大厂面试官视角推进。
+            目标不是堆功能，而是把交互自然度、短链热路径、后台统计性能和可讲述材料一起收口。
+          </p>
+          <div class="workflow-grid">
+            <article>
+              <span>普通访问者</span>
+              <strong>更自然的答题节奏</strong>
+              <p>默认年份可直接生效，答案选择有确认反馈，移动端 sticky 操作条不遮挡最后一个选项。</p>
+            </article>
+            <article>
+              <span>架构师</span>
+              <strong>热点路径降压</strong>
+              <p>短链 302 不再实时 distinct 聚合，last_visit_at 限频更新，后台列表批量聚合统计。</p>
+            </article>
+            <article>
+              <span>面试官</span>
+              <strong>可验证的工程证据</strong>
+              <p>质量门禁、性能 smoke、集成测试和工作日志一起证明改动不是口头优化。</p>
+            </article>
+            <article>
+              <span>宣传视角</span>
+              <strong>可展示的材料包</strong>
+              <p>主视觉、项目宣传包、面试学习手册和多角色矩阵形成作品集讲述路径。</p>
+            </article>
+          </div>
+          <div class="doc-actions">
+            <a class="doc-link" href="../docs/codex-worklog.md">查看工作日志</a>
+            <a class="doc-link" href="../docs/role-review-matrix.md">查看多角色矩阵</a>
+            <a class="doc-link" href="../docs/interview-learning-manual.md">查看学习手册</a>
+          </div>
         </section>
 
         <section class="section" id="interview">

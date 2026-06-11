@@ -261,6 +261,7 @@ h3 {
 
 .status-grid,
 .metric-grid,
+.workflow-grid,
 .roadmap-grid,
 .doc-grid {
   display: grid;
@@ -271,6 +272,7 @@ h3 {
 
 .status-grid article,
 .metric-grid article,
+.workflow-grid article,
 .roadmap-grid article,
 .panel,
 .timeline article,
@@ -282,6 +284,7 @@ h3 {
 }
 
 .status-grid span,
+.workflow-grid span,
 .timeline span {
   color: var(--amber);
   font-size: 13px;
@@ -290,6 +293,7 @@ h3 {
 
 .status-grid strong,
 .metric-grid strong,
+.workflow-grid strong,
 .roadmap-grid strong,
 .timeline strong {
   display: block;
@@ -298,6 +302,7 @@ h3 {
 }
 
 .status-grid p,
+.workflow-grid p,
 .roadmap-grid p,
 .timeline p,
 .panel p,
@@ -424,6 +429,25 @@ h3 {
 .metric-grid span {
   color: var(--muted);
   font-size: 14px;
+}
+
+.inline-note {
+  margin: 22px 0 0;
+  border-left: 4px solid var(--green);
+  border-radius: 12px;
+  background: #f4faf7;
+  padding: 14px 16px;
+}
+
+.workflow-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.doc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
 }
 
 .checklist {
@@ -584,14 +608,15 @@ h3 {
   }
 
   .status-grid,
-    .metric-grid,
-    .roadmap-grid,
-    .doc-grid,
-    .material-board,
-    .diagram-strip,
-    .flow,
-    .two-column,
-    .branch {
+  .metric-grid,
+  .workflow-grid,
+  .roadmap-grid,
+  .doc-grid,
+  .material-board,
+  .diagram-strip,
+  .flow,
+  .two-column,
+  .branch {
     grid-template-columns: 1fr;
   }
 
