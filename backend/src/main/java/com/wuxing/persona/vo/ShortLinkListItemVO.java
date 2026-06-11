@@ -14,6 +14,7 @@ public class ShortLinkListItemVO {
     private long uv;
     private long uip;
     private String statSource;
+    private String metricSource;
     private LocalDateTime lastVisitAt;
 
     public String getShortCode() {
@@ -94,6 +95,14 @@ public class ShortLinkListItemVO {
 
     public void setStatSource(String statSource) {
         this.statSource = statSource;
+    }
+
+    public String getMetricSource() {
+        return metricSource;
+    }
+
+    public void setMetricSource(String metricSource) {
+        this.metricSource = metricSource;
     }
 
     public LocalDateTime getLastVisitAt() {

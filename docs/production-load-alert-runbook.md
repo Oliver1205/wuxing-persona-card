@@ -80,6 +80,7 @@ asyncWorkerAlive=
 - `asyncQueueSize` 用来看低延迟是否靠堆积事件换来。
 - `asyncDroppedEvents` 如果明显上升，要检查队列容量、批量写库速度和数据库连接池。
 - `asyncWorkerAlive=false` 是严重故障，必须停止压测并看后端日志。
+- 短链列表里的 `metricSource` 用于区分统计口径：`live_event` 表示实时事件聚合，`daily_metric` 表示日聚合表，`external` 表示独立短链服务统计。压测复盘时不要把三种口径混在一起比较。
 
 压测调参入口：
 

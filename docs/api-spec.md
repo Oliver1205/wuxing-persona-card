@@ -190,7 +190,10 @@ GET /api/admin/short-links?page=1&pageSize=20
 X-Admin-Token: <admin-token>
 ```
 
-返回短码、短链接、结果 ID、五行组合、星官、创建时间、PV、UV、UIP、最近访问时间。
+返回短码、短链接、结果 ID、五行组合、星官、创建时间、PV、UV、UIP、统计来源、统计口径和最近访问时间。
+
+- `statSource`：`local` 表示五行项目本地统计，`external` 表示独立短链服务统计。
+- `metricSource`：`live_event` 表示实时访问事件聚合，`daily_metric` 表示日聚合表，`external` 表示外部短链统计。
 
 ## 9. 短链接访问日志
 

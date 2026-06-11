@@ -41,7 +41,7 @@
 
 - `backend/src/main/java/com/wuxing/persona/service/VisitEventService.java`
 - `backend/src/test/java/com/wuxing/persona/service/VisitEventServiceTest.java`
-- `backend/src/test/java/com/wuxing/persona/service/InternalShortLinkProviderTest.java`
+- `backend/src/test/java/com/wuxing/persona/service/shortlink/InternalShortLinkProviderTest.java`
 
 回答要点：
 

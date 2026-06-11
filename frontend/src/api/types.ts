@@ -128,6 +128,7 @@ export interface ShortLinkListItem {
   uv: number;
   uip: number;
   statSource: 'local' | 'external';
+  metricSource: 'live_event' | 'daily_metric' | 'external';
   lastVisitAt: string | null;
 }
 

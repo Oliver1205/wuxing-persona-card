@@ -12,6 +12,7 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -43,13 +44,14 @@ public class InternalShortLinkProvider implements ShortLinkProvider {
         }
         for (int i = 0; i < ShortLinkCodeUtils.MAX_RETRY; i++) {
             String shortCode = randomCode();
-            if (shortLinkMapper.countByShortCode(shortCode) > 0) {
-                continue;
-            }
             ShortLinkEntity entity = buildEntity(resultId, shortCode, appProperties.getBaseUrl() + "/s/" + shortCode);
-            shortLinkMapper.insert(entity);
-            redisCacheService.setShortLinkResultId(shortCode, resultId);
-            return entity;
+            try {
+                shortLinkMapper.insert(entity);
+                redisCacheService.setShortLinkResultId(shortCode, resultId);
+                return entity;
+            } catch (DuplicateKeyException ex) {
+                log.warn("Short code collision, retrying, resultId={}, attempt={}", resultId, i + 1);
+            }
         }
         throw new BusinessException("short code generation failed, please retry");
     }

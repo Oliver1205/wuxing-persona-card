@@ -150,7 +150,8 @@ class MvpFlowIntegrationTest {
                 .andExpect(jsonPath("$.data.records[0].shortCode").value(shortCode))
                 .andExpect(jsonPath("$.data.records[0].pv").value(2))
                 .andExpect(jsonPath("$.data.records[0].uv").value(1))
-                .andExpect(jsonPath("$.data.records[0].uip").value(1));
+                .andExpect(jsonPath("$.data.records[0].uip").value(1))
+                .andExpect(jsonPath("$.data.records[0].metricSource").value("live_event"));
 
         mockMvc.perform(get("/api/admin/short-links")
                         .header("X-Admin-Token", "test-token")
@@ -161,7 +162,8 @@ class MvpFlowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.total").value(1))
                 .andExpect(jsonPath("$.data.records[0].resultId").value(resultId))
-                .andExpect(jsonPath("$.data.records[0].statSource").value("local"));
+                .andExpect(jsonPath("$.data.records[0].statSource").value("local"))
+                .andExpect(jsonPath("$.data.records[0].metricSource").value("live_event"));
 
         mockMvc.perform(get("/api/admin/short-links/export")
                         .header("X-Admin-Token", "test-token")
@@ -170,7 +172,8 @@ class MvpFlowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Disposition", containsString("wuxing-short-links")))
                 .andExpect(content().string(containsString(shortCode)))
-                .andExpect(content().string(containsString(resultId)));
+                .andExpect(content().string(containsString(resultId)))
+                .andExpect(content().string(containsString("metricSource")));
 
         mockMvc.perform(get("/api/admin/short-links/" + shortCode + "/visits")
                         .header("X-Admin-Token", "test-token"))
@@ -217,9 +220,11 @@ class MvpFlowIntegrationTest {
         assertEquals(2, firstItem.get("pv").asInt());
         assertEquals(1, firstItem.get("uv").asInt());
         assertEquals(1, firstItem.get("uip").asInt());
+        assertEquals("live_event", firstItem.get("metricSource").asText());
         assertEquals(1, secondItem.get("pv").asInt());
         assertEquals(1, secondItem.get("uv").asInt());
         assertEquals(1, secondItem.get("uip").asInt());
+        assertEquals("live_event", secondItem.get("metricSource").asText());
     }
 
     @Test
@@ -322,7 +327,8 @@ class MvpFlowIntegrationTest {
                 .andExpect(jsonPath("$.data.records[0].pv").value(1))
                 .andExpect(jsonPath("$.data.records[0].uv").value(1))
                 .andExpect(jsonPath("$.data.records[0].uip").value(1))
-                .andExpect(jsonPath("$.data.records[0].statSource").value("local"));
+                .andExpect(jsonPath("$.data.records[0].statSource").value("local"))
+                .andExpect(jsonPath("$.data.records[0].metricSource").value("daily_metric"));
 
         String today = LocalDate.now().toString();
         mockMvc.perform(post("/api/admin/analytics/aggregate")

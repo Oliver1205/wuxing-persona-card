@@ -364,3 +364,10 @@ multi-role review support. The main outcomes are:
 - Backend pressure-test priority: make the async visit-event queue and short-link hot-row touch interval tunable without code changes.
 - Code change: `VISIT_EVENT_ASYNC_QUEUE_CAPACITY`, `VISIT_EVENT_ASYNC_DRAIN_LIMIT`, and `SHORT_LINK_LAST_VISIT_TOUCH_INTERVAL_SECONDS` now bind through application config with the same conservative defaults.
 - Documentation value: the production load runbook names the tuning knobs, and the interview manual now describes queue capacity and batch size as explicit pressure-test tradeoffs.
+
+### Phase 51
+
+- Admin observability priority: make short-link list statistics explain whether numbers came from real-time events, daily aggregates, or an external short-link provider.
+- Backend resilience change: internal short-code creation now relies on the `uk_short_code` unique key and retries on duplicate-key collisions, removing the old `count + insert` race.
+- Contract change: `ShortLinkListItemVO` now returns `metricSource`, CSV export includes the same field, and the admin table shows a human-readable "口径" column.
+- Interview value: the backend story can separate low-latency hot-path choices from admin query cost, and short-code conflict handling now has code and test evidence instead of a future-only explanation.

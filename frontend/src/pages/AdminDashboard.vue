@@ -161,9 +161,12 @@ function runtimeReachableLabel(value: boolean | null) {
   return '未探测';
 }
 
-function metricSourceLabel(value: AdminOverview['metricSource']) {
+function metricSourceLabel(value: AdminOverview['metricSource'] | ShortLinkListItem['metricSource']) {
   if (value === 'daily_metric') {
     return '日聚合';
+  }
+  if (value === 'external') {
+    return '外部统计';
   }
   if (value === 'mixed') {
     return '聚合 + 实时';
@@ -400,16 +403,18 @@ function formatDateTime(value: string | null) {
                   <tr>
                     <th>短码</th>
                     <th>结果</th>
-                    <th>PV</th>
-                    <th>来源</th>
-                  </tr>
-                </thead>
-                <tbody>
+                  <th>PV</th>
+                  <th>来源</th>
+                  <th>口径</th>
+                </tr>
+              </thead>
+              <tbody>
                   <tr v-for="item in overview.recentShortLinks" :key="item.shortCode">
                     <td>{{ item.shortCode }}</td>
                     <td>{{ item.resultId }}</td>
                     <td>{{ item.pv }}</td>
                     <td>{{ statSourceLabel(item.statSource) }}</td>
+                    <td>{{ metricSourceLabel(item.metricSource) }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -433,6 +438,7 @@ function formatDateTime(value: string | null) {
                   <th>UV</th>
                   <th>UIP</th>
                   <th>来源</th>
+                  <th>口径</th>
                   <th>详情</th>
                 </tr>
               </thead>
@@ -446,6 +452,7 @@ function formatDateTime(value: string | null) {
                   <td>{{ item.uv }}</td>
                   <td>{{ item.uip }}</td>
                   <td>{{ statSourceLabel(item.statSource) }}</td>
+                  <td>{{ metricSourceLabel(item.metricSource) }}</td>
                   <td>
                     <RouterLink :to="{ path: `/admin/short-links/${item.shortCode}`, query: detailQuery() }">查看</RouterLink>
                   </td>

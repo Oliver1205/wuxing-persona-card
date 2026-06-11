@@ -31,6 +31,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DuplicateKeyException;
 
 @ExtendWith(MockitoExtension.class)
 class InternalShortLinkProviderTest {
@@ -79,14 +80,16 @@ class InternalShortLinkProviderTest {
     @Test
     void createForResultShouldRetryWhenGeneratedCodeCollides() {
         when(shortLinkMapper.selectByResultId("R2")).thenReturn(null);
-        when(shortLinkMapper.countByShortCode(anyString())).thenReturn(1L, 0L);
+        when(shortLinkMapper.insert(any(ShortLinkEntity.class)))
+                .thenThrow(new DuplicateKeyException("duplicate short_code"))
+                .thenReturn(1);
 
         ShortLinkEntity result = provider.createForResult("R2");
 
         ArgumentCaptor<ShortLinkEntity> captor = ArgumentCaptor.forClass(ShortLinkEntity.class);
-        verify(shortLinkMapper, times(2)).countByShortCode(anyString());
-        verify(shortLinkMapper).insert(captor.capture());
-        ShortLinkEntity inserted = captor.getValue();
+        verify(shortLinkMapper, never()).countByShortCode(anyString());
+        verify(shortLinkMapper, times(2)).insert(captor.capture());
+        ShortLinkEntity inserted = captor.getAllValues().get(1);
         assertEquals("R2", inserted.getResultId());
         assertEquals("/result/R2", inserted.getOriginalPath());
         assertEquals("https://example.com/s/" + inserted.getShortCode(), inserted.getShortUrl());

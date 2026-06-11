@@ -142,7 +142,7 @@ public class AdminStatService {
     public AdminShortLinkExportVO exportShortLinks(AdminDateRange range, String keyword, String statSource) {
         PageVO<ShortLinkListItemVO> page = listShortLinks(1, EXPORT_LIMIT, range, keyword, statSource);
         StringBuilder csv = new StringBuilder("\uFEFF");
-        csv.append("shortCode,resultId,shortUrl,elementCombo,starOfficerName,pv,uv,uip,statSource,createdAt,lastVisitAt\n");
+        csv.append("shortCode,resultId,shortUrl,elementCombo,starOfficerName,pv,uv,uip,statSource,metricSource,createdAt,lastVisitAt\n");
         for (ShortLinkListItemVO item : page.getRecords()) {
             csv.append(csv(item.getShortCode())).append(',')
                     .append(csv(item.getResultId())).append(',')
@@ -153,6 +153,7 @@ public class AdminStatService {
                     .append(item.getUv()).append(',')
                     .append(item.getUip()).append(',')
                     .append(csv(item.getStatSource())).append(',')
+                    .append(csv(item.getMetricSource())).append(',')
                     .append(csv(item.getCreatedAt() == null ? null : item.getCreatedAt().toString())).append(',')
                     .append(csv(item.getLastVisitAt() == null ? null : item.getLastVisitAt().toString()))
                     .append('\n');
@@ -318,6 +319,7 @@ public class AdminStatService {
                 .stream()
                 .collect(Collectors.toMap(UserResultEntity::getResultId, Function.identity()));
         Map<String, ShortLinkStats> localStatsByCode = loadLocalShortLinkStats(rows, range);
+        String localMetricSource = shouldUseDailyShortLinkMetrics(range) ? "daily_metric" : "live_event";
         return rows.stream()
                 .map(row -> {
                     UserResultEntity result = resultsById.get(row.getResultId());
@@ -326,6 +328,7 @@ public class AdminStatService {
                     long uv = localStats.uv();
                     long uip = localStats.uip();
                     String statSource = "local";
+                    String metricSource = localMetricSource;
                     java.util.Optional<ExternalShortLinkStatsSnapshot> externalStats =
                             externalShortLinkStatsAdapter.fetchStats(row, range);
                     if (externalStats.isPresent()) {
@@ -334,6 +337,7 @@ public class AdminStatService {
                         uv = snapshot.getUv();
                         uip = snapshot.getUip();
                         statSource = "external";
+                        metricSource = "external";
                     }
                     ShortLinkListItemVO vo = new ShortLinkListItemVO();
                     vo.setShortCode(row.getShortCode());
@@ -346,6 +350,7 @@ public class AdminStatService {
                     vo.setUv(uv);
                     vo.setUip(uip);
                     vo.setStatSource(statSource);
+                    vo.setMetricSource(metricSource);
                     vo.setLastVisitAt(row.getLastVisitAt());
                     return vo;
                 })
