@@ -52,6 +52,7 @@
 - Redis 热计数需要先明确 PV/UV/UIP 的最终一致性口径，适合在日聚合链路稳定后做。
 - external 统计缓存已在 Phase 24 落地，适合后续再扩展为 external mock 慢响应场景的集成测试。
 - 短链 Redis 命中不碰 DB、last_visit_at 触碰失败不影响 302 已在 Phase 33 落地。
+- `/api/events` 前端埋点异步入队已在 Phase 34 落地，保留结果创建等核心业务事件的同步记录边界。
 - Flyway/Liquibase 迁移治理价值很高，但会影响启动和部署方式，适合作为独立生产化任务。
 
 ## 5. 待补充审视

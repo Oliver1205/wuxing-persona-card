@@ -260,3 +260,9 @@ multi-role review support. The main outcomes are:
 - Backend priority: keep warm short-link redirects from touching MySQL on the read path.
 - Backend change: internal short-link resolution now returns the cached resultId directly when Redis has the short-code mapping, and the low-value last-visit touch degrades to a warning if MySQL is busy.
 - Verification value: targeted unit tests prove Redis-hit redirects do not call `selectByShortCode` and still return the resultId when `touchLastVisitAtIfStale` throws.
+
+### Phase 34
+
+- Backend priority: keep non-critical frontend tracking from waiting on MySQL inserts.
+- Backend change: `/api/events` now uses the existing bounded async visit-event queue with session/channel/campaign attribution preserved, while result creation events remain synchronous business evidence.
+- Verification value: `VisitEventServiceTest` covers async attribution fields, and `MvpFlowIntegrationTest` now waits for async growth events before asserting admin funnel counts.

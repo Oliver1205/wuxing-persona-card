@@ -79,8 +79,20 @@ public class VisitEventService {
                             String shortCode,
                             String clientId,
                             HttpServletRequest request) {
+        recordAsync(eventType, pagePath, resultId, shortCode, clientId, request, null, null, null);
+    }
+
+    public void recordAsync(EventType eventType,
+                            String pagePath,
+                            String resultId,
+                            String shortCode,
+                            String clientId,
+                            HttpServletRequest request,
+                            String sessionId,
+                            String channel,
+                            String campaign) {
         VisitEventEntity entity = buildEntity(eventType, pagePath, resultId, shortCode, clientId, request,
-                null, null, null);
+                sessionId, channel, campaign);
         if (!asyncQueue.offer(entity)) {
             long dropped = droppedAsyncEvents.incrementAndGet();
             log.warn("Visit event async queue full, dropped={}, eventType={}, pagePath={}, resultId={}, shortCode={}",

@@ -461,6 +461,28 @@ class MvpFlowIntegrationTest {
                                 }
                                 """.formatted(eventType, pagePath)))
                 .andExpect(status().isOk());
+        awaitEventCount(eventType, 1);
+    }
+
+    private void awaitEventCount(String eventType, long expectedCount) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 1000;
+        while (System.currentTimeMillis() < deadline) {
+            Long count = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM visit_event WHERE event_type = ?",
+                    Long.class,
+                    eventType
+            );
+            if (count != null && count >= expectedCount) {
+                return;
+            }
+            Thread.sleep(25);
+        }
+        Long count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM visit_event WHERE event_type = ?",
+                Long.class,
+                eventType
+        );
+        assertEquals(expectedCount, count == null ? 0 : count);
     }
 
     private JsonNode findShortLinkItem(JsonNode records, String shortCode) {

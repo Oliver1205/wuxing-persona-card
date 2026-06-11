@@ -81,6 +81,19 @@ class VisitEventServiceTest {
     }
 
     @Test
+    void recordAsyncShouldKeepAttributionFields() {
+        stubRequest("/?channel=organic");
+
+        service.recordAsync(EventType.PAGE_VIEW_HOME, "/", null, null, "client-a", request,
+                "session-a", "Organic Search", "Spring Launch");
+
+        ArgumentCaptor<VisitEventEntity> captor = ArgumentCaptor.forClass(VisitEventEntity.class);
+        verify(visitEventMapper, timeout(1000)).insert(captor.capture());
+        assertEquals("organic-search", captor.getValue().getChannel());
+        assertEquals("spring-launch", captor.getValue().getCampaign());
+    }
+
+    @Test
     void recordShouldTrimEventDimensionsToDatabaseBounds() {
         stubRequest("/result/R1");
 
