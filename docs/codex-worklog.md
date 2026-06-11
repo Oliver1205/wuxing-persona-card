@@ -437,3 +437,9 @@ multi-role review support. The main outcomes are:
 - UX action priority: make the result-page share buttons describe the action without relying on surrounding helper text.
 - Frontend change: the share box now says "复制分享链接" and "系统分享" instead of the shorter "复制" and "分享".
 - Validation value: ordinary visitors can distinguish copying a private-chat link from invoking the browser or WeChat system share sheet.
+
+### Phase 63
+
+- Documentation priority: keep public-facing project language aligned with the frontend copy cleanup.
+- Docs change: README, the promotion kit, docs-site copy, completion audit, and interview manual now describe user actions as "分享链接" while preserving "短链接系统" for backend architecture.
+- Portfolio value: ordinary readers see product language first, and interviewers can still trace the short-link engineering implementation.

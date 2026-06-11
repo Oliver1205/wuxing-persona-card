@@ -5,7 +5,7 @@
 五行人格卡是一个以“测算结果页分享”为真实业务场景的 Java 全栈项目。你面试时不要只说“我做了一个人格测试页面”，而要说清楚：
 
 ```text
-匿名用户测算 -> 结果生成 -> 专属短链 -> 朋友访问 -> 访问事件 -> 后台数据中台
+匿名用户测算 -> 结果生成 -> 分享链接 -> 朋友访问 -> 访问事件 -> 后台数据中台
 ```
 
 这个项目适合后端面试的原因是：它有真实业务闭环、短链系统、Redis 缓存、MySQL 统计查询、匿名隐私设计、Docker Compose 部署和可解释的性能取舍。
@@ -379,7 +379,7 @@ sequenceDiagram
 | 任务 | 精确文件 | 验证命令 | 面试必须能说出的句子 |
 | --- | --- | --- | --- |
 | 移动端问答体验 | `frontend/src/pages/TestPage.vue` | `npm --prefix frontend run build` | 测试页从长表单变成逐题卡片流，默认出生年份也算有效选择，选中答案后由用户手动进入下一题，降低误触焦虑。 |
-| 结果页分享闭环 | `frontend/src/pages/ResultPage.vue` | `E2E_BASE_URL=http://127.0.0.1:5174 E2E_ADMIN_TOKEN=dev-token scripts/mobile-e2e.sh` | 结果页不只展示文案，还承担保存分享图、复制短链、朋友回流和二次测试入口。 |
+| 结果页分享闭环 | `frontend/src/pages/ResultPage.vue` | `E2E_BASE_URL=http://127.0.0.1:5174 E2E_ADMIN_TOKEN=dev-token scripts/mobile-e2e.sh` | 结果页不只展示文案，还承担保存分享图、复制分享链接、系统分享、朋友回流和二次测试入口。 |
 | 创建结果链路 | `backend/src/main/java/com/wuxing/persona/service/ResultService.java` | `mvn -q -f backend/pom.xml -Dtest=MvpFlowIntegrationTest test` | 创建结果是强业务链路，结果、短链和关键事件要一起形成可恢复的业务证据。 |
 | 短链门面和适配 | `backend/src/main/java/com/wuxing/persona/service/ShortLinkService.java` | `mvn -q -f backend/pom.xml -Dtest=ExternalShortLinkProviderTest,InternalShortLinkProviderTest test` | Provider 让结果生成不用关心短链来自 internal 还是 external，外部失败时可以降级。 |
 | external 一致性边界 | `backend/src/main/java/com/wuxing/persona/service/shortlink/ExternalShortLinkProvider.java`、`docs/external-shortlink-integration-guide.md` | `mvn -q -f backend/pom.xml -Dtest=ExternalShortLinkProviderTest test` | external 短码冲突可降级，但外部已创建、本地绑定失败必须明确暴露，生产化再补撤销接口或补偿任务。 |
@@ -403,7 +403,7 @@ sequenceDiagram
 
 ### 0-60 秒：先讲业务闭环
 
-> 这个项目叫五行人格卡，是一个以结果页分享为核心场景的 Java 全栈项目。用户完成出生信息和 5 道题后，后端生成一张人格结果卡，并绑定专属短链接。朋友打开短链会回到同一张结果页，后台能看到 PV、UV、UIP、渠道、活动和短链访问明细。所以它不是单纯 H5 页面，而是“测算、分享、回流、统计”的完整闭环。
+> 这个项目叫五行人格卡，是一个以结果页分享为核心场景的 Java 全栈项目。用户完成出生信息和 5 道题后，后端生成一张人格结果卡，并绑定分享链接。朋友打开分享链接会回到同一张结果页，后台能看到 PV、UV、UIP、渠道、活动和短链访问明细。所以它不是单纯 H5 页面，而是“测算、分享、回流、统计”的完整闭环。
 
 ### 60-150 秒：讲核心架构
 

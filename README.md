@@ -3,7 +3,7 @@
 五行人格卡是一个传统文化元素启发下的娱乐性人格测试 H5 全栈项目。项目以“测算结果页分享”为真实业务场景，重点实现从用户测算、结果生成、短链接分享到访问统计和后台数据中台的完整闭环。
 
 ```text
-匿名用户测算 -> 生成结果页 -> 生成专属短链接 -> 朋友访问短链 -> 后台看到 PV / UV / UIP
+匿名用户测算 -> 生成结果页 -> 生成分享链接 -> 朋友打开链接 -> 后台看到 PV / UV / UIP
 ```
 
 项目不是命理预测工具，而是一个正向、娱乐化、可分享的人格解读产品原型；工程重点是短链接真实接入业务、匿名访问统计、Redis 缓存和 Docker 单机部署。
@@ -37,7 +37,7 @@
 
 ## 核心亮点
 
-- **真实业务短链**：每个测算结果都会生成专属短链接，不是页面假字段。
+- **真实业务短链**：每个测算结果都会生成可传播的分享链接，不是页面假字段。
 - **完整访问统计**：记录并展示 PV、UV、UIP、提交量、短链访问量。
 - **隐私克制**：不做登录注册，不收集昵称和性别，clientId、IP、User-Agent 均 hash 后入库。
 - **Redis 缓存闭环**：结果详情缓存、短链解析缓存、无效短码空值缓存均已落地。
@@ -55,7 +55,7 @@
 - **生产质量增强**：v1.2-v1.4 补齐 GitHub Actions、Docker smoke、external 运行态状态、后台筛选导出、安全响应头、Testcontainers 和分享图。
 - **商业级产品化基线**：v2.0 以“愿意测、感觉被看见、愿意分享、朋友继续测”为主循环，重做首页承诺、答题进度、结果身份表达、完整五行分布和分享面板。
 - **增长漏斗埋点**：新增测试开始、答题选择、提交尝试、分享面板、原生分享、保存分享图、二次测试等事件，为后续渠道、留存和传播分析预留数据口径。
-- **增长归因基础**：v2.1 将 session、channel、campaign、device、eventDate 写入事件表，分享短链自动带来源参数，后台展示增长漏斗、Top Channel 和 Top Campaign。
+- **增长归因基础**：v2.1 将 session、channel、campaign、device、eventDate 写入事件表，分享链接自动带来源参数，后台展示增长漏斗、Top Channel 和 Top Campaign。
 - **商业增长增强**：v2.2-v2.4 新增日聚合表、手动聚合接口、生产 smoke、备份恢复、回滚脚本、Nginx 限流安全头和更适合传播的结果页/分享图。
 - **H5 输入体验增强**：v2.5 将测试页出生信息从普通下拉框升级为年份滑杆、横向触控卡片和年轻化字体栈，让大学生和年轻用户更愿意完成测试。
 - **卡片式逐题问答**：v2.6 增加年份 +1/-1 和手动输入，问答改为一题一张卡，并打散选项顺序、移除属性提示。
@@ -220,7 +220,7 @@ flowchart LR
 - 隐私加固：访问事件只保存 hash 后的 clientId / IP / User-Agent，Referer 入库前会去掉 query 和 fragment。
 - 安全加固：后端统一返回基础安全响应头，后台 token 使用常量时间比较。
 - 管理保护：后台接口要求 `X-Admin-Token`。
-- 分享体验：结果页可生成 PNG 分享图，同时保留专属短链复制能力。
+- 分享体验：结果页可生成 PNG 分享图，同时保留复制分享链接能力。
 
 ## 短链接接入说明
 
@@ -616,7 +616,7 @@ admin pv/uv/uip: 1/1/1
 - 新建分支：`codex/v2.1-growth-analytics-foundation`。
 - 前端新增 sessionId，使用 `sessionStorage` 区分单次访问会话。
 - 前端识别 `channel`、`campaign`、`utm_source`、`utm_campaign`、`sc` 等来源参数，并通过请求 header 传给后端。
-- 分享短链自动追加 `channel=share&campaign=result-card`，短链跳转会把来源继续带到结果页。
+- 分享链接自动追加 `channel=share&campaign=result-card`，短链跳转会把来源继续带到结果页。
 - 后端 `visit_event` 新增 `session_id_hash`、`channel`、`campaign`、`device_type`、`event_date` 字段。
 - 后端继续 hash sessionId，不保存明文 session 标识。
 - 后台总览新增增长漏斗、Top Channel 和 Top Campaign。
