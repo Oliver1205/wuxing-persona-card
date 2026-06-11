@@ -15,6 +15,7 @@ import com.wuxing.persona.service.shortlink.ShortLinkCodeUtils;
 import com.wuxing.persona.vo.AdminOverviewVO;
 import com.wuxing.persona.vo.AdminShortLinkExportVO;
 import com.wuxing.persona.vo.DailyMetricVO;
+import com.wuxing.persona.vo.FunnelStepVO;
 import com.wuxing.persona.vo.NameCountVO;
 import com.wuxing.persona.vo.PageVO;
 import com.wuxing.persona.vo.RecentResultVO;
@@ -34,6 +35,7 @@ public class AdminStatService {
     private static final int MAX_TREND_DAYS = 14;
     private static final int SOURCE_FILTER_SCAN_LIMIT = 500;
     private static final int EXPORT_LIMIT = 500;
+    private static final int TOP_ATTRIBUTION_LIMIT = 5;
 
     private final UserResultMapper userResultMapper;
     private final ShortLinkMapper shortLinkMapper;
@@ -69,6 +71,11 @@ public class AdminStatService {
                 range.getStartAt(), range.getEndExclusive()));
         overview.setCompletionRate(startClicks == 0 ? 0 : Math.round(resultCreated * 10000.0 / startClicks) / 100.0);
         overview.setDailyTrends(buildDailyTrends(range));
+        overview.setFunnelSteps(buildFunnelSteps(range));
+        overview.setTopChannels(toNameCounts(visitEventMapper.listTopChannelsBetween(TOP_ATTRIBUTION_LIMIT,
+                range.getStartAt(), range.getEndExclusive())));
+        overview.setTopCampaigns(toNameCounts(visitEventMapper.listTopCampaignsBetween(TOP_ATTRIBUTION_LIMIT,
+                range.getStartAt(), range.getEndExclusive())));
         overview.setPopularElementCombos(toElementCombos(userResultMapper.listPopularElementCombosBetween(5,
                 range.getStartAt(), range.getEndExclusive())));
         overview.setPopularStarOfficers(toStarOfficers(userResultMapper.listPopularStarOfficersBetween(5,
@@ -182,6 +189,31 @@ public class AdminStatService {
         return trends;
     }
 
+    private List<FunnelStepVO> buildFunnelSteps(AdminDateRange range) {
+        List<FunnelDefinition> definitions = List.of(
+                new FunnelDefinition(EventType.PAGE_VIEW_HOME, "首页访问"),
+                new FunnelDefinition(EventType.START_TEST_CLICK, "开始测试"),
+                new FunnelDefinition(EventType.TEST_FORM_START, "开始填写"),
+                new FunnelDefinition(EventType.TEST_SUBMIT_ATTEMPT, "提交尝试"),
+                new FunnelDefinition(EventType.TEST_SUBMIT, "提交成功"),
+                new FunnelDefinition(EventType.RESULT_VIEW, "查看结果"),
+                new FunnelDefinition(EventType.SHARE_PANEL_VIEW, "打开分享"),
+                new FunnelDefinition(EventType.SHORT_LINK_COPY, "复制短链"),
+                new FunnelDefinition(EventType.SHORT_LINK_VISIT, "短链回流"),
+                new FunnelDefinition(EventType.SHARED_RESULT_CTA_CLICK, "回流再测")
+        );
+        List<FunnelStepVO> steps = new ArrayList<>();
+        long previous = -1;
+        for (FunnelDefinition definition : definitions) {
+            long count = visitEventMapper.countByEventTypeBetween(definition.eventType().name(),
+                    range.getStartAt(), range.getEndExclusive());
+            double conversion = previous < 0 ? 100 : rate(count, previous);
+            steps.add(new FunnelStepVO(definition.eventType().name(), definition.label(), count, conversion));
+            previous = count;
+        }
+        return steps;
+    }
+
     private PageVO<ShortLinkListItemVO> listShortLinksByComputedSource(long page,
                                                                        long pageSize,
                                                                        AdminDateRange range,
@@ -213,6 +245,12 @@ public class AdminStatService {
     private List<NameCountVO> toStarOfficers(List<Map<String, Object>> rows) {
         return rows.stream()
                 .map(row -> new NameCountVO(value(row, "starOfficerName", "star_officer_name").toString(), toLong(value(row, "count"))))
+                .toList();
+    }
+
+    private List<NameCountVO> toNameCounts(List<Map<String, Object>> rows) {
+        return rows.stream()
+                .map(row -> new NameCountVO(value(row, "name").toString(), toLong(value(row, "count"))))
                 .toList();
     }
 
@@ -273,6 +311,9 @@ public class AdminStatService {
         vo.setClientIdHash(entity.getClientIdHash());
         vo.setIpHash(entity.getIpHash());
         vo.setUserAgentHash(entity.getUserAgentHash());
+        vo.setChannel(entity.getChannel());
+        vo.setCampaign(entity.getCampaign());
+        vo.setDeviceType(entity.getDeviceType());
         vo.setReferer(entity.getReferer());
         vo.setStatSource("local");
         return vo;
@@ -287,6 +328,10 @@ public class AdminStatService {
             return number.longValue();
         }
         return Long.parseLong(value.toString());
+    }
+
+    private double rate(long count, long base) {
+        return base == 0 ? 0 : Math.round(count * 10000.0 / base) / 100.0;
     }
 
     private String normalizeKeyword(String keyword) {
@@ -332,5 +377,8 @@ public class AdminStatService {
             }
         }
         throw new IllegalArgumentException("missing query column: " + String.join("/", expectedKeys));
+    }
+
+    private record FunnelDefinition(EventType eventType, String label) {
     }
 }

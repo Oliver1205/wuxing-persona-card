@@ -175,3 +175,43 @@
 - v2.1：补渠道参数、session、campaign、日聚合表和后台漏斗视图。
 - v2.2：补 Playwright 移动端 E2E、线上 smoke、备份恢复、回滚、HTTPS、限流和告警。
 - v2.3：评估多套卡片、运营活动页和轻量报告增强，不提前引入登录、付费、AI 或朋友匹配。
+
+## 7. v2.1 商业产品化初评更新
+
+评估日期：2026-06-11
+
+总分：91 / 100
+
+等级：A-，v2.1 已把 v2.0 规划中的 session、channel、campaign 和后台漏斗视图落到代码层面，增长数据从“事件有名字”推进到“后台可观察路径”。距离更完整商业级还需要日聚合表、Playwright E2E、线上 smoke、HTTPS、限流、备份恢复和告警。
+
+| 维度 | 分值 | 当前得分 | 说明 |
+| --- | ---: | ---: | --- |
+| 产品定位与传播闭环 | 20 | 18 | 主循环保持清晰，分享短链已带来源参数，短链回流可继续归因 |
+| 前端体验与移动端完成度 | 18 | 16 | 体验基线延续 v2.0，并补 session / attribution 工具；仍需 Playwright 移动端回归 |
+| 增长数据口径 | 15 | 15 | session、channel、campaign、device、eventDate 已进入事件表，后台展示漏斗、Top Channel 和 Top Campaign |
+| 后端架构演进性 | 17 | 15 | 事件模型向 analytics 边界靠拢；后续仍需日聚合表、迁移工具和 provider 元数据 |
+| 商业级运维准备 | 15 | 12 | Compose、CI、预检、smoke 基线仍可用；线上 HTTPS、限流、备份恢复和告警待补 |
+| 文档与面试表达 | 15 | 15 | README、项目计划、v2 方案和质量评分已同步增长分析基础 |
+
+通过项：
+
+- 前端 sessionId 和 attribution 工具已落地。
+- 后端 `visit_event` 已支持 session hash、channel、campaign、deviceType 和 eventDate。
+- 分享短链带来源参数，短链跳转会把来源继续带到结果页。
+- 后台总览展示增长漏斗、Top Channel 和 Top Campaign。
+- 短链访问详情展示 Channel、Campaign 和设备类型。
+- 后端集成测试覆盖事件归因、漏斗指标、渠道排行、短链来源跳转和访问详情来源字段。
+- `mvn -q -f backend/pom.xml test` 已通过。
+- `npm --prefix frontend run build` 已通过。
+
+未验证项：
+
+- v2.1 尚未做 Playwright 自动化 E2E。
+- v2.1 尚未把原始事件聚合到独立日宽表，当前后台漏斗仍基于 `visit_event` 实时查询。
+- 线上域名、HTTPS、备份恢复、告警和正式移动端多机型回归仍属于后续商业化基础设施任务。
+
+下一步：
+
+- v2.2 优先补 `site_daily_metric` / `short_link_daily_metric` 聚合表或计算任务。
+- v2.2 同时补 Playwright 移动端主链路 E2E。
+- v2.3 再考虑运营活动、多套卡片或轻量报告增强。

@@ -108,7 +108,13 @@ function sharedLandingStart() {
         <div class="actions">
           <button type="button" @click="downloadShareImage">保存分享图</button>
           <RouterLink class="button-link" to="/test" @click="retake">重新测试</RouterLink>
-          <RouterLink class="button-link secondary" to="/test" @click="sharedLandingStart">我也要测</RouterLink>
+          <RouterLink
+            class="button-link secondary"
+            :to="{ path: '/test', query: { channel: 'shared-result', campaign: 'result-cta' } }"
+            @click="sharedLandingStart"
+          >
+            我也要测
+          </RouterLink>
         </div>
         <p v-if="shareImageStatus" class="muted">{{ shareImageStatus }}</p>
       </template>

@@ -33,7 +33,8 @@ public class EventController {
         } catch (IllegalArgumentException ex) {
             throw new BusinessException("eventType is invalid");
         }
-        visitEventService.record(eventType, request.getPagePath(), request.getResultId(), request.getShortCode(), clientId, servletRequest);
+        visitEventService.record(eventType, request.getPagePath(), request.getResultId(), request.getShortCode(),
+                clientId, servletRequest, request.getSessionId(), request.getChannel(), request.getCampaign());
         return ApiResponse.success();
     }
 }

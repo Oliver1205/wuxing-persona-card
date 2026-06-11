@@ -15,10 +15,12 @@ public interface VisitEventMapper {
     @Insert("""
             INSERT INTO visit_event (
               event_type, page_path, result_id, short_code, client_id_hash,
-              ip_hash, user_agent_hash, referer, created_at
+              session_id_hash, ip_hash, user_agent_hash, channel, campaign,
+              device_type, referer, event_date, created_at
             ) VALUES (
               #{eventType}, #{pagePath}, #{resultId}, #{shortCode}, #{clientIdHash},
-              #{ipHash}, #{userAgentHash}, #{referer}, #{createdAt}
+              #{sessionIdHash}, #{ipHash}, #{userAgentHash}, #{channel}, #{campaign},
+              #{deviceType}, #{referer}, #{eventDate}, #{createdAt}
             )
             """)
     @Options(useGeneratedKeys = true, keyProperty = "id")
@@ -158,7 +160,9 @@ public interface VisitEventMapper {
     @Select("""
             SELECT id, event_type AS eventType, page_path AS pagePath, result_id AS resultId,
                    short_code AS shortCode, client_id_hash AS clientIdHash, ip_hash AS ipHash,
-                   user_agent_hash AS userAgentHash, referer, created_at AS createdAt
+                   session_id_hash AS sessionIdHash, user_agent_hash AS userAgentHash,
+                   channel, campaign, device_type AS deviceType, referer,
+                   event_date AS eventDate, created_at AS createdAt
             FROM visit_event
             WHERE short_code = #{shortCode} AND event_type = 'SHORT_LINK_VISIT'
             ORDER BY created_at DESC
@@ -172,7 +176,9 @@ public interface VisitEventMapper {
             <script>
             SELECT id, event_type AS eventType, page_path AS pagePath, result_id AS resultId,
                    short_code AS shortCode, client_id_hash AS clientIdHash, ip_hash AS ipHash,
-                   user_agent_hash AS userAgentHash, referer, created_at AS createdAt
+                   session_id_hash AS sessionIdHash, user_agent_hash AS userAgentHash,
+                   channel, campaign, device_type AS deviceType, referer,
+                   event_date AS eventDate, created_at AS createdAt
             FROM visit_event
             WHERE short_code = #{shortCode} AND event_type = 'SHORT_LINK_VISIT'
             <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
@@ -186,4 +192,36 @@ public interface VisitEventMapper {
                                                   @Param("endAt") LocalDateTime endAt,
                                                   @Param("offset") long offset,
                                                   @Param("limit") long limit);
+
+    @Select("""
+            <script>
+            SELECT channel AS name, COUNT(*) AS count
+            FROM visit_event
+            WHERE channel IS NOT NULL AND channel != ''
+            <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+            GROUP BY channel
+            ORDER BY count DESC, channel ASC
+            LIMIT #{limit}
+            </script>
+            """)
+    List<java.util.Map<String, Object>> listTopChannelsBetween(@Param("limit") int limit,
+                                                               @Param("startAt") LocalDateTime startAt,
+                                                               @Param("endAt") LocalDateTime endAt);
+
+    @Select("""
+            <script>
+            SELECT campaign AS name, COUNT(*) AS count
+            FROM visit_event
+            WHERE campaign IS NOT NULL AND campaign != ''
+            <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+            GROUP BY campaign
+            ORDER BY count DESC, campaign ASC
+            LIMIT #{limit}
+            </script>
+            """)
+    List<java.util.Map<String, Object>> listTopCampaignsBetween(@Param("limit") int limit,
+                                                                @Param("startAt") LocalDateTime startAt,
+                                                                @Param("endAt") LocalDateTime endAt);
 }

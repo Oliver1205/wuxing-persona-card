@@ -51,9 +51,14 @@ CREATE TABLE IF NOT EXISTS visit_event (
     result_id VARCHAR(64) NULL,
     short_code VARCHAR(32) NULL,
     client_id_hash VARCHAR(128) NULL,
+    session_id_hash VARCHAR(128) NULL,
     ip_hash VARCHAR(128) NULL,
     user_agent_hash VARCHAR(128) NULL,
+    channel VARCHAR(64) NULL,
+    campaign VARCHAR(64) NULL,
+    device_type VARCHAR(32) NULL,
     referer VARCHAR(512) NULL,
+    event_date DATE NULL,
     created_at TIMESTAMP NOT NULL
 );
 
@@ -62,3 +67,7 @@ CREATE INDEX IF NOT EXISTS idx_visit_event_short_created ON visit_event(short_co
 CREATE INDEX IF NOT EXISTS idx_visit_event_result_created ON visit_event(result_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_visit_event_client ON visit_event(client_id_hash);
 CREATE INDEX IF NOT EXISTS idx_visit_event_ip ON visit_event(ip_hash);
+CREATE INDEX IF NOT EXISTS idx_visit_event_session ON visit_event(session_id_hash);
+CREATE INDEX IF NOT EXISTS idx_visit_event_channel_created ON visit_event(channel, created_at);
+CREATE INDEX IF NOT EXISTS idx_visit_event_campaign_created ON visit_event(campaign, created_at);
+CREATE INDEX IF NOT EXISTS idx_visit_event_event_date ON visit_event(event_date);

@@ -51,13 +51,32 @@ CREATE TABLE IF NOT EXISTS visit_event (
     result_id VARCHAR(64) NULL,
     short_code VARCHAR(32) NULL,
     client_id_hash VARCHAR(128) NULL,
+    session_id_hash VARCHAR(128) NULL,
     ip_hash VARCHAR(128) NULL,
     user_agent_hash VARCHAR(128) NULL,
+    channel VARCHAR(64) NULL,
+    campaign VARCHAR(64) NULL,
+    device_type VARCHAR(32) NULL,
     referer VARCHAR(512) NULL,
+    event_date DATE NULL,
     created_at DATETIME NOT NULL,
     INDEX idx_event_type_created(event_type, created_at),
     INDEX idx_short_code_created(short_code, created_at),
     INDEX idx_result_id_created(result_id, created_at),
     INDEX idx_client_id(client_id_hash),
-    INDEX idx_ip_hash(ip_hash)
+    INDEX idx_ip_hash(ip_hash),
+    INDEX idx_session_id(session_id_hash),
+    INDEX idx_channel_created(channel, created_at),
+    INDEX idx_campaign_created(campaign, created_at),
+    INDEX idx_event_date(event_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE visit_event ADD COLUMN session_id_hash VARCHAR(128) NULL;
+ALTER TABLE visit_event ADD COLUMN channel VARCHAR(64) NULL;
+ALTER TABLE visit_event ADD COLUMN campaign VARCHAR(64) NULL;
+ALTER TABLE visit_event ADD COLUMN device_type VARCHAR(32) NULL;
+ALTER TABLE visit_event ADD COLUMN event_date DATE NULL;
+CREATE INDEX idx_visit_event_session_id ON visit_event(session_id_hash);
+CREATE INDEX idx_visit_event_channel_created ON visit_event(channel, created_at);
+CREATE INDEX idx_visit_event_campaign_created ON visit_event(campaign, created_at);
+CREATE INDEX idx_visit_event_event_date ON visit_event(event_date);

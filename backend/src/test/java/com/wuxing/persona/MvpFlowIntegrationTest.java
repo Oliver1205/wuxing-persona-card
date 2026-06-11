@@ -66,17 +66,29 @@ class MvpFlowIntegrationTest {
 
     @Test
     void shouldCompleteResultShortLinkAndAdminFlow() throws Exception {
+        recordGrowthEvent("PAGE_VIEW_HOME", "/");
+        recordGrowthEvent("START_TEST_CLICK", "/");
+        recordGrowthEvent("TEST_FORM_START", "/test");
+        recordGrowthEvent("TEST_SUBMIT_ATTEMPT", "/test");
         JsonNode data = createValidResult("client-a");
         String resultId = data.get("resultId").asText();
         String shortCode = data.get("shortCode").asText();
 
-        mockMvc.perform(get("/api/results/" + resultId).header("X-Client-Id", "client-a"))
+        mockMvc.perform(get("/api/results/" + resultId)
+                        .header("X-Client-Id", "client-a")
+                        .header("X-Session-Id", "session-a")
+                        .header("X-Channel", "organic")
+                        .header("X-Campaign", "spring-launch"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.resultId").value(resultId));
 
-        mockMvc.perform(get("/s/" + shortCode).header("User-Agent", "JUnit"))
+        mockMvc.perform(get("/s/" + shortCode)
+                        .param("channel", "share")
+                        .param("campaign", "result-card")
+                        .header("User-Agent", "JUnit"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(header().string("Location", "/result/" + resultId + "?sc=" + shortCode));
+                .andExpect(header().string("Location",
+                        "/result/" + resultId + "?sc=" + shortCode + "&channel=share&campaign=result-card"));
 
         mockMvc.perform(get("/api/admin/overview").header("X-Admin-Token", "test-token"))
                 .andExpect(status().isOk())
@@ -84,7 +96,13 @@ class MvpFlowIntegrationTest {
                 .andExpect(jsonPath("$.data.shortLinkCreated").value(1))
                 .andExpect(jsonPath("$.data.shortLinkVisits").value(1))
                 .andExpect(jsonPath("$.data.dailyTrends").isArray())
-                .andExpect(jsonPath("$.data.dailyTrends[0].date").exists());
+                .andExpect(jsonPath("$.data.dailyTrends[0].date").exists())
+                .andExpect(jsonPath("$.data.funnelSteps[0].eventType").value("PAGE_VIEW_HOME"))
+                .andExpect(jsonPath("$.data.funnelSteps[0].count").value(1))
+                .andExpect(jsonPath("$.data.funnelSteps[4].eventType").value("TEST_SUBMIT"))
+                .andExpect(jsonPath("$.data.funnelSteps[4].count").value(1))
+                .andExpect(jsonPath("$.data.topChannels[0].name").value("organic"))
+                .andExpect(jsonPath("$.data.topCampaigns[0].name").value("spring-launch"));
     }
 
     @Test
@@ -93,9 +111,17 @@ class MvpFlowIntegrationTest {
         String shortCode = data.get("shortCode").asText();
         String resultId = data.get("resultId").asText();
 
-        mockMvc.perform(get("/s/" + shortCode).header("X-Client-Id", "same-client"))
+        mockMvc.perform(get("/s/" + shortCode)
+                        .param("channel", "share")
+                        .param("campaign", "result-card")
+                        .header("X-Client-Id", "same-client")
+                        .header("User-Agent", "Mozilla/5.0 iPhone Mobile"))
                 .andExpect(status().is3xxRedirection());
-        mockMvc.perform(get("/s/" + shortCode).header("X-Client-Id", "same-client"))
+        mockMvc.perform(get("/s/" + shortCode)
+                        .param("channel", "share")
+                        .param("campaign", "result-card")
+                        .header("X-Client-Id", "same-client")
+                        .header("User-Agent", "Mozilla/5.0 iPhone Mobile"))
                 .andExpect(status().is3xxRedirection());
 
         mockMvc.perform(get("/api/admin/short-links")
@@ -135,7 +161,10 @@ class MvpFlowIntegrationTest {
                 .andExpect(jsonPath("$.data.total").value(2))
                 .andExpect(jsonPath("$.data.records[0].eventType").value("SHORT_LINK_VISIT"))
                 .andExpect(jsonPath("$.data.records[0].clientIdHash").exists())
-                .andExpect(jsonPath("$.data.records[0].ipHash").exists());
+                .andExpect(jsonPath("$.data.records[0].ipHash").exists())
+                .andExpect(jsonPath("$.data.records[0].channel").value("share"))
+                .andExpect(jsonPath("$.data.records[0].campaign").value("result-card"))
+                .andExpect(jsonPath("$.data.records[0].deviceType").value("mobile"));
     }
 
     @Test
@@ -296,6 +325,9 @@ class MvpFlowIntegrationTest {
     private JsonNode createValidResult(String clientId) throws Exception {
         MvcResult createResult = mockMvc.perform(post("/api/results")
                         .header("X-Client-Id", clientId)
+                        .header("X-Session-Id", "session-a")
+                        .header("X-Channel", "organic")
+                        .header("X-Campaign", "spring-launch")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validResultRequestBody()))
                 .andExpect(status().isOk())
@@ -304,6 +336,22 @@ class MvpFlowIntegrationTest {
                 .andExpect(jsonPath("$.data.shortCode").exists())
                 .andReturn();
         return objectMapper.readTree(createResult.getResponse().getContentAsString()).get("data");
+    }
+
+    private void recordGrowthEvent(String eventType, String pagePath) throws Exception {
+        mockMvc.perform(post("/api/events")
+                        .header("X-Client-Id", "client-a")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "eventType": "%s",
+                                  "pagePath": "%s",
+                                  "sessionId": "session-a",
+                                  "channel": "organic",
+                                  "campaign": "spring-launch"
+                                }
+                                """.formatted(eventType, pagePath)))
+                .andExpect(status().isOk());
     }
 
     private String validResultRequestBody() {

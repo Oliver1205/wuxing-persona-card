@@ -5,6 +5,9 @@ export function recordEvent(payload: {
   pagePath?: string;
   resultId?: string | null;
   shortCode?: string | null;
+  sessionId?: string;
+  channel?: string;
+  campaign?: string;
 }) {
   return request<void>('/api/events', {
     method: 'POST',

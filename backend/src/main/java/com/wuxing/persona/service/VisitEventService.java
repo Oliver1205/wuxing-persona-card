@@ -9,13 +9,16 @@ import com.wuxing.persona.util.IpUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Locale;
 import org.springframework.stereotype.Service;
 
 @Service
 public class VisitEventService {
 
     private static final int MAX_REFERER_LENGTH = 255;
+    private static final int MAX_ATTRIBUTION_LENGTH = 64;
 
     private final VisitEventMapper visitEventMapper;
     private final AppProperties appProperties;
@@ -31,6 +34,18 @@ public class VisitEventService {
                        String shortCode,
                        String clientId,
                        HttpServletRequest request) {
+        record(eventType, pagePath, resultId, shortCode, clientId, request, null, null, null);
+    }
+
+    public void record(EventType eventType,
+                       String pagePath,
+                       String resultId,
+                       String shortCode,
+                       String clientId,
+                       HttpServletRequest request,
+                       String sessionId,
+                       String channel,
+                       String campaign) {
         VisitEventEntity entity = new VisitEventEntity();
         entity.setEventType(eventType.name());
         entity.setPagePath(pagePath);
@@ -43,11 +58,78 @@ public class VisitEventService {
             clientHashSource = ip + "|" + userAgent;
         }
         entity.setClientIdHash(HashUtils.sha256(clientHashSource + appProperties.getHashSalt()));
+        entity.setSessionIdHash(hashOrNull(firstPresent(sessionId, header(request, "X-Session-Id"),
+                parameter(request, "sessionId"))));
         entity.setIpHash(HashUtils.sha256(ip + appProperties.getHashSalt()));
         entity.setUserAgentHash(HashUtils.sha256((userAgent == null ? "" : userAgent) + appProperties.getHashSalt()));
+        entity.setChannel(normalizeAttribution(firstPresent(channel, header(request, "X-Channel"),
+                parameter(request, "channel"), parameter(request, "utm_source"), parameter(request, "source"))));
+        entity.setCampaign(normalizeAttribution(firstPresent(campaign, header(request, "X-Campaign"),
+                parameter(request, "campaign"), parameter(request, "utm_campaign"))));
+        entity.setDeviceType(detectDeviceType(userAgent));
         entity.setReferer(sanitizeReferer(request.getHeader("Referer")));
-        entity.setCreatedAt(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        entity.setEventDate(LocalDate.now());
+        entity.setCreatedAt(now);
         visitEventMapper.insert(entity);
+    }
+
+    private String hashOrNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return HashUtils.sha256(value.trim() + appProperties.getHashSalt());
+    }
+
+    private String firstPresent(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private String header(HttpServletRequest request, String name) {
+        return request == null ? null : request.getHeader(name);
+    }
+
+    private String parameter(HttpServletRequest request, String name) {
+        return request == null ? null : request.getParameter(name);
+    }
+
+    private String normalizeAttribution(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String normalized = value.trim()
+                .replace('\r', ' ')
+                .replace('\n', ' ')
+                .replace('\t', ' ');
+        normalized = normalized.replaceAll("\\s+", "-").toLowerCase(Locale.ROOT);
+        if (normalized.isBlank()) {
+            return null;
+        }
+        return normalized.length() <= MAX_ATTRIBUTION_LENGTH
+                ? normalized
+                : normalized.substring(0, MAX_ATTRIBUTION_LENGTH);
+    }
+
+    private String detectDeviceType(String userAgent) {
+        if (userAgent == null || userAgent.isBlank()) {
+            return "unknown";
+        }
+        String normalized = userAgent.toLowerCase(Locale.ROOT);
+        if (normalized.contains("bot") || normalized.contains("crawler") || normalized.contains("spider")) {
+            return "bot";
+        }
+        if (normalized.contains("ipad") || normalized.contains("tablet")) {
+            return "tablet";
+        }
+        if (normalized.contains("mobile") || normalized.contains("android") || normalized.contains("iphone")) {
+            return "mobile";
+        }
+        return "desktop";
     }
 
     private String sanitizeReferer(String referer) {
