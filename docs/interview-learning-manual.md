@@ -206,7 +206,67 @@ BASE_URL=http://127.0.0.1:8088 ADMIN_TOKEN=dev-token SHORTLINK_HITS=30 scripts/p
 | 后台数据为什么能缓存？ | 后台总览用于运营观察，45 秒短缓存能削峰，明细和日聚合仍是权威来源 |
 | 当前项目边界？ | 单机商业化作品，不是大型分布式平台；后续才考虑 MQ、分库分表、多租户 |
 
-## 10. 8 小时学习路线
+## 10. 面试讲解图谱
+
+### 一分钟总图
+
+```mermaid
+flowchart LR
+  U["匿名用户"] --> T["5 道题 + 出生年月"]
+  T --> R["ResultService 生成人格卡"]
+  R --> S["ShortLinkService 绑定短码"]
+  S --> V["朋友访问 /s/{code}"]
+  V --> E["visit_event 明细事件"]
+  E --> A["Admin 数据中台"]
+```
+
+这张图用于开场。你要先说清楚它不是单纯页面，而是“测算结果页分享”这个真实业务闭环。
+
+### 热点链路图
+
+```mermaid
+flowchart TB
+  Share["群聊里短链突然传播"] --> Nginx["Nginx 限流入口"]
+  Nginx --> Cache{"Redis 有短码映射?"}
+  Cache -- yes --> Redirect["直接 302 到结果页"]
+  Cache -- no --> DB["MySQL 查 short_link"]
+  DB --> Fill["回填 Redis"]
+  Fill --> Redirect
+  Redirect --> Event["写 SHORT_LINK_VISIT 明细"]
+  Event --> Admin["后台异步/聚合口径查看"]
+```
+
+这张图用于回答高并发。核心句子是：短链跳转先保证 302 低延迟，统计查询不阻塞用户跳转。
+
+### 后台统计图
+
+```mermaid
+flowchart LR
+  Event["visit_event 明细"] --> Live["按范围 live 查询"]
+  Event --> Daily["site_daily_metric / short_link_daily_metric"]
+  Live --> Overview["Admin overview"]
+  Daily --> Overview
+  Overview --> Redis["45 秒 overview cache"]
+```
+
+这张图用于解释为什么后台可以缓存：后台看趋势，不是金融交易，不需要每次刷新都实时重算。
+
+## 11. 代码阅读路线
+
+按这个顺序读代码，能最快形成面试表达：
+
+| 顺序 | 文件/模块 | 你要看懂什么 |
+| --- | --- | --- |
+| 1 | `frontend/src/pages/TestPage.vue` | 卡片式问答、出生信息、自动前进、提交入口 |
+| 2 | `frontend/src/pages/ResultPage.vue` | 分享结果页、朋友回流入口、保存分享图 |
+| 3 | `backend/.../ResultService.java` | 结果生成、短链创建、事件写入、缓存写入 |
+| 4 | `backend/.../ShortLinkService.java` | 短链门面和 Provider 调用边界 |
+| 5 | `backend/.../InternalShortLinkProvider.java` | 短码解析、Redis 缓存、302 跳转热路径 |
+| 6 | `backend/.../AdminStatService.java` | 后台总览、日期范围、overview 短缓存 |
+| 7 | `backend/.../RedisCacheService.java` | 结果缓存、短码缓存、空值缓存、降级 |
+| 8 | `scripts/performance-smoke-test.sh` | 如何用脚本证明短链热点链路没有明显退化 |
+
+## 12. 8 小时学习路线
 
 | 时间 | 学习目标 |
 | --- | --- |

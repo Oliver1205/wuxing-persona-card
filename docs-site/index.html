@@ -29,8 +29,9 @@
           <a href="#quality">7. 质量门禁</a>
           <a href="#versions">8. 版本进度</a>
           <a href="#interview">9. 面试表达</a>
-          <a href="#roadmap">10. 后续路线</a>
-          <a href="#documents">11. 文档索引</a>
+          <a href="#materials">10. 展示素材</a>
+          <a href="#roadmap">11. 后续路线</a>
+          <a href="#documents">12. 文档索引</a>
         </nav>
 
         <div class="sidebar-note">
@@ -272,6 +273,44 @@ scripts/docker-smoke-test.sh http://127.0.0.1 dev-token</code></pre>
           <div class="quote-panel">
             我做的是一个完整上线链路：用户匿名完成 H5 测算，后端生成结果并绑定短链，朋友通过短链访问同一个结果页，后台能看到 PV / UV / UIP 和短链访问明细。短链模块后来被抽象成 Provider，可以在 internal 和 external 服务之间切换。
           </div>
+        </section>
+
+        <section class="section" id="materials">
+          <h2>展示素材</h2>
+          <p>
+            最终展示不要只给代码截图。建议同时准备产品主视觉、传播闭环图、后台数据截图、性能 smoke 输出和面试架构图。
+          </p>
+          <div class="material-board" aria-label="展示素材清单">
+            <article>
+              <span>01</span>
+              <strong>产品主视觉</strong>
+              <p>手机里的结果人格卡，配一句“90 秒生成可分享的五行人格卡”。</p>
+            </article>
+            <article>
+              <span>02</span>
+              <strong>交互升级对比</strong>
+              <p>展示卡片式逐题问答、自动前进和移动端底部主按钮。</p>
+            </article>
+            <article>
+              <span>03</span>
+              <strong>分享回流链路</strong>
+              <p>用户分享短链，朋友打开结果页，再进入自己的测试。</p>
+            </article>
+            <article>
+              <span>04</span>
+              <strong>工程可信证据</strong>
+              <p>短链跳转、Redis 缓存、后台 overview cache 和性能 smoke 输出。</p>
+            </article>
+          </div>
+          <div class="diagram-strip" role="img" aria-label="从产品到工程的展示顺序">
+            <span>产品首屏</span>
+            <span>答题体验</span>
+            <span>结果分享</span>
+            <span>短链跳转</span>
+            <span>后台统计</span>
+            <span>面试架构</span>
+          </div>
+          <a class="doc-link" href="../docs/project-promotion-kit.md">查看宣传包</a>
         </section>
 
         <section class="section" id="roadmap">
