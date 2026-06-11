@@ -342,9 +342,10 @@
 
 - 移动端测试页已补默认年份生效、选项确认反馈、自动前进节奏、底部安全间距和提交锁。
 - 结果页已补加载态、错误态和更明确的重测 / 返回入口。
-- 生成分享图已补人格身份层级、短码标识、五行分布和回流提示。
+- 分享链路已补复制 / 分享 busy 状态、剪贴板失败手动复制兜底和生成分享图的人格身份层级、短码标识、五行分布。
 - 短链访问热路径已避免同步刷新 PV/UV/UIP distinct 统计，并对 `last_visit_at` 做 30 秒限频。
 - `visit_event` 写入失败已降级为告警日志，不阻断结果读取或短链访问主流程。
+- `visit_event` 上报维度已按数据库字段长度收敛，减少异常 payload 造成的无效写入失败。
 - 后台短链列表已批量读取结果和统计，避免分页列表出现 N+1 查询。
 - 后台总览已补短缓存、指标解释和加载期间按钮 / 输入禁用。
 - 新增 `docs/assets/wuxing-architecture-map.svg`、`docs/role-review-matrix.md`、`docs/project-promotion-kit.md`、`docs/interview-learning-manual.md` 相关章节和 `docs/codex-worklog.md`。

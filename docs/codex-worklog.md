@@ -157,3 +157,15 @@ multi-role review support. The main outcomes are:
 - Quality-score priority: keep the final self-assessment honest.
 - Documentation change: updated README and `docs/quality-scorecard.md` with an eight-hour workflow stage score, explicit evidence, and remaining risks.
 - Boundary: this is not marked as a new large business version; it is a hardening and evidence stage on top of v2.6.
+
+### Phase 17
+
+- Visitor priority: make sharing feedback clear even when browser clipboard permissions fail.
+- Frontend change: the share link box now shows copy/share busy states, keeps the short-link button from being double-triggered, and selects the URL when automatic copy is unavailable.
+- Browser value: local result-page verification confirmed the fallback message and selected short URL are visible in the share panel.
+
+### Phase 18
+
+- Backend priority: keep noisy analytics payloads from creating avoidable database write failures.
+- Backend change: `VisitEventService` trims `pagePath`, `resultId`, and `shortCode` to their database column bounds before insertion.
+- Verification value: added a unit test for dimension trimming and passed the full quality gate.
