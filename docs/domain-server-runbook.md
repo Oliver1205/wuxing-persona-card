@@ -188,6 +188,10 @@ sudo certbot renew --dry-run
 ```bash
 DOMAIN=<主域名> \
 EXPECTED_IP=<服务器公网 IP> \
+scripts/domain-dns-readiness.sh
+
+DOMAIN=<主域名> \
+EXPECTED_IP=<服务器公网 IP> \
 BASE_URL=https://<主域名> \
 ADMIN_TOKEN=<admin-token> \
 scripts/domain-bind-preflight.sh

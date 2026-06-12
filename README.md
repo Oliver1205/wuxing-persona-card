@@ -496,12 +496,16 @@ scripts/performance-smoke-test.sh
 ```bash
 DOMAIN=<your-domain.com> \
 EXPECTED_IP=<server-public-ip> \
+scripts/domain-dns-readiness.sh
+
+DOMAIN=<your-domain.com> \
+EXPECTED_IP=<server-public-ip> \
 BASE_URL=https://<your-domain.com> \
 ADMIN_TOKEN=<your-admin-token> \
 scripts/domain-bind-preflight.sh
 ```
 
-五小时真实域名上线安排见 [五小时真实域名上线工作流](docs/five-hour-domain-workflow.md)，上线前风险清单见 [真实域名上线前严格自审](docs/domain-launch-self-audit.md)，需要用户补齐的信息见 [真实域名上线信息收集清单](docs/domain-launch-info-template.md)，服务器执行步骤见 [真实域名服务器上线 Runbook](docs/domain-server-runbook.md)。
+五小时真实域名上线安排见 [五小时真实域名上线工作流](docs/five-hour-domain-workflow.md)，上线前风险清单见 [真实域名上线前严格自审](docs/domain-launch-self-audit.md)，需要用户补齐的信息见 [真实域名上线信息收集清单](docs/domain-launch-info-template.md)，当前上线状态见 [真实域名上线实时状态](docs/domain-launch-live-status.md)，服务器执行步骤见 [真实域名服务器上线 Runbook](docs/domain-server-runbook.md)。
 
 可选 Testcontainers 集成测试：
 
