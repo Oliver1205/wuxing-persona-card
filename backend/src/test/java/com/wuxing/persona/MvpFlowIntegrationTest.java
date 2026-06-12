@@ -2,6 +2,7 @@ package com.wuxing.persona;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.hamcrest.Matchers.containsString;
@@ -418,6 +419,56 @@ class MvpFlowIntegrationTest {
     }
 
     @Test
+    void shouldCreateAndReloadDualMatchByShortCodes() throws Exception {
+        JsonNode partner = createValidResult("partner-client");
+        String partnerShortCode = partner.get("shortCode").asText();
+        String partnerResultId = partner.get("resultId").asText();
+
+        mockMvc.perform(get("/api/matches/candidates/" + partnerShortCode))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.shortCode").value(partnerShortCode))
+                .andExpect(jsonPath("$.data.resultId").value(partnerResultId))
+                .andExpect(jsonPath("$.data.displayName").exists());
+
+        MvcResult createResponse = mockMvc.perform(post("/api/matches")
+                        .header("X-Client-Id", "current-client")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validMatchRequestBody(partnerShortCode)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.partnerShortCode").value(partnerShortCode))
+                .andExpect(jsonPath("$.data.currentShortCode").exists())
+                .andExpect(jsonPath("$.data.partnerResult.resultId").value(partnerResultId))
+                .andExpect(jsonPath("$.data.currentResult.resultId").exists())
+                .andExpect(jsonPath("$.data.compatibilityScore").exists())
+                .andExpect(jsonPath("$.data.relationLabel").exists())
+                .andExpect(jsonPath("$.data.suggestions[0]").exists())
+                .andReturn();
+        JsonNode match = objectMapper.readTree(createResponse.getResponse().getContentAsString()).get("data");
+        int score = match.get("compatibilityScore").asInt();
+        assertTrue(score >= 58 && score <= 96);
+
+        String currentShortCode = match.get("currentShortCode").asText();
+        mockMvc.perform(get("/api/matches/" + partnerShortCode + "/" + currentShortCode))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.matchId").value(partnerShortCode + "-" + currentShortCode))
+                .andExpect(jsonPath("$.data.partnerShortCode").value(partnerShortCode))
+                .andExpect(jsonPath("$.data.currentShortCode").value(currentShortCode));
+    }
+
+    @Test
+    void shouldRejectInvalidMatchShortCode() throws Exception {
+        mockMvc.perform(get("/api/matches/candidates/abc123"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("shortCode not found"));
+
+        mockMvc.perform(post("/api/matches")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validMatchRequestBody("bad-code")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("shortCode must be base62 and length 6 or 7"));
+    }
+
+    @Test
     void shouldRejectInvalidEventType() throws Exception {
         mockMvc.perform(post("/api/events")
                         .header("X-Client-Id", "client-a")
@@ -570,5 +621,24 @@ class MvpFlowIntegrationTest {
                   ]
                 }
                 """;
+    }
+
+    private String validMatchRequestBody(String partnerShortCode) {
+        return """
+                {
+                  "partnerShortCode": "%s",
+                  "birthYear": 2005,
+                  "birthMonth": 3,
+                  "birthDay": null,
+                  "birthTimeRange": null,
+                  "answers": [
+                    {"questionCode":"Q1","optionCode":"WOOD"},
+                    {"questionCode":"Q2","optionCode":"FIRE"},
+                    {"questionCode":"Q3","optionCode":"WOOD"},
+                    {"questionCode":"Q4","optionCode":"EARTH"},
+                    {"questionCode":"Q5","optionCode":"WATER"}
+                  ]
+                }
+                """.formatted(partnerShortCode);
     }
 }

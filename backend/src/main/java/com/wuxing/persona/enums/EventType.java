@@ -18,6 +18,10 @@ public enum EventType {
     SHARE_PANEL_VIEW,
     SHARED_RESULT_CTA_CLICK,
     RETAKE_TEST_CLICK,
+    MATCH_CLIPBOARD_DETECTED,
+    MATCH_MODE_ACCEPT,
+    MATCH_MODE_DISMISS,
+    MATCH_RESULT_VIEW,
     SHORT_LINK_VISIT;
 
     public static EventType fromCode(String code) {

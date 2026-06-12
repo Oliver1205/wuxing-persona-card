@@ -24,6 +24,10 @@ export interface CreateResultRequest {
   answers: Answer[];
 }
 
+export interface CreateMatchRequest extends CreateResultRequest {
+  partnerShortCode: string;
+}
+
 export interface ResultDetail {
   resultId: string;
   primaryElement: string;
@@ -42,6 +46,31 @@ export interface ResultDetail {
   cardImageKey: string;
   shortCode: string;
   shortUrl: string;
+  createdAt: string;
+}
+
+export interface MatchCandidate {
+  shortCode: string;
+  resultId: string;
+  displayName: string;
+  primaryElementName: string;
+  secondaryElementName: string;
+  keywords: string[];
+  createdAt: string;
+}
+
+export interface MatchResult {
+  matchId: string;
+  partnerShortCode: string;
+  currentShortCode: string;
+  partnerResult: ResultDetail;
+  currentResult: ResultDetail;
+  compatibilityScore: number;
+  relationLabel: string;
+  headline: string;
+  summary: string;
+  strengths: string[];
+  suggestions: string[];
   createdAt: string;
 }
 

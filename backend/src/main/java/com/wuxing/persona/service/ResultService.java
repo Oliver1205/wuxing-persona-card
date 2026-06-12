@@ -118,6 +118,18 @@ public class ResultService {
         return toDetail(entity, shortLinkService.getByResultId(resultId));
     }
 
+    public ResultDetailVO getByShortCodeNoTrack(String shortCode) {
+        ShortLinkEntity shortLink = shortLinkService.getByShortCode(shortCode);
+        if (shortLink == null) {
+            throw new BusinessException(404, "shortCode not found");
+        }
+        UserResultEntity entity = userResultMapper.selectByResultId(shortLink.getResultId());
+        if (entity == null) {
+            throw new BusinessException(404, "result not found");
+        }
+        return toDetail(entity, shortLink);
+    }
+
     private ResultDetailVO toDetail(UserResultEntity entity, ShortLinkEntity shortLink) {
         ElementType primary = ElementType.fromCode(entity.getPrimaryElement());
         ElementType secondary = ElementType.fromCode(entity.getSecondaryElement());

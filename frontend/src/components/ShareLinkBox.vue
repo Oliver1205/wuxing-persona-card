@@ -13,12 +13,21 @@ const emit = defineEmits<{
   copied: [];
 }>();
 
+const codeEl = ref<HTMLElement | null>(null);
 const urlEl = ref<HTMLElement | null>(null);
 const copied = ref(false);
+const codeCopied = ref(false);
 const copying = ref(false);
+const codeCopying = ref(false);
 const sharing = ref(false);
 const message = ref('');
 const shareUrl = computed(() => withShareAttribution(props.shortUrl));
+const codeCopyLabel = computed(() => {
+  if (codeCopying.value) {
+    return '复制中';
+  }
+  return codeCopied.value ? '短码已复制' : '复制匹配短码';
+});
 const copyLabel = computed(() => {
   if (copying.value) {
     return '复制中';
@@ -29,6 +38,26 @@ const copyLabel = computed(() => {
 onMounted(() => {
   track('SHARE_PANEL_VIEW', undefined, props.resultId, props.shortCode);
 });
+
+async function copyShortCode() {
+  if (codeCopying.value || !props.shortCode) {
+    return;
+  }
+  codeCopying.value = true;
+  message.value = '';
+  try {
+    await navigator.clipboard.writeText(props.shortCode);
+    codeCopied.value = true;
+    message.value = '匹配短码已复制。朋友打开首页时，系统会尝试识别这段短码。';
+    emit('copied');
+  } catch {
+    codeCopied.value = false;
+    selectShortCode();
+    message.value = '当前浏览器不支持自动复制，请长按短码手动复制';
+  } finally {
+    codeCopying.value = false;
+  }
+}
 
 async function copy() {
   if (copying.value) {
@@ -85,19 +114,38 @@ function selectShareUrl() {
   selection?.removeAllRanges();
   selection?.addRange(range);
 }
+
+function selectShortCode() {
+  const el = codeEl.value;
+  if (!el) {
+    return;
+  }
+  const selection = window.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+}
 </script>
 
 <template>
   <section class="share-box">
-    <div>
-      <p class="label">专属分享链接</p>
-      <p ref="urlEl" class="url" tabindex="0" @click="selectShareUrl">{{ shareUrl }}</p>
+    <div class="share-main">
+      <div v-if="shortCode" class="short-code-block">
+        <p class="label">双人匹配短码</p>
+        <p ref="codeEl" class="short-code" tabindex="0" @click="selectShortCode">{{ shortCode }}</p>
+      </div>
+      <div>
+        <p class="label">专属分享链接</p>
+        <p ref="urlEl" class="url" tabindex="0" @click="selectShareUrl">{{ shareUrl }}</p>
+      </div>
       <div class="share-note">
-        <span>打开即达结果</span>
-        <span>适合私聊分享</span>
+        <span>短码用于双人匹配</span>
+        <span>链接用于打开结果</span>
       </div>
     </div>
     <div class="share-actions">
+      <button v-if="shortCode" type="button" :disabled="codeCopying" @click="copyShortCode">{{ codeCopyLabel }}</button>
       <button type="button" :disabled="copying" @click="copy">{{ copyLabel }}</button>
       <button class="secondary" type="button" :disabled="sharing" @click="nativeShare">
         {{ sharing ? '分享中' : '系统分享' }}
@@ -120,8 +168,13 @@ function selectShareUrl() {
 }
 
 .share-actions {
-  display: flex;
+  display: grid;
   gap: 8px;
+}
+
+.share-main {
+  display: grid;
+  gap: 10px;
 }
 
 .label {
@@ -130,6 +183,7 @@ function selectShareUrl() {
   font-size: 13px;
 }
 
+.short-code,
 .url {
   margin: 0;
   overflow-wrap: anywhere;
@@ -139,6 +193,16 @@ function selectShareUrl() {
   outline: none;
 }
 
+.short-code {
+  width: fit-content;
+  border: 1px solid rgba(47, 111, 94, 0.18);
+  padding: 7px 10px;
+  background: #edf7f2;
+  color: #1f3732;
+  font-size: 22px;
+}
+
+.short-code:focus,
 .url:focus {
   box-shadow: 0 0 0 3px rgba(47, 111, 94, 0.14);
 }
@@ -174,7 +238,7 @@ function selectShareUrl() {
 
   .share-actions {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 }
 </style>

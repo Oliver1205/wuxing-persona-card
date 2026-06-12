@@ -82,6 +82,37 @@ GET /api/results/{resultId}
 - 事件记录失败不应该影响用户查看结果。
 - 如果 Redis 不可用，主流程仍可回源 MySQL。
 
+### 双人匹配链路
+
+```mermaid
+sequenceDiagram
+  participant A as 已有用户
+  participant B as 新用户浏览器
+  participant F as Vue H5
+  participant M as MatchService
+  participant R as ResultService
+  participant S as ShortLinkService
+
+  A->>B: 复制纯短码
+  B->>F: 打开首页
+  F->>F: navigator.clipboard.readText()
+  F->>M: GET /api/matches/candidates/{shortCode}
+  M->>S: getByShortCode(shortCode)
+  M-->>F: 返回匹配候选摘要
+  F->>B: 询问是否进入双人匹配
+  B->>F: 完成同一套测评
+  F->>M: POST /api/matches
+  M->>R: 创建当前用户结果
+  M-->>F: partnerShortCode + currentShortCode + 匹配结果
+  F->>B: /match/{partnerShortCode}/{currentShortCode}
+```
+
+面试要点：
+
+- 首页只接受 `6-7` 位 Base62 纯短码，不从链接里提取，避免误触发。
+- 匹配页用两个短码查询，所以刷新页面不会丢状态。
+- 第一版不新增匹配表，降低迁移成本；如果未来要做历史匹配、排行榜或复访提醒，再把匹配结果持久化。
+
 ### 短链跳转链路
 
 ```mermaid
@@ -413,6 +444,7 @@ sequenceDiagram
 | --- | --- | --- | --- |
 | 移动端问答体验 | `frontend/src/pages/TestPage.vue` | `npm --prefix frontend run build` | 测试页从长表单变成逐题卡片流，默认出生年份也算有效选择，选中答案后由用户手动进入下一题，降低误触焦虑。 |
 | 输入契约守门 | `frontend/src/pages/TestPage.vue`、`backend/src/main/java/com/wuxing/persona/service/ElementCalculateService.java` | `mvn -q -f backend/pom.xml -Dtest=ElementCalculateServiceTest,MvpFlowIntegrationTest test` | 前端会按年份和月份动态收窄日期选择，例如 2 月不显示 31 日；但最终安全边界在后端，服务层会拒绝未来月份、未来日期和不存在的日历日期。 |
+| 双人短码匹配 | `frontend/src/pages/GuidePage.vue`、`frontend/src/pages/TestPage.vue`、`frontend/src/pages/MatchPage.vue`、`backend/src/main/java/com/wuxing/persona/service/MatchService.java` | `mvn -q -f backend/pom.xml -Dtest=MvpFlowIntegrationTest test && npm --prefix frontend run build` | 首页只从纯短码触发匹配邀请，测完后调用 `/api/matches`，最终进入可刷新访问的 `/match/{partnerShortCode}/{currentShortCode}`。 |
 | 结果页分享闭环 | `frontend/src/pages/ResultPage.vue` | `E2E_BASE_URL=http://127.0.0.1:5174 E2E_ADMIN_TOKEN=dev-token scripts/mobile-e2e.sh` | 结果页不只展示文案，还承担保存分享图、复制分享链接、系统分享、朋友回流和二次测试入口。 |
 | 创建结果链路 | `backend/src/main/java/com/wuxing/persona/service/ResultService.java` | `mvn -q -f backend/pom.xml -Dtest=MvpFlowIntegrationTest test` | 创建结果是强业务链路，结果、短链和关键事件要一起形成可恢复的业务证据。 |
 | 短链门面和适配 | `backend/src/main/java/com/wuxing/persona/service/ShortLinkService.java` | `mvn -q -f backend/pom.xml -Dtest=ExternalShortLinkProviderTest,InternalShortLinkProviderTest test` | Provider 让结果生成不用关心短链来自 internal 还是 external，外部失败时可以降级。 |
@@ -438,11 +470,11 @@ sequenceDiagram
 
 ### 0-60 秒：先讲业务闭环
 
-> 这个项目叫五行人格卡，是一个以结果页分享为核心场景的 Java 全栈项目。用户完成出生信息和 5 道题后，后端生成一张人格结果卡，并绑定分享链接。朋友打开分享链接会回到同一张结果页，后台能看到 PV、UV、UIP、渠道、活动和短链访问明细。所以它不是单纯 H5 页面，而是“测算、分享、回流、统计”的完整闭环。
+> 这个项目叫五行人格卡，是一个以结果页分享为核心场景的 Java 全栈项目。用户完成出生信息和 5 道题后，后端生成一张人格结果卡，并绑定分享链接和短码。朋友打开分享链接会回到同一张结果页，也可以复制纯短码触发双人匹配。后台能看到 PV、UV、UIP、渠道、活动和短链访问明细。所以它不是单纯 H5 页面，而是“测算、分享、回流、匹配、统计”的完整闭环。
 
 ### 60-150 秒：讲核心架构
 
-> 前端是 Vue H5，负责首页、卡片式答题、结果页和后台展示；公网入口走 Nginx，转发静态资源、`/api/**` 和 `/s/**`；后端是 Spring Boot，核心模块包括 `ResultService`、`ShortLinkService`、`ShortLinkProvider`、`VisitEventService` 和 `AdminStatService`；MySQL 保存结果、短链和访问事件，Redis 缓存结果详情、短码映射和无效短码。
+> 前端是 Vue H5，负责首页、卡片式答题、结果页、匹配页和后台展示；公网入口走 Nginx，转发静态资源、`/api/**` 和 `/s/**`；后端是 Spring Boot，核心模块包括 `ResultService`、`MatchService`、`ShortLinkService`、`ShortLinkProvider`、`VisitEventService` 和 `AdminStatService`；MySQL 保存结果、短链和访问事件，Redis 缓存结果详情、短码映射和无效短码。
 
 ### 150-240 秒：讲高峰值取舍
 
@@ -459,6 +491,7 @@ sequenceDiagram
 | 你这是不是玩具项目？ | 我用人格测试做轻产品入口，但工程闭环是真实的：短链、访问事件、后台统计、缓存、部署和质量门禁都有落地。 |
 | 为什么不用 MQ？ | 当前单机阶段先优化热路径、索引、缓存和降级，避免过早复杂化；MQ 是流量继续放大后的下一步。 |
 | 统计会不会拖慢跳转？ | 跳转链路只做短码解析、事件入队和低频展示字段更新，不同步做 distinct 聚合，后台统计走独立查询路径。 |
+| 为什么双人匹配不建表？ | 第一版匹配是由两个已存在短码实时计算，先保证流程闭环和刷新可访问；只有当要做历史记录、关系复访或排行榜时，持久化匹配表才有明确收益。 |
 | Redis 挂了是不是全挂？ | 不会。结果和短码缓存读取失败会回源 MySQL，写缓存失败只记录 warn，不阻断用户核心链路。 |
 | UV 准不准？ | 匿名项目只能做到相对可信：优先 clientId hash，缺失时用 IP/User-Agent 兜底；它适合运营观察，不等同登录用户数。 |
 

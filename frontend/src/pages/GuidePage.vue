@@ -21,7 +21,43 @@
         <div class="actions">
           <RouterLink class="button-link primary-cta" to="/test" @click="start">开始测试</RouterLink>
           <a class="button-link secondary" href="#preview">先看样例</a>
+          <button
+            type="button"
+            class="secondary clipboard-check-button"
+            :disabled="clipboardChecking"
+            @click="detectClipboardShortCode(true)"
+          >
+            {{ clipboardChecking ? '检测中' : '检测剪贴板短码' }}
+          </button>
         </div>
+        <p v-if="clipboardMessage" class="clipboard-message">{{ clipboardMessage }}</p>
+        <form class="manual-match-entry" aria-label="手动输入匹配短码" @submit.prevent="lookupManualShortCode">
+          <input
+            v-model="manualShortCode"
+            data-testid="manual-match-code"
+            maxlength="7"
+            inputmode="text"
+            autocomplete="off"
+            placeholder="已有短码"
+            aria-label="已有匹配短码"
+          >
+          <button type="submit" :disabled="manualChecking">
+            {{ manualChecking ? '识别中' : '匹配' }}
+          </button>
+        </form>
+        <section v-if="matchCandidate" class="match-invite" aria-label="双人匹配邀请">
+          <div>
+            <p class="match-kicker">检测到匹配短码</p>
+            <h2>要和这张人格卡做双人匹配吗？</h2>
+            <p>
+              短码 {{ matchCandidate.shortCode }} · {{ matchCandidate.displayName }}
+            </p>
+          </div>
+          <div class="match-actions">
+            <button type="button" @click="startMatch">开始双人匹配</button>
+            <button type="button" class="secondary" @click="dismissMatch">暂时不用</button>
+          </div>
+        </section>
         <p class="notice">
           本结果为传统文化元素启发下的娱乐性人格解读，不构成现实决策建议。
         </p>
@@ -57,13 +93,140 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { fetchMatchCandidate } from '../api/matches';
+import type { MatchCandidate } from '../api/types';
 import { track } from '../utils/tracker';
 
-onMounted(() => track('PAGE_VIEW_HOME', '/'));
+const router = useRouter();
+const matchCandidate = ref<MatchCandidate | null>(null);
+const clipboardChecking = ref(false);
+const manualChecking = ref(false);
+const matchDismissed = ref(false);
+const clipboardMessage = ref('');
+const manualShortCode = ref('');
+const shortCodePattern = /^[0-9a-zA-Z]{6,7}$/;
+
+onMounted(() => {
+  track('PAGE_VIEW_HOME', '/');
+  void detectClipboardShortCode();
+});
 
 function start() {
   track('START_TEST_CLICK', '/');
+}
+
+async function detectClipboardShortCode(manual = false) {
+  if (manual) {
+    clipboardMessage.value = '';
+  }
+  if (!manual && new URLSearchParams(window.location.search).has('skipClipboardAuto')) {
+    return;
+  }
+  if (!manual && navigator.webdriver) {
+    return;
+  }
+  if (clipboardChecking.value || !navigator.clipboard?.readText) {
+    if (manual) {
+      clipboardMessage.value = '当前浏览器暂时不能读取剪贴板';
+    }
+    return;
+  }
+  if (!manual && !(await canAutoReadClipboard())) {
+    return;
+  }
+  clipboardChecking.value = true;
+  try {
+    const text = await navigator.clipboard.readText();
+    const shortCode = normalizeClipboardShortCode(text);
+    if (!shortCode) {
+      if (manual) {
+        clipboardMessage.value = '剪贴板里没有 6-7 位纯短码';
+      }
+      return;
+    }
+    await loadMatchCandidate(shortCode, 'MATCH_CLIPBOARD_DETECTED');
+  } catch {
+    matchCandidate.value = null;
+    if (manual) {
+      clipboardMessage.value = '没有识别到可用短码';
+    }
+  } finally {
+    clipboardChecking.value = false;
+  }
+}
+
+async function canAutoReadClipboard() {
+  try {
+    if (!navigator.permissions?.query) {
+      return false;
+    }
+    const permission = await navigator.permissions.query({ name: 'clipboard-read' as PermissionName });
+    return permission.state === 'granted';
+  } catch {
+    return false;
+  }
+}
+
+function normalizeClipboardShortCode(value: string) {
+  const trimmed = value.trim();
+  return shortCodePattern.test(trimmed) ? trimmed : null;
+}
+
+async function lookupManualShortCode() {
+  if (manualChecking.value) {
+    return;
+  }
+  clipboardMessage.value = '';
+  const shortCode = normalizeClipboardShortCode(manualShortCode.value);
+  if (!shortCode) {
+    clipboardMessage.value = '请输入 6-7 位纯短码';
+    return;
+  }
+  manualChecking.value = true;
+  try {
+    await loadMatchCandidate(shortCode, 'MATCH_CLIPBOARD_DETECTED');
+  } catch {
+    clipboardMessage.value = '没有识别到可用短码';
+  } finally {
+    manualChecking.value = false;
+  }
+}
+
+async function loadMatchCandidate(shortCode: string, eventType: string) {
+  const candidate = await fetchMatchCandidate(shortCode);
+  if (matchDismissed.value) {
+    return;
+  }
+  matchCandidate.value = candidate;
+  manualShortCode.value = candidate.shortCode;
+  clipboardMessage.value = '';
+  track(eventType, '/', candidate.resultId, candidate.shortCode);
+}
+
+function startMatch() {
+  if (!matchCandidate.value) {
+    return;
+  }
+  const candidate = matchCandidate.value;
+  track('MATCH_MODE_ACCEPT', '/', candidate.resultId, candidate.shortCode);
+  void router.push({
+    path: '/test',
+    query: {
+      matchCode: candidate.shortCode,
+      channel: 'match',
+      campaign: 'clipboard-short-code',
+    },
+  });
+}
+
+function dismissMatch() {
+  if (matchCandidate.value) {
+    track('MATCH_MODE_DISMISS', '/', matchCandidate.value.resultId, matchCandidate.value.shortCode);
+  }
+  matchDismissed.value = true;
+  matchCandidate.value = null;
 }
 </script>
 
@@ -128,6 +291,87 @@ function start() {
 
 .primary-cta {
   min-width: 148px;
+}
+
+.clipboard-check-button {
+  min-width: 148px;
+}
+
+.clipboard-message {
+  max-width: 620px;
+  margin: -2px 0 0;
+  color: #697674;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.manual-match-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 180px) auto;
+  gap: 8px;
+  max-width: 350px;
+}
+
+.manual-match-entry input {
+  min-height: 44px;
+  border: 1px solid rgba(36, 48, 47, 0.14);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.88);
+  color: #24302f;
+  font: inherit;
+  font-weight: 850;
+}
+
+.manual-match-entry button {
+  min-width: 82px;
+}
+
+.match-invite {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  max-width: 620px;
+  border: 1px solid rgba(47, 111, 94, 0.2);
+  border-radius: 8px;
+  padding: 14px;
+  background:
+    linear-gradient(135deg, rgba(237, 247, 242, 0.96), rgba(255, 249, 238, 0.94));
+  box-shadow: 0 12px 28px rgba(31, 48, 43, 0.08);
+}
+
+.match-invite h2,
+.match-invite p {
+  margin: 0;
+}
+
+.match-invite h2 {
+  margin-top: 4px;
+  font-size: 20px;
+}
+
+.match-invite p:not(.match-kicker) {
+  margin-top: 6px;
+  color: #50615f;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.match-kicker {
+  color: #2f6f5e;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.match-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.match-actions button {
+  min-height: 42px;
+  white-space: nowrap;
 }
 
 .hero-preview {
@@ -258,6 +502,20 @@ function start() {
 
   .persona-preview-line {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .match-invite {
+    grid-template-columns: 1fr;
+  }
+
+  .match-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .manual-match-entry {
+    grid-template-columns: 1fr auto;
+    max-width: none;
   }
 
   .preview-card {

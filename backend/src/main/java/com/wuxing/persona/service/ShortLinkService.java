@@ -5,6 +5,7 @@ import com.wuxing.persona.entity.ShortLinkEntity;
 import com.wuxing.persona.enums.ShortLinkMode;
 import com.wuxing.persona.service.shortlink.ExternalShortLinkProvider;
 import com.wuxing.persona.service.shortlink.InternalShortLinkProvider;
+import com.wuxing.persona.service.shortlink.ShortLinkCodeUtils;
 import com.wuxing.persona.service.shortlink.ShortLinkProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
@@ -37,6 +38,7 @@ public class ShortLinkService {
     }
 
     public ShortLinkEntity getByShortCode(String shortCode) {
+        ShortLinkCodeUtils.validate(shortCode);
         return activeProvider().getByShortCode(shortCode);
     }
 

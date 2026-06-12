@@ -89,7 +89,68 @@ X-Campaign: <campaign>
 
 后端优先读取 Redis `result:{resultId}`，未命中再查 MySQL，并写入 `RESULT_VIEW` 事件。
 
-## 5. 短链接访问
+## 5. 双人五行匹配
+
+### 5.1 校验剪贴板候选短码
+
+```http
+GET /api/matches/candidates/{shortCode}
+```
+
+行为：
+
+- 只接受 Base62、长度 6 或 7 的纯短码。
+- 短码必须已经绑定一张有效结果卡。
+- 返回首页确认弹窗需要的轻量摘要：短码、resultId、显示名、主副五行、关键词和创建时间。
+
+### 5.2 创建我的结果并计算双人匹配
+
+```http
+POST /api/matches
+Content-Type: application/json
+X-Client-Id: <client-id>
+X-Session-Id: <session-id>
+```
+
+请求体：
+
+```json
+{
+  "partnerShortCode": "1cgeMu",
+  "birthYear": 2005,
+  "birthMonth": 3,
+  "birthDay": null,
+  "birthTimeRange": null,
+  "answers": [
+    {"questionCode": "Q1", "optionCode": "WOOD"},
+    {"questionCode": "Q2", "optionCode": "FIRE"},
+    {"questionCode": "Q3", "optionCode": "WOOD"},
+    {"questionCode": "Q4", "optionCode": "EARTH"},
+    {"questionCode": "Q5", "optionCode": "WATER"}
+  ]
+}
+```
+
+返回：
+
+- `partnerResult`：剪贴板短码对应的人格卡。
+- `currentResult`：当前用户刚创建的人格卡。
+- `partnerShortCode` / `currentShortCode`：匹配结果页可刷新访问所需的两个短码。
+- `compatibilityScore`、`relationLabel`、`headline`、`summary`、`strengths`、`suggestions`。
+
+### 5.3 通过两个短码查询匹配结果
+
+```http
+GET /api/matches/{partnerShortCode}/{currentShortCode}
+```
+
+行为：
+
+- 两个短码都必须有效且不能相同。
+- 不新增匹配表，实时读取两张结果卡并计算匹配结果。
+- 匹配文案仅用于娱乐和自我观察，不输出决定论关系判断。
+
+## 6. 短链接访问
 
 ```http
 GET /s/{shortCode}?channel=share&campaign=result-card
@@ -103,9 +164,9 @@ GET /s/{shortCode}?channel=share&campaign=result-card
 - Redis 未命中查 `short_link`。
 - 有效短码 302 到 `/result/{resultId}?sc={shortCode}`。
 - 如果访问短链时带 `channel` / `campaign` / `utm_source` / `utm_campaign`，会写入访问事件，并继续透传到结果页 query。
-- 无效短码写入 Redis 空值缓存 `shortlink:null:{shortCode}` 并返回 404。
+- 无效短码写入 Redis 空值缓存 `shortlink:null:{shortCode}` 并跳转 `/not-found`。
 
-## 6. 记录前端事件
+## 7. 记录前端事件
 
 ```http
 POST /api/events
@@ -148,6 +209,10 @@ NATIVE_SHARE_SUCCESS
 SHARE_PANEL_VIEW
 SHARED_RESULT_CTA_CLICK
 RETAKE_TEST_CLICK
+MATCH_CLIPBOARD_DETECTED
+MATCH_MODE_ACCEPT
+MATCH_MODE_DISMISS
+MATCH_RESULT_VIEW
 SHORT_LINK_VISIT
 ```
 
@@ -159,7 +224,7 @@ v2.1 归因规则：
 - 后端会根据 User-Agent 自动写入 `device_type`。
 - v2.2 起，后台趋势会返回 `metricSource` 和 `aggregatedThroughDate`，用于说明日趋势来自实时事件还是日聚合表。
 
-## 7. 管理后台总览
+## 8. 管理后台总览
 
 ```http
 GET /api/admin/overview
@@ -186,7 +251,7 @@ X-Admin-Token: <admin-token>
 - 最近结果
 - 最近短链
 
-## 8. 短链接列表
+## 9. 短链接列表
 
 ```http
 GET /api/admin/short-links?page=1&pageSize=20
@@ -198,7 +263,7 @@ X-Admin-Token: <admin-token>
 - `statSource`：`local` 表示五行项目本地统计，`external` 表示独立短链服务统计。
 - `metricSource`：`live_event` 表示实时访问事件聚合，`daily_metric` 表示日聚合表，`external` 表示外部短链统计。
 
-## 9. 短链接访问日志
+## 10. 短链接访问日志
 
 ```http
 GET /api/admin/short-links/{shortCode}/visits?page=1&pageSize=20
@@ -207,7 +272,7 @@ X-Admin-Token: <admin-token>
 
 返回单条短链访问日志，只展示 hash 后的匿名标识。
 
-## 10. 访问事件异步队列状态
+## 11. 访问事件异步队列状态
 
 ```http
 GET /api/admin/visit-events/runtime
@@ -236,7 +301,7 @@ X-Admin-Token: <admin-token>
 
 用于性能 smoke 和后台排查：确认短链访问事件队列是否积压、后台 writer 是否存活、是否持续排水，以及低延迟是否以丢弃过多低价值事件或批量写失败为代价。
 
-## 11. 手动刷新增长聚合
+## 12. 手动刷新增长聚合
 
 ```http
 POST /api/admin/analytics/aggregate?startDate=2026-06-10&endDate=2026-06-10

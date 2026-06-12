@@ -159,7 +159,7 @@ function sharedLandingStart() {
           <div v-if="!sharedEntry" class="result-quick-actions" aria-label="结果分享快捷操作">
             <div>
               <strong>这张卡已经可以分享</strong>
-              <span>保存图适合发朋友圈，下面的分享链接适合私聊发给朋友。</span>
+              <span>短码适合发起双人匹配，分享链接适合让朋友直接打开这张卡。</span>
             </div>
             <button type="button" @click="downloadShareImage">保存分享图</button>
           </div>
@@ -210,7 +210,7 @@ function sharedLandingStart() {
           <div>
             <strong>{{ sharedEntry ? '想看看自己的五行卡？' : '分享链接已经准备好' }}</strong>
             <span>
-              {{ sharedEntry ? '读完朋友的卡，也可以用出生年月和 5 道题生成一张自己的。' : '复制链接适合私聊，保存图适合朋友圈；想重测也可以从这里开始。' }}
+              {{ sharedEntry ? '读完朋友的卡，也可以用出生年月和 5 道题生成一张自己的。' : '复制短码可以邀请朋友做双人匹配；想重测也可以从这里开始。' }}
             </span>
           </div>
           <RouterLink

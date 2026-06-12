@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { fetchQuestions } from '../api/questions';
+import { createMatch } from '../api/matches';
 import { createResult } from '../api/results';
 import type { Question } from '../api/types';
 import QuestionCard from '../components/QuestionCard.vue';
 import { track } from '../utils/tracker';
 
 const router = useRouter();
+const route = useRoute();
 const questions = ref<Question[]>([]);
 const activeStepIndex = ref(0);
 const loading = ref(true);
@@ -19,6 +21,8 @@ const currentYear = today.getFullYear();
 const currentMonth = today.getMonth() + 1;
 const minBirthYear = 1900;
 const defaultBirthYear = Math.min(currentYear, 2002);
+const shortCodePattern = /^[0-9a-zA-Z]{6,7}$/;
+const matchPartnerShortCode = ref(normalizeMatchShortCode(route.query.matchCode));
 
 const form = reactive<{
   birthYear: number | null;
@@ -85,6 +89,7 @@ const displayQuestions = computed<Question[]>(() => questions.value.map((questio
   options: [...question.options].sort((left, right) => optionRank(question.questionCode, left.optionCode) - optionRank(question.questionCode, right.optionCode)),
 })));
 const isBirthStep = computed(() => activeStepIndex.value === 0);
+const matchMode = computed(() => Boolean(matchPartnerShortCode.value));
 const canGoPrevious = computed(() => activeStepIndex.value > 0 && !submitting.value);
 const activeQuestionIndex = computed(() => Math.max(0, activeStepIndex.value - 1));
 const activeQuestion = computed(() => displayQuestions.value[activeQuestionIndex.value]);
@@ -95,12 +100,15 @@ const activeQuestionAnswered = computed(() => {
 const isLastQuestion = computed(() => activeStepIndex.value === questions.value.length);
 const primaryActionText = computed(() => {
   if (submitting.value) {
-    return '生成中...';
+    return matchMode.value ? '生成匹配中...' : '生成中...';
   }
   if (isBirthStep.value) {
     return birthInfoComplete.value ? '进入第 1 题' : '选择月份后继续';
   }
-  return isLastQuestion.value ? '生成我的人格卡' : '下一题';
+  if (isLastQuestion.value) {
+    return matchMode.value ? '生成双人匹配' : '生成我的人格卡';
+  }
+  return '下一题';
 });
 const primaryActionDisabled = computed(() => {
   if (submitting.value || loading.value) {
@@ -119,13 +127,16 @@ const stepCaption = computed(() => {
 });
 const actionSummaryText = computed(() => {
   if (isBirthStep.value) {
-    return birthInfoComplete.value ? '可以进入问答卡片' : '只需要选年份和月份';
+    if (!birthInfoComplete.value) {
+      return '只需要选年份和月份';
+    }
+    return matchMode.value ? '完成后直接进入双人匹配结果' : '可以进入问答卡片';
   }
   if (!activeQuestionAnswered.value) {
     return '按第一反应选择一个答案';
   }
   if (isLastQuestion.value) {
-    return '确认无误后生成卡片';
+    return matchMode.value ? '确认无误后生成匹配结果' : '确认无误后生成卡片';
   }
   return '已选择，可以改选或进入下一题';
 });
@@ -160,13 +171,22 @@ async function submit() {
   }
   submitting.value = true;
   try {
-    const result = await createResult({
+    const payload = {
       birthYear: form.birthYear,
       birthMonth: form.birthMonth,
       birthDay: form.birthDay,
       birthTimeRange: form.birthTimeRange,
       answers,
-    });
+    };
+    if (matchPartnerShortCode.value) {
+      const match = await createMatch({
+        ...payload,
+        partnerShortCode: matchPartnerShortCode.value,
+      });
+      await router.push(`/match/${encodeURIComponent(match.partnerShortCode)}/${encodeURIComponent(match.currentShortCode)}`);
+      return;
+    }
+    const result = await createResult(payload);
     await router.push(`/result/${result.resultId}`);
   } catch (err) {
     error.value = err instanceof Error ? err.message : '提交失败，请稍后再试';
@@ -181,6 +201,15 @@ function markFormStart() {
   }
   formStarted.value = true;
   track('TEST_FORM_START', '/test');
+}
+
+function normalizeMatchShortCode(value: unknown) {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  if (typeof rawValue !== 'string') {
+    return null;
+  }
+  const trimmed = rawValue.trim();
+  return shortCodePattern.test(trimmed) ? trimmed : null;
 }
 
 function selectAnswer(questionCode: string, optionCode: string) {
@@ -404,6 +433,14 @@ function goToStep(index: number) {
                 <span>{{ birthInfoComplete ? '已完成' : '待选择' }}</span>
                 <strong>{{ form.birthYear ?? '年份' }} / {{ form.birthMonth ? form.birthMonth + '月' : '月份' }}</strong>
               </div>
+            </div>
+
+            <div v-if="matchMode" class="match-mode-banner" data-testid="match-mode-banner">
+              <div>
+                <span>双人匹配模式</span>
+                <strong>正在和短码 {{ matchPartnerShortCode }} 做五行匹配</strong>
+              </div>
+              <p>完成测评后会直接进入双人匹配结果页，不再停留在单人人格卡。</p>
             </div>
 
             <div class="input-stack">
@@ -737,6 +774,42 @@ function goToStep(index: number) {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 16px;
   align-items: start;
+}
+
+.match-mode-banner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid rgba(47, 111, 94, 0.2);
+  border-radius: 8px;
+  padding: 13px 14px;
+  background:
+    linear-gradient(135deg, rgba(237, 247, 242, 0.96), rgba(255, 249, 238, 0.9));
+  color: #24302f;
+}
+
+.match-mode-banner span,
+.match-mode-banner strong {
+  display: block;
+}
+
+.match-mode-banner span {
+  color: #2f6f5e;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.match-mode-banner strong {
+  margin-top: 4px;
+  font-size: 15px;
+}
+
+.match-mode-banner p {
+  margin: 0;
+  color: #596764;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .section-kicker {
@@ -1156,6 +1229,10 @@ function goToStep(index: number) {
   }
 
   .birth-panel-head {
+    grid-template-columns: 1fr;
+  }
+
+  .match-mode-banner {
     grid-template-columns: 1fr;
   }
 

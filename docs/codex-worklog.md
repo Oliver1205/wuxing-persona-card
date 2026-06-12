@@ -470,3 +470,11 @@ multi-role review support. The main outcomes are:
 - Backend change: `ElementCalculateService` now rejects future birth months, future birth dates, and impossible calendar dates such as non-leap-year February 29.
 - Frontend change: `TestPage.vue` now derives available days from the selected year/month and disables future months when the selected year is the current year.
 - Test value: focused service and integration tests cover impossible birth dates, while the frontend production build verifies the tightened Vue state flow.
+
+### Phase 68
+
+- Product priority: move from one-person result sharing into a short-code-triggered two-person matching loop.
+- Self-audit change: added `docs/dual-match-self-audit.md` to record why the first version uses pure clipboard short codes, backend-computed matches, refreshable match routes, and no new match table.
+- Backend change: added `/api/matches/candidates/{shortCode}`, `POST /api/matches`, and `/api/matches/{partnerShortCode}/{currentShortCode}` around `MatchService`.
+- Frontend change: homepage detects valid clipboard short codes, asks whether to start matching, test submission routes to `/match/{partnerShortCode}/{currentShortCode}`, and result sharing now prioritizes copying the match short code.
+- Learning value: the interview manual now includes the dual-match sequence diagram, code-reading task card, and answer for why matching is computed from two short codes instead of immediately persisted.
