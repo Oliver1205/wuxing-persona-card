@@ -10,6 +10,8 @@
 
 如果服务器无法从 GitHub 拉取代码，可以先在本地推送到 `origin/main`，再用压缩包或单文件上传方式同步；不要因为服务器 GitHub 网络抖动误判为应用故障。
 
+执行前先确认 `docs/domain-launch-info-template.md` 中的主域名、服务器公网 IP、SSH、DNS、备案/接入备案和 HTTPS 方案已经补齐。真实 token、数据库密码和证书私钥不要写入 Git。
+
 ## 1. 上线拓扑
 
 推荐拓扑：

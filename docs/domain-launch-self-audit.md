@@ -86,6 +86,8 @@ scripts/performance-smoke-test.sh
 | HTTPS 证书方案 | 决定使用云证书、Certbot，还是先临时 HTTP |
 | 真实 `ADMIN_TOKEN` 是否由用户保管 | 防止 token 出现在文档、提交和日志里 |
 
+可直接填写 `docs/domain-launch-info-template.md`，等信息齐备后再进入 `docs/domain-server-runbook.md` 的服务器执行阶段。
+
 ## 7. 面试讲法
 
 > 我没有直接把本地 Docker Compose 暴露到公网就算上线，而是先做了域名上线前自审：确认主域名、APP_BASE_URL、DNS、安全组、HTTPS、后台 token、短链模式和 smoke 证据。首次真实域名上线我会先保持 internal 短链，减少跨系统变量；等主域名和 HTTPS 稳定，再扩展到独立短链子域名和 external 服务。

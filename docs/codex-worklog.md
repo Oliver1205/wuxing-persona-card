@@ -457,3 +457,9 @@ multi-role review support. The main outcomes are:
 - Deploy change: added `deploy/host-nginx-domain-tls.example.conf`, a host-level Nginx TLS template that forwards public `80/443` traffic to the Compose nginx on `127.0.0.1:8088`.
 - Documentation change: added `docs/domain-server-runbook.md` with DNS, security group, `.env`, Compose, Certbot, smoke, performance smoke, browser verification, and rollback steps.
 - Learning value: the interview manual now explains the split between DNS, host Nginx/TLS, container Nginx, `APP_BASE_URL`, production smoke, and performance smoke.
+
+### Phase 66
+
+- Workflow boundary: after completing real-domain prework, stop and wait for the user's external domain/DNS/SSH/certificate information instead of guessing or continuing business changes.
+- Documentation change: added `docs/domain-launch-info-template.md`, a fill-in checklist for main domain, server IP, SSH, DNS provider, ICP/access status, HTTPS plan, shortlink subdomain decision, and sensitive secret handling.
+- Handoff value: README, the five-hour workflow, the self-audit, the server runbook, and the interview learning manual now all point to the same pre-domain information template before server execution.
