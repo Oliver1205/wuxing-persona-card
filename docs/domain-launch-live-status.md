@@ -14,7 +14,7 @@
 | 服务器 SSH | `ubuntu@82.157.137.36` |
 | 服务器仓库路径 | `/opt/wuxing-persona-card` |
 | DNS 服务商 | 腾讯云 / DNSPod |
-| DNS A 记录 | 当前仍待添加或等待生效：`@` 和 `www` 需要指向 `82.157.137.36` |
+| DNS A 记录 | `@` 和 `www` 已指向 `82.157.137.36`，本地预检通过 |
 | HTTPS 方案 | 首发建议 Certbot |
 | 短链子域名 | 首发暂不启用，保持 `SHORT_LINK_MODE=internal` |
 | 密钥/密码生成 | 用户允许 Codex 在服务器本地生成 |
@@ -22,13 +22,16 @@
 
 ## 2. 当前状态
 
-- 域名 `wuxingcard.cn` 已注册成功，等待 DNS A 记录添加或在公网完全生效。
+- 域名 `wuxingcard.cn` 已注册成功，DNS A 记录已生效。
 - `wuxingcard.cn` 的 NS 已能查到 DNSPod：`brandy.dnspod.net`、`seventy.dnspod.net`。
 - `http://82.157.137.36` 已能从公网访问，首页返回 `HTTP/1.1 200 OK`。
 - 服务器已通过临时 SSH 公钥登录，代码已快进到 `9060df7`。
 - 服务器 `deploy/.env` 已切换为 `APP_BASE_URL=http://wuxingcard.cn`、`SHORT_LINK_MODE=internal`、`NGINX_HTTP_PORT=80`。
 - Docker Compose 已使用最新代码重建并启动，`scripts/production-smoke-test.sh` 在服务器本机通过，样例 `resultId=R20260612033152184633`、`shortCode=IEUReb`。
-- 当前本地和服务器侧仍无法解析 `wuxingcard.cn`，访问域名报 `Could not resolve host`，说明主要阻塞点是 DNS A 记录。
+- `DOMAIN=wuxingcard.cn EXPECTED_IP=82.157.137.36 scripts/domain-dns-readiness.sh` 已通过。
+- `ALLOW_HTTP=true DOMAIN=wuxingcard.cn BASE_URL=http://wuxingcard.cn scripts/domain-bind-preflight.sh` 已通过。
+- `ALLOW_HTTP=true DOMAIN=www.wuxingcard.cn BASE_URL=http://www.wuxingcard.cn scripts/domain-bind-preflight.sh` 已通过。
+- 真实域名 production smoke 已通过，样例 `resultId=R20260612034943137920`、`shortCode=yEWIdP`。
 - 仓库内前置准备已完成：域名自审、信息清单、宿主机 Nginx/TLS 模板、服务器 runbook 和学习手册均已落盘。
 
 ## 3. 等待 DNS 生效时的检查命令
