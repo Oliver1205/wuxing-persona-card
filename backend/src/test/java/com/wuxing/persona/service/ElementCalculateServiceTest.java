@@ -7,6 +7,7 @@ import com.wuxing.persona.common.BusinessException;
 import com.wuxing.persona.dto.AnswerRequest;
 import com.wuxing.persona.dto.CreateResultRequest;
 import com.wuxing.persona.enums.ElementType;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,41 @@ class ElementCalculateServiceTest {
         BusinessException exception = assertThrows(BusinessException.class, () -> service.calculate(request));
 
         assertEquals("birthTimeRange must be a valid value", exception.getMessage());
+    }
+
+    @Test
+    void calculateShouldRejectImpossibleBirthDate() {
+        CreateResultRequest request = requestWithAnswers("WOOD");
+        request.setBirthYear(2001);
+        request.setBirthMonth(2);
+        request.setBirthDay(29);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.calculate(request));
+
+        assertEquals("birthDate must be a real calendar date", exception.getMessage());
+    }
+
+    @Test
+    void calculateShouldRejectFutureBirthPeriod() {
+        LocalDate today = LocalDate.now();
+        CreateResultRequest request = requestWithAnswers("WOOD");
+        request.setBirthDay(null);
+        if (today.getMonthValue() < 12) {
+            request.setBirthYear(today.getYear());
+            request.setBirthMonth(today.getMonthValue() + 1);
+
+            BusinessException exception = assertThrows(BusinessException.class, () -> service.calculate(request));
+
+            assertEquals("birthMonth must not be in the future", exception.getMessage());
+            return;
+        }
+
+        request.setBirthYear(today.getYear() + 1);
+        request.setBirthMonth(1);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.calculate(request));
+
+        assertEquals("birthYear must not be greater than current year", exception.getMessage());
     }
 
     private CreateResultRequest requestWithAnswers(String optionCode) {

@@ -396,6 +396,28 @@ class MvpFlowIntegrationTest {
     }
 
     @Test
+    void shouldRejectImpossibleBirthDate() throws Exception {
+        mockMvc.perform(post("/api/results")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "birthYear": 2001,
+                                  "birthMonth": 2,
+                                  "birthDay": 29,
+                                  "answers": [
+                                    {"questionCode":"Q1","optionCode":"METAL"},
+                                    {"questionCode":"Q2","optionCode":"WATER"},
+                                    {"questionCode":"Q3","optionCode":"METAL"},
+                                    {"questionCode":"Q4","optionCode":"EARTH"},
+                                    {"questionCode":"Q5","optionCode":"FIRE"}
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("birthDate must be a real calendar date"));
+    }
+
+    @Test
     void shouldRejectInvalidEventType() throws Exception {
         mockMvc.perform(post("/api/events")
                         .header("X-Client-Id", "client-a")

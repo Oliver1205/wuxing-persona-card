@@ -5,7 +5,8 @@ import com.wuxing.persona.dto.AnswerRequest;
 import com.wuxing.persona.dto.CreateResultRequest;
 import com.wuxing.persona.enums.BirthTimeRange;
 import com.wuxing.persona.enums.ElementType;
-import java.time.Year;
+import java.time.DateTimeException;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
@@ -62,9 +63,28 @@ public class ElementCalculateService {
     }
 
     private void validateBirth(CreateResultRequest request) {
-        int currentYear = Year.now().getValue();
-        if (request.getBirthYear() > currentYear) {
+        LocalDate today = LocalDate.now();
+        int birthYear = request.getBirthYear();
+        int birthMonth = request.getBirthMonth();
+        Integer birthDay = request.getBirthDay();
+
+        if (birthYear > today.getYear()) {
             throw new BusinessException("birthYear must not be greater than current year");
+        }
+        if (birthYear == today.getYear() && birthMonth > today.getMonthValue()) {
+            throw new BusinessException("birthMonth must not be in the future");
+        }
+        if (birthDay == null) {
+            return;
+        }
+        LocalDate birthDate;
+        try {
+            birthDate = LocalDate.of(birthYear, birthMonth, birthDay);
+        } catch (DateTimeException ex) {
+            throw new BusinessException("birthDate must be a real calendar date");
+        }
+        if (birthDate.isAfter(today)) {
+            throw new BusinessException("birthDate must not be in the future");
         }
     }
 

@@ -412,6 +412,7 @@ sequenceDiagram
 | 任务 | 精确文件 | 验证命令 | 面试必须能说出的句子 |
 | --- | --- | --- | --- |
 | 移动端问答体验 | `frontend/src/pages/TestPage.vue` | `npm --prefix frontend run build` | 测试页从长表单变成逐题卡片流，默认出生年份也算有效选择，选中答案后由用户手动进入下一题，降低误触焦虑。 |
+| 输入契约守门 | `frontend/src/pages/TestPage.vue`、`backend/src/main/java/com/wuxing/persona/service/ElementCalculateService.java` | `mvn -q -f backend/pom.xml -Dtest=ElementCalculateServiceTest,MvpFlowIntegrationTest test` | 前端会按年份和月份动态收窄日期选择，例如 2 月不显示 31 日；但最终安全边界在后端，服务层会拒绝未来月份、未来日期和不存在的日历日期。 |
 | 结果页分享闭环 | `frontend/src/pages/ResultPage.vue` | `E2E_BASE_URL=http://127.0.0.1:5174 E2E_ADMIN_TOKEN=dev-token scripts/mobile-e2e.sh` | 结果页不只展示文案，还承担保存分享图、复制分享链接、系统分享、朋友回流和二次测试入口。 |
 | 创建结果链路 | `backend/src/main/java/com/wuxing/persona/service/ResultService.java` | `mvn -q -f backend/pom.xml -Dtest=MvpFlowIntegrationTest test` | 创建结果是强业务链路，结果、短链和关键事件要一起形成可恢复的业务证据。 |
 | 短链门面和适配 | `backend/src/main/java/com/wuxing/persona/service/ShortLinkService.java` | `mvn -q -f backend/pom.xml -Dtest=ExternalShortLinkProviderTest,InternalShortLinkProviderTest test` | Provider 让结果生成不用关心短链来自 internal 还是 external，外部失败时可以降级。 |

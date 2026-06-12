@@ -463,3 +463,10 @@ multi-role review support. The main outcomes are:
 - Workflow boundary: after completing real-domain prework, stop and wait for the user's external domain/DNS/SSH/certificate information instead of guessing or continuing business changes.
 - Documentation change: added `docs/domain-launch-info-template.md`, a fill-in checklist for main domain, server IP, SSH, DNS provider, ICP/access status, HTTPS plan, shortlink subdomain decision, and sensitive secret handling.
 - Handoff value: README, the five-hour workflow, the self-audit, the server runbook, and the interview learning manual now all point to the same pre-domain information template before server execution.
+
+### Phase 67
+
+- Architecture priority: use the domain-audit waiting period to tighten the public input contract instead of adding unrelated features.
+- Backend change: `ElementCalculateService` now rejects future birth months, future birth dates, and impossible calendar dates such as non-leap-year February 29.
+- Frontend change: `TestPage.vue` now derives available days from the selected year/month and disables future months when the selected year is the current year.
+- Test value: focused service and integration tests cover impossible birth dates, while the frontend production build verifies the tightened Vue state flow.

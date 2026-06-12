@@ -14,7 +14,9 @@ const loading = ref(true);
 const submitting = ref(false);
 const error = ref('');
 const formStarted = ref(false);
-const currentYear = new Date().getFullYear();
+const today = new Date();
+const currentYear = today.getFullYear();
+const currentMonth = today.getMonth() + 1;
 const minBirthYear = 1900;
 const defaultBirthYear = Math.min(currentYear, 2002);
 
@@ -51,7 +53,13 @@ const monthHints = [
   '澄夜洞察',
   '雪川包容',
 ];
-const days = Array.from({ length: 31 }, (_, index) => index + 1);
+const maxBirthDay = computed(() => {
+  if (!form.birthYear || !form.birthMonth) {
+    return 31;
+  }
+  return new Date(form.birthYear, form.birthMonth, 0).getDate();
+});
+const days = computed(() => Array.from({ length: maxBirthDay.value }, (_, index) => index + 1));
 const timeOptions: Array<{ value: string | null; label: string; hint: string }> = [
   { value: null, label: '不透露', hint: '保持神秘' },
   { value: 'MORNING', label: '上午', hint: '清新生长' },
@@ -62,6 +70,7 @@ const timeOptions: Array<{ value: string | null; label: string; hint: string }> 
   { value: 'UNKNOWN', label: '不确定', hint: '随缘即可' },
 ];
 const answeredCount = computed(() => questions.value.filter((question) => form.answers[question.questionCode]).length);
+const birthYearInputValue = ref(String(defaultBirthYear));
 const birthInfoComplete = computed(() => Boolean(form.birthYear && form.birthMonth));
 const totalProgressUnits = computed(() => questions.value.length + 1);
 const completedProgressUnits = computed(() => answeredCount.value + (birthInfoComplete.value ? 1 : 0));
@@ -187,6 +196,8 @@ function selectBirthYear(year: number) {
   const normalizedYear = clampBirthYear(year);
   yearDraft.value = normalizedYear;
   form.birthYear = normalizedYear;
+  birthYearInputValue.value = String(normalizedYear);
+  normalizeBirthMonthAndDay();
   markFormStart();
 }
 
@@ -195,19 +206,42 @@ function updateBirthYear(event: Event) {
   selectBirthYear(Number(target.value));
 }
 
-function updateBirthYearManual(event: Event) {
+function updateBirthYearDraft(event: Event) {
   const target = event.target as HTMLInputElement;
   const rawValue = target.value.trim();
+  birthYearInputValue.value = rawValue;
   if (!rawValue) {
     form.birthYear = null;
+    form.birthDay = null;
     return;
   }
   const year = Number(rawValue);
   if (!Number.isFinite(year)) {
     return;
   }
+  if (rawValue.length >= 4) {
+    selectBirthYear(year);
+    target.value = birthYearInputValue.value;
+  }
+}
+
+function commitBirthYearManual(event: Event) {
+  const target = event.target as HTMLInputElement;
+  const rawValue = target.value.trim();
+  if (!rawValue) {
+    birthYearInputValue.value = '';
+    form.birthYear = null;
+    form.birthDay = null;
+    return;
+  }
+  const year = Number(rawValue);
+  if (!Number.isFinite(year)) {
+    birthYearInputValue.value = form.birthYear ? String(form.birthYear) : '';
+    target.value = birthYearInputValue.value;
+    return;
+  }
   selectBirthYear(year);
-  target.value = String(form.birthYear ?? '');
+  target.value = birthYearInputValue.value;
 }
 
 function adjustBirthYear(delta: number) {
@@ -219,13 +253,39 @@ function clampBirthYear(year: number) {
 }
 
 function selectBirthMonth(month: number) {
+  if (isBirthMonthDisabled(month)) {
+    return;
+  }
   form.birthMonth = month;
+  normalizeBirthDay();
   markFormStart();
 }
 
 function selectBirthDay(day: number | null) {
+  if (day !== null && day > maxBirthDay.value) {
+    return;
+  }
   form.birthDay = day;
   markFormStart();
+}
+
+function isBirthMonthDisabled(month: number) {
+  return form.birthYear === currentYear && month > currentMonth;
+}
+
+function normalizeBirthMonthAndDay() {
+  if (form.birthMonth && isBirthMonthDisabled(form.birthMonth)) {
+    form.birthMonth = null;
+    form.birthDay = null;
+    return;
+  }
+  normalizeBirthDay();
+}
+
+function normalizeBirthDay() {
+  if (form.birthDay && form.birthDay > maxBirthDay.value) {
+    form.birthDay = null;
+  }
 }
 
 function selectBirthTime(value: string | null) {
@@ -368,11 +428,12 @@ function goToStep(index: number) {
                       type="number"
                       :min="minBirthYear"
                       :max="currentYear"
-                      :value="form.birthYear ?? ''"
+                      :value="birthYearInputValue"
                       placeholder="输入年份"
                       aria-label="手动输入出生年份"
-                      @change="updateBirthYearManual"
-                      @blur="updateBirthYearManual"
+                      @input="updateBirthYearDraft"
+                      @change="commitBirthYearManual"
+                      @blur="commitBirthYearManual"
                     >
                     <button type="button" class="year-step-button" data-testid="birth-year-plus" @click="adjustBirthYear(1)">
                       +1
@@ -419,12 +480,13 @@ function goToStep(index: number) {
                     :key="month"
                     type="button"
                     class="choice-chip month-chip"
-                    :class="{ active: form.birthMonth === month }"
+                    :class="{ active: form.birthMonth === month, disabled: isBirthMonthDisabled(month) }"
                     :data-testid="'birth-month-' + month"
+                    :disabled="isBirthMonthDisabled(month)"
                     @click="selectBirthMonth(month)"
                   >
                     <strong>{{ month }} 月</strong>
-                    <span>{{ monthHints[month - 1] }}</span>
+                    <span>{{ isBirthMonthDisabled(month) ? '尚未到来' : monthHints[month - 1] }}</span>
                   </button>
                 </div>
               </section>
@@ -984,6 +1046,25 @@ function goToStep(index: number) {
 .choice-chip:hover,
 .time-chip:hover {
   transform: translateY(-1px);
+}
+
+.choice-chip:disabled,
+.choice-chip.disabled {
+  cursor: not-allowed;
+  border-color: rgba(36, 48, 47, 0.08);
+  background: rgba(239, 236, 228, 0.62);
+  color: #9aa39f;
+  box-shadow: none;
+}
+
+.choice-chip:disabled:hover,
+.choice-chip.disabled:hover {
+  transform: none;
+}
+
+.choice-chip:disabled span,
+.choice-chip.disabled span {
+  color: #a1aaa6;
 }
 
 .quick-chip.active,
