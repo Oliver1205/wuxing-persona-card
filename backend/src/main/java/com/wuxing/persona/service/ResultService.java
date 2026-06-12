@@ -17,13 +17,19 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ResultService {
 
+    private static final Logger log = LoggerFactory.getLogger(ResultService.class);
     private static final DateTimeFormatter RESULT_ID_TIME_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS");
+    private static final int RESULT_ID_RANDOM_BOUND = 1_000_000;
+    private static final int MAX_RESULT_ID_RETRY = 5;
 
     private final UserResultMapper userResultMapper;
     private final ObjectMapper objectMapper;
@@ -57,8 +63,39 @@ public class ResultService {
         ElementScoreResult scoreResult = elementCalculateService.calculate(request);
         StarOfficer starOfficer = starOfficerService.byMonth(request.getBirthMonth());
         ResultText resultText = resultTextService.build(scoreResult, starOfficer);
-        LocalDateTime now = LocalDateTime.now();
+        UserResultEntity entity = insertWithResultIdRetry(request, scoreResult, starOfficer, resultText);
 
+        ShortLinkEntity shortLink = shortLinkService.createForResult(entity.getResultId());
+        visitEventService.record(EventType.TEST_SUBMIT, "/test", entity.getResultId(), shortLink.getShortCode(), clientId, servletRequest);
+        visitEventService.record(EventType.RESULT_CREATED, "/result/" + entity.getResultId(), entity.getResultId(), shortLink.getShortCode(), clientId, servletRequest);
+        visitEventService.record(EventType.SHORT_LINK_CREATED, null, entity.getResultId(), shortLink.getShortCode(), clientId, servletRequest);
+
+        ResultDetailVO detail = toDetail(entity, shortLink);
+        redisCacheService.setResult(entity.getResultId(), detail);
+        return detail;
+    }
+
+    private UserResultEntity insertWithResultIdRetry(CreateResultRequest request,
+                                                     ElementScoreResult scoreResult,
+                                                     StarOfficer starOfficer,
+                                                     ResultText resultText) {
+        for (int attempt = 1; attempt <= MAX_RESULT_ID_RETRY; attempt++) {
+            UserResultEntity entity = buildEntity(request, scoreResult, starOfficer, resultText);
+            try {
+                userResultMapper.insert(entity);
+                return entity;
+            } catch (DuplicateKeyException ex) {
+                log.warn("Result id collision, retrying, resultId={}, attempt={}", entity.getResultId(), attempt);
+            }
+        }
+        throw new BusinessException("result id generation failed, please retry");
+    }
+
+    private UserResultEntity buildEntity(CreateResultRequest request,
+                                         ElementScoreResult scoreResult,
+                                         StarOfficer starOfficer,
+                                         ResultText resultText) {
+        LocalDateTime now = LocalDateTime.now();
         UserResultEntity entity = new UserResultEntity();
         entity.setResultId(generateResultId());
         entity.setBirthYear(request.getBirthYear());
@@ -81,16 +118,7 @@ public class ResultService {
         entity.setStatus(1);
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
-        userResultMapper.insert(entity);
-
-        ShortLinkEntity shortLink = shortLinkService.createForResult(entity.getResultId());
-        visitEventService.record(EventType.TEST_SUBMIT, "/test", entity.getResultId(), shortLink.getShortCode(), clientId, servletRequest);
-        visitEventService.record(EventType.RESULT_CREATED, "/result/" + entity.getResultId(), entity.getResultId(), shortLink.getShortCode(), clientId, servletRequest);
-        visitEventService.record(EventType.SHORT_LINK_CREATED, null, entity.getResultId(), shortLink.getShortCode(), clientId, servletRequest);
-
-        ResultDetailVO detail = toDetail(entity, shortLink);
-        redisCacheService.setResult(entity.getResultId(), detail);
-        return detail;
+        return entity;
     }
 
     public ResultDetailVO getByResultId(String resultId, String clientId, HttpServletRequest request) {
@@ -160,7 +188,7 @@ public class ResultService {
     }
 
     private String generateResultId() {
-        int suffix = ThreadLocalRandom.current().nextInt(100, 1000);
-        return "R" + LocalDateTime.now().format(RESULT_ID_TIME_FORMAT) + suffix;
+        int suffix = ThreadLocalRandom.current().nextInt(RESULT_ID_RANDOM_BOUND);
+        return "R" + LocalDateTime.now().format(RESULT_ID_TIME_FORMAT) + String.format("%06d", suffix);
     }
 }

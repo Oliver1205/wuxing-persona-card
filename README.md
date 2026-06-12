@@ -102,6 +102,7 @@
       <a href="docs/interview-learning-manual.md">面试学习手册</a><br>
       <a href="docs/big-tech-interviewer-qa.md">大厂面试官追问</a><br>
       <a href="docs/production-load-alert-runbook.md">生产压测与告警演练</a><br>
+      <a href="docs/production-operations-runbook.md">生产运维收口 Runbook</a><br>
       <a href="docs/domain-launch-self-audit.md">真实域名上线自审</a><br>
       <a href="docs/domain-launch-info-template.md">域名信息收集清单</a><br>
       <a href="docs/domain-server-runbook.md">域名服务器 Runbook</a><br>
@@ -171,6 +172,9 @@
     ├── deploy-rollback.sh
     ├── mobile-e2e.sh
     ├── performance-smoke-test.sh
+    ├── production-health-check.sh
+    ├── set-production-entry.sh
+    ├── server-security-audit.sh
     ├── external-shortlink-preflight.sh
     ├── external-shortlink-smoke-test.sh
     └── quality-check.sh

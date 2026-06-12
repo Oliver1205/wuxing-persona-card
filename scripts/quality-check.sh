@@ -22,6 +22,9 @@ run bash -n scripts/performance-smoke-test.sh
 run bash -n scripts/production-smoke-test.sh
 run bash -n scripts/domain-dns-readiness.sh
 run bash -n scripts/domain-bind-preflight.sh
+run bash -n scripts/production-health-check.sh
+run bash -n scripts/set-production-entry.sh
+run bash -n scripts/server-security-audit.sh
 run bash -n scripts/backup-mysql.sh
 run bash -n scripts/restore-mysql.sh
 run bash -n scripts/deploy-rollback.sh
