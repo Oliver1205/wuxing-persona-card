@@ -15,49 +15,46 @@
 | 服务器仓库路径 | `/opt/wuxing-persona-card` |
 | DNS 服务商 | 腾讯云 / DNSPod |
 | DNS A 记录 | `@` 和 `www` 已指向 `82.157.137.36`，本地预检通过 |
-| HTTPS 方案 | 首发建议 Certbot |
+| HTTPS 方案 | Certbot / Let's Encrypt 已签发并启用 |
 | 短链子域名 | 首发暂不启用，保持 `SHORT_LINK_MODE=internal` |
 | 密钥/密码生成 | 用户允许 Codex 在服务器本地生成 |
-| 临时 HTTP 验证 | 用户允许 |
+| 当前公网入口 | `https://wuxingcard.cn`、`https://www.wuxingcard.cn` |
 
 ## 2. 当前状态
 
 - 域名 `wuxingcard.cn` 已注册成功，DNS A 记录已生效。
 - `wuxingcard.cn` 的 NS 已能查到 DNSPod：`brandy.dnspod.net`、`seventy.dnspod.net`。
-- `http://82.157.137.36` 已能从公网访问，首页返回 `HTTP/1.1 200 OK`。
+- `http://wuxingcard.cn` 已返回 `301`，重定向到 `https://wuxingcard.cn/`。
+- `https://wuxingcard.cn` 和 `https://www.wuxingcard.cn` 均已返回 `HTTP/2 200`，并带有 `strict-transport-security`。
 - 服务器已通过临时 SSH 公钥登录，代码已快进到 `9060df7`。
-- 服务器 `deploy/.env` 已切换为 `APP_BASE_URL=http://wuxingcard.cn`、`SHORT_LINK_MODE=internal`、`NGINX_HTTP_PORT=80`。
+- 服务器 `deploy/.env` 已切换为 `APP_BASE_URL=https://wuxingcard.cn`、`SHORT_LINK_MODE=internal`、`NGINX_HTTP_PORT=127.0.0.1:8088`。
+- 宿主机 Nginx 监听公网 `80/443`，容器 Nginx 仅监听本机 `127.0.0.1:8088`。
+- Let's Encrypt 证书路径为 `/etc/letsencrypt/live/wuxingcard.cn/fullchain.pem`，证书有效期到 `2026-09-10`。
 - Docker Compose 已使用最新代码重建并启动，`scripts/production-smoke-test.sh` 在服务器本机通过，样例 `resultId=R20260612033152184633`、`shortCode=IEUReb`。
 - `DOMAIN=wuxingcard.cn EXPECTED_IP=82.157.137.36 scripts/domain-dns-readiness.sh` 已通过。
-- `ALLOW_HTTP=true DOMAIN=wuxingcard.cn BASE_URL=http://wuxingcard.cn scripts/domain-bind-preflight.sh` 已通过。
-- `ALLOW_HTTP=true DOMAIN=www.wuxingcard.cn BASE_URL=http://www.wuxingcard.cn scripts/domain-bind-preflight.sh` 已通过。
+- `DOMAIN=wuxingcard.cn BASE_URL=https://wuxingcard.cn scripts/domain-bind-preflight.sh` 已通过。
 - 真实域名 production smoke 已通过，样例 `resultId=R20260612034943137920`、`shortCode=yEWIdP`。
+- HTTPS 真实域名 production smoke 已通过，样例 `resultId=R20260612043129993655`、`shortCode=h7KjpJ`。
 - 仓库内前置准备已完成：域名自审、信息清单、宿主机 Nginx/TLS 模板、服务器 runbook 和学习手册均已落盘。
 
-## 3. 等待 DNS 生效时的检查命令
+## 3. 当前复查命令
 
 从本地仓库执行：
 
 ```bash
-DOMAIN=wuxingcard.cn \
-EXPECTED_IP=82.157.137.36 \
-scripts/domain-dns-readiness.sh
+DOMAIN=wuxingcard.cn EXPECTED_IP=82.157.137.36 scripts/domain-dns-readiness.sh
 ```
 
-如果只想先检查根域名，不检查 `www`：
+HTTPS 入口和业务基础预检：
 
 ```bash
-DOMAIN=wuxingcard.cn \
-EXPECTED_IP=82.157.137.36 \
-CHECK_WWW=false \
-scripts/domain-dns-readiness.sh
+DOMAIN=wuxingcard.cn BASE_URL=https://wuxingcard.cn scripts/domain-bind-preflight.sh
 ```
 
-通过条件：
+服务器生产 smoke：
 
-```text
-wuxingcard.cn      -> 82.157.137.36
-www.wuxingcard.cn  -> 82.157.137.36
+```bash
+BASE_URL=https://wuxingcard.cn ADMIN_TOKEN=<admin-token> scripts/production-smoke-test.sh
 ```
 
 ## 4. DNS 生效后的服务器执行顺序
@@ -112,4 +109,4 @@ ALLOW_HTTP=true DOMAIN=wuxingcard.cn BASE_URL=http://wuxingcard.cn scripts/domai
 
 ## 5. 学习口径
 
-> 当前阶段不是“代码还没准备好”，而是“外部域名系统仍在生效中”。真实域名上线要依次证明：域名已实名/审核通过、DNS A 记录指向服务器、服务器 80/443 开放、宿主机 Nginx 能接流量、容器 Nginx 只监听本机、`APP_BASE_URL` 与用户访问域名一致、业务 smoke 和性能 smoke 都通过。
+> 当前线上拓扑是：DNS A 记录把 `wuxingcard.cn` 指向服务器，宿主机 Nginx 负责 `80 -> 443`、TLS 和安全响应头，容器 Nginx 只监听 `127.0.0.1:8088`，`APP_BASE_URL=https://wuxingcard.cn` 决定新生成结果和分享链接的真实公网域名。后续继续做线上压测、告警和备份恢复时，要以这个 HTTPS 入口为准。
