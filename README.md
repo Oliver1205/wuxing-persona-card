@@ -71,6 +71,7 @@
     <td valign="top" width="25%">
       <strong>项目概览</strong><br>
       <a href="docs-site/index.html">项目文档站</a><br>
+      <a href="docs/project-learning-guide-v1.md">项目学习文档 v1</a><br>
       <a href="docs/project-promotion-kit.md">项目宣传包</a><br>
       <a href="docs/role-review-matrix.md">多角色评审矩阵</a><br>
       <a href="docs/agent-workflow-orchestration.md">角色 Agent 编排</a><br>
@@ -99,6 +100,7 @@
     </td>
     <td valign="top" width="25%">
       <strong>质量与路线</strong><br>
+      <a href="docs/interview-expression-guide-v1.md">面试表达文档 v1</a><br>
       <a href="docs/interview-learning-manual.md">面试学习手册</a><br>
       <a href="docs/big-tech-interviewer-qa.md">大厂面试官追问</a><br>
       <a href="docs/production-load-alert-runbook.md">生产压测与告警演练</a><br>
