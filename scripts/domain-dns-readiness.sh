@@ -43,7 +43,7 @@ check_host() {
   fi
 }
 
-[[ -n "$DOMAIN" ]] || fail "DOMAIN is required, for example DOMAIN=wuxingcard.com"
+[[ -n "$DOMAIN" ]] || fail "DOMAIN is required, for example DOMAIN=wuxingcard.cn"
 [[ "$DOMAIN" != http://* && "$DOMAIN" != https://* && "$DOMAIN" != */* ]] || fail "DOMAIN must be a host name only, without scheme or path"
 command -v python3 >/dev/null 2>&1 || fail "python3 is required"
 
