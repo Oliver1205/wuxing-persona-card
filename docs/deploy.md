@@ -7,6 +7,7 @@
 ```text
 docs/domain-launch-self-audit.md
 docs/five-hour-domain-workflow.md
+docs/domain-server-runbook.md
 ```
 
 ## 1. 部署架构
@@ -182,6 +183,20 @@ docker compose --env-file deploy/.env.external \
 /s/**          -> backend:8080/s/**
 /admin         -> Vue H5 后台路由
 ```
+
+真实域名推荐使用宿主机 Nginx 终止 HTTPS，再转发到容器 Nginx：
+
+```text
+deploy/host-nginx-domain-tls.example.conf
+```
+
+推荐 Compose 入口：
+
+```text
+NGINX_HTTP_PORT=127.0.0.1:8088
+```
+
+这样公网只暴露宿主机的 `80/443`，容器 Nginx 只作为本机应用入口。完整步骤见 `docs/domain-server-runbook.md`。
 
 v0.4 已完成外部短链服务级联调。若生产接入独立短链服务，同域路径可改成：
 

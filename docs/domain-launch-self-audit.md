@@ -54,14 +54,14 @@ https://<主域名>/s/{code} -> 内置短链跳转
 ```text
 APP_BASE_URL=https://<主域名>
 SHORT_LINK_MODE=internal
-NGINX_HTTP_PORT=8088
+NGINX_HTTP_PORT=127.0.0.1:8088
 ADMIN_TOKEN=<strong-random-token>
 HASH_SALT=<strong-random-salt>
 MYSQL_PASSWORD=<strong-password>
 MYSQL_ROOT_PASSWORD=<strong-password>
 ```
 
-6. 容器 Nginx 先跑在 `127.0.0.1:8088` 或宿主机 `8088`，外层宿主机 Nginx/证书负责 80/443。
+6. 容器 Nginx 先跑在 `127.0.0.1:8088`，外层宿主机 Nginx/证书负责 80/443；服务器执行步骤见 `docs/domain-server-runbook.md`。
 7. 执行：
 
 ```bash

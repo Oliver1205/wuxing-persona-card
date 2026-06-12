@@ -220,11 +220,11 @@ MAX_ASYNC_BATCH_FAILURES=0 scripts/performance-smoke-test.sh
 ```mermaid
 flowchart LR
   DNS["DNS A 记录"] --> IP["服务器公网 IP"]
-  IP --> Edge["80/443 入口"]
-  Edge --> Nginx["Nginx / TLS"]
-  Nginx --> H5["Vue H5"]
-  Nginx --> API["/api/**"]
-  Nginx --> Short["/s/{code}"]
+  IP --> HostNginx["宿主机 Nginx: 80/443 + TLS"]
+  HostNginx --> ContainerNginx["容器 Nginx: 127.0.0.1:8088"]
+  ContainerNginx --> H5["Vue H5"]
+  ContainerNginx --> API["/api/**"]
+  ContainerNginx --> Short["/s/{code}"]
   API --> BaseUrl["APP_BASE_URL"]
   BaseUrl --> Share["生成分享链接"]
 ```
@@ -232,7 +232,7 @@ flowchart LR
 要讲清楚三个点：
 
 1. DNS 只负责把域名指到服务器，不代表应用健康。
-2. Nginx/TLS 负责让浏览器安全访问 H5、API 和短链入口。
+2. 宿主机 Nginx/TLS 负责公网 80/443，容器 Nginx 继续负责 H5、API 和短链入口。
 3. `APP_BASE_URL` 是后端生成分享链接的源头，必须和用户实际访问域名一致。
 
 本轮新增的域名预检脚本：
@@ -244,6 +244,8 @@ scripts/domain-bind-preflight.sh
 ```
 
 它证明的是：域名解析正确、健康接口通、题目接口通、后台 token 可访问 overview。它不替代 `production-smoke-test.sh`，后者还会创建结果、访问短链并检查后台统计。
+
+服务器执行细节见 `docs/domain-server-runbook.md`。模板文件 `deploy/host-nginx-domain-tls.example.conf` 用于宿主机 Nginx，把 HTTPS 流量转发到 `127.0.0.1:8088` 的容器 Nginx。
 
 ## 9. 面试追问速答
 

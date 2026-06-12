@@ -19,7 +19,7 @@
 | 0:00-0:45 | 严格自审 | `docs/domain-launch-self-audit.md` | 发现 P1/P2/P3 风险并明确首发边界 |
 | 0:45-1:20 | 域名绑定准备 | DNS/服务器/证书信息清单，`scripts/domain-bind-preflight.sh` | 脚本语法检查，确认缺失外部信息 |
 | 1:20-2:20 | 服务器和 `.env` 准备 | 服务器代码同步、`deploy/.env` 更新、Compose 重启 | `scripts/deploy-preflight.sh`、`docker compose config` |
-| 2:20-3:20 | DNS 和 HTTPS | 主域名解析、80/443 入口、证书或临时 HTTP 决策 | `DOMAIN=... scripts/domain-bind-preflight.sh` |
+| 2:20-3:20 | DNS 和 HTTPS | 主域名解析、宿主机 Nginx、80/443 入口、证书或临时 HTTP 决策 | `DOMAIN=... scripts/domain-bind-preflight.sh` |
 | 3:20-4:10 | 线上主链路 smoke | 首页、题目、创建结果、短链跳转、后台 overview | `scripts/production-smoke-test.sh` |
 | 4:10-4:40 | 低延迟和排水证据 | 短链 P95、后台 P95、异步队列/丢弃/批量失败 | `scripts/performance-smoke-test.sh` |
 | 4:40-5:00 | 学习沉淀和提交 | 更新学习手册、部署说明、工作日志 | `scripts/quality-check.sh`、Git commit/push |
@@ -63,7 +63,7 @@ ALLOW_HTTP=true DOMAIN=<主域名> BASE_URL=http://<主域名> scripts/domain-bi
 ```text
 APP_BASE_URL=https://<主域名>
 SHORT_LINK_MODE=internal
-NGINX_HTTP_PORT=8088
+NGINX_HTTP_PORT=127.0.0.1:8088
 VISIT_EVENT_ASYNC_QUEUE_CAPACITY=2048
 VISIT_EVENT_ASYNC_DRAIN_LIMIT=64
 SHORT_LINK_LAST_VISIT_TOUCH_INTERVAL_SECONDS=30
@@ -73,7 +73,8 @@ SHORT_LINK_LAST_VISIT_TOUCH_INTERVAL_SECONDS=30
 
 - `APP_BASE_URL` 决定新生成结果的分享链接域名。
 - `SHORT_LINK_MODE=internal` 保持 `/s/{code}` 仍由五行后端处理。
-- `NGINX_HTTP_PORT=8088` 适合宿主机 Nginx 或云证书入口转发到容器 Nginx，避免容器直接占用 80/443。
+- `NGINX_HTTP_PORT=127.0.0.1:8088` 适合宿主机 Nginx 或云证书入口转发到容器 Nginx，避免容器直接暴露公网。
+- 宿主机 Nginx 模板见 `deploy/host-nginx-domain-tls.example.conf`，完整服务器步骤见 `docs/domain-server-runbook.md`。
 
 ## 6. 验收命令模板
 

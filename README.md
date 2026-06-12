@@ -103,6 +103,7 @@
       <a href="docs/big-tech-interviewer-qa.md">大厂面试官追问</a><br>
       <a href="docs/production-load-alert-runbook.md">生产压测与告警演练</a><br>
       <a href="docs/domain-launch-self-audit.md">真实域名上线自审</a><br>
+      <a href="docs/domain-server-runbook.md">域名服务器 Runbook</a><br>
       <a href="#质量门禁">质量门禁</a><br>
       <a href="#验证结果">验证结果</a><br>
       <a href="#开发进度记录">开发进度记录</a><br>
@@ -156,6 +157,7 @@
     ├── docker-compose.external-mode.yml
     ├── nginx.Dockerfile
     ├── nginx.conf
+    ├── host-nginx-domain-tls.example.conf
     ├── .env.example
     └── .env.external.example
 └── scripts/
@@ -498,7 +500,7 @@ ADMIN_TOKEN=<your-admin-token> \
 scripts/domain-bind-preflight.sh
 ```
 
-五小时真实域名上线安排见 [五小时真实域名上线工作流](docs/five-hour-domain-workflow.md)，上线前风险清单见 [真实域名上线前严格自审](docs/domain-launch-self-audit.md)。
+五小时真实域名上线安排见 [五小时真实域名上线工作流](docs/five-hour-domain-workflow.md)，上线前风险清单见 [真实域名上线前严格自审](docs/domain-launch-self-audit.md)，服务器执行步骤见 [真实域名服务器上线 Runbook](docs/domain-server-runbook.md)。
 
 可选 Testcontainers 集成测试：
 

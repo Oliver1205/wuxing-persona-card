@@ -450,3 +450,10 @@ multi-role review support. The main outcomes are:
 - Tooling change: added `scripts/domain-bind-preflight.sh` to verify DNS resolution, expected server IP, public health endpoints, and optional admin overview access.
 - Documentation change: added `docs/domain-launch-self-audit.md` and `docs/five-hour-domain-workflow.md`, then linked the domain workflow from README, deploy docs, and the interview learning manual.
 - Boundary value: first real-domain launch should use the main domain with internal short links; HTTPS, `APP_BASE_URL`, strong secrets, DNS access, and server SSH remain explicit preconditions.
+
+### Phase 65
+
+- Launch priority: make the HTTPS/domain step executable on a real server instead of leaving it as an abstract checklist.
+- Deploy change: added `deploy/host-nginx-domain-tls.example.conf`, a host-level Nginx TLS template that forwards public `80/443` traffic to the Compose nginx on `127.0.0.1:8088`.
+- Documentation change: added `docs/domain-server-runbook.md` with DNS, security group, `.env`, Compose, Certbot, smoke, performance smoke, browser verification, and rollback steps.
+- Learning value: the interview manual now explains the split between DNS, host Nginx/TLS, container Nginx, `APP_BASE_URL`, production smoke, and performance smoke.
