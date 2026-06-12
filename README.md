@@ -102,6 +102,7 @@
       <a href="docs/interview-learning-manual.md">面试学习手册</a><br>
       <a href="docs/big-tech-interviewer-qa.md">大厂面试官追问</a><br>
       <a href="docs/production-load-alert-runbook.md">生产压测与告警演练</a><br>
+      <a href="docs/domain-launch-self-audit.md">真实域名上线自审</a><br>
       <a href="#质量门禁">质量门禁</a><br>
       <a href="#验证结果">验证结果</a><br>
       <a href="#开发进度记录">开发进度记录</a><br>
@@ -159,6 +160,7 @@
     └── .env.external.example
 └── scripts/
     ├── deploy-preflight.sh
+    ├── domain-bind-preflight.sh
     ├── docker-smoke-test.sh
     ├── production-smoke-test.sh
     ├── backup-mysql.sh
@@ -485,6 +487,18 @@ scripts/performance-smoke-test.sh
 `MAX_*_AVG_MS` 和 `MAX_*_P95_MS` 为可选阈值，默认 `0` 表示只输出耗时不拦截；设置后平均耗时或 TP95 超标会让 smoke 失败。`MAX_ASYNC_QUEUE_SIZE`、`MAX_ASYNC_DROPPED_EVENTS` 和 `MAX_ASYNC_BATCH_FAILURES` 默认留空表示只观察，设置为 `0` 时要求 smoke 结束后没有队列积压、事件丢弃和批量写失败。脚本还会输出 `asyncQueueSize`、`asyncDroppedEvents`、`asyncTotalFlushedEvents`、`asyncBatchWriteFailures` 和 `asyncWorkerAlive`，用于判断低延迟是否伴随事件队列积压、丢弃或后台 writer 排水异常。
 
 更完整的生产压测、告警触发和恢复记录模板见 [生产压测与告警演练 Runbook](docs/production-load-alert-runbook.md)。在真实服务器、固定数据规模和固定并发模型验证前，不应宣传为已验证生产 QPS。
+
+真实域名绑定前的 DNS、健康接口和后台 token 预检：
+
+```bash
+DOMAIN=<your-domain.com> \
+EXPECTED_IP=<server-public-ip> \
+BASE_URL=https://<your-domain.com> \
+ADMIN_TOKEN=<your-admin-token> \
+scripts/domain-bind-preflight.sh
+```
+
+五小时真实域名上线安排见 [五小时真实域名上线工作流](docs/five-hour-domain-workflow.md)，上线前风险清单见 [真实域名上线前严格自审](docs/domain-launch-self-audit.md)。
 
 可选 Testcontainers 集成测试：
 

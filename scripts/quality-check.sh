@@ -20,6 +20,7 @@ run bash -n scripts/docker-smoke-test.sh
 run bash -n scripts/capture-showcase-screenshots.sh
 run bash -n scripts/performance-smoke-test.sh
 run bash -n scripts/production-smoke-test.sh
+run bash -n scripts/domain-bind-preflight.sh
 run bash -n scripts/backup-mysql.sh
 run bash -n scripts/restore-mysql.sh
 run bash -n scripts/deploy-rollback.sh

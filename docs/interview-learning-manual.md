@@ -211,8 +211,39 @@ MAX_ASYNC_BATCH_FAILURES=0 scripts/performance-smoke-test.sh
 - 不能直接暴露 Spring Boot 8080 到公网，公网入口应走 Nginx。
 - MySQL 和 Redis 不暴露公网。
 - 上线前必须替换 `ADMIN_TOKEN`、`HASH_SALT`、数据库密码和 `APP_BASE_URL`。
+- 真实域名上线时，`APP_BASE_URL` 决定新生成分享链接的域名；如果仍是 localhost 或 IP，用户分享出去的链接会错。
 - 性能 smoke 不是压测报告，而是回归检查：它会创建一个真实结果，连续访问短链，并重复读取后台总览，用输出的 `shortlinkAvgMs`、`shortlinkP95Ms`、`adminAvgMs` 和 `adminP95Ms` 观察热点链路是否明显退化；设置 `MAX_*_AVG_MS` / `MAX_*_P95_MS` 后也可以把它变成低延迟阈值门。它还会读取访问事件 runtime，输出 `asyncQueueSize`、`asyncTotalFlushedEvents`、`asyncLastFlushAt`、`asyncDroppedEvents`、`asyncBatchWriteFailures` 和 `asyncWorkerAlive`；把 `MAX_ASYNC_QUEUE_SIZE=0`、`MAX_ASYNC_DROPPED_EVENTS=0`、`MAX_ASYNC_BATCH_FAILURES=0` 打开后，可以防止“接口很快，但事件都堆着、丢了或后台批量写失败”的假象。
 - 生产压测和告警演练的完整记录模板见 `docs/production-load-alert-runbook.md`；面试中可以讲演练方案和 smoke 证据，但没有真实报告前不要说已经验证生产 QPS。
+
+### 真实域名上线链路
+
+```mermaid
+flowchart LR
+  DNS["DNS A 记录"] --> IP["服务器公网 IP"]
+  IP --> Edge["80/443 入口"]
+  Edge --> Nginx["Nginx / TLS"]
+  Nginx --> H5["Vue H5"]
+  Nginx --> API["/api/**"]
+  Nginx --> Short["/s/{code}"]
+  API --> BaseUrl["APP_BASE_URL"]
+  BaseUrl --> Share["生成分享链接"]
+```
+
+要讲清楚三个点：
+
+1. DNS 只负责把域名指到服务器，不代表应用健康。
+2. Nginx/TLS 负责让浏览器安全访问 H5、API 和短链入口。
+3. `APP_BASE_URL` 是后端生成分享链接的源头，必须和用户实际访问域名一致。
+
+本轮新增的域名预检脚本：
+
+```bash
+DOMAIN=<主域名> EXPECTED_IP=<服务器公网 IP> \
+BASE_URL=https://<主域名> ADMIN_TOKEN=<token> \
+scripts/domain-bind-preflight.sh
+```
+
+它证明的是：域名解析正确、健康接口通、题目接口通、后台 token 可访问 overview。它不替代 `production-smoke-test.sh`，后者还会创建结果、访问短链并检查后台统计。
 
 ## 9. 面试追问速答
 
@@ -388,6 +419,7 @@ sequenceDiagram
 | 后台统计和缓存 | `backend/src/main/java/com/wuxing/persona/service/AdminStatService.java`、`backend/src/main/java/com/wuxing/persona/service/RedisCacheService.java` | `mvn -q -f backend/pom.xml -Dtest=MvpFlowIntegrationTest test` | 后台 overview 可以接受 45 秒短缓存，短链列表也要说明统计来自实时事件、日聚合表还是外部短链服务。 |
 | 后台管理保护 | `backend/src/main/java/com/wuxing/persona/controller/AdminController.java`、`backend/src/test/java/com/wuxing/persona/MvpFlowIntegrationTest.java` | `mvn -q -f backend/pom.xml -Dtest=MvpFlowIntegrationTest#shouldRejectAllAdminEndpointsWithoutToken test` | 当前不是 RBAC 权限系统，但所有后台敏感入口都要求 `X-Admin-Token`，并用参数化集成测试覆盖未授权返回 401。 |
 | 可观测证据 | `scripts/performance-smoke-test.sh`、`backend/src/main/java/com/wuxing/persona/vo/VisitEventRuntimeVO.java` | `BASE_URL=http://127.0.0.1:48081 ADMIN_TOKEN=dev-token scripts/performance-smoke-test.sh` | 性能 smoke 看 avg / P95，也看 async queue、flushed events、dropped events 和 batch failures，避免只看快不看后台排水。 |
+| 真实域名上线 | `docs/domain-launch-self-audit.md`、`docs/five-hour-domain-workflow.md`、`scripts/domain-bind-preflight.sh` | `DOMAIN=<domain> BASE_URL=https://<domain> scripts/domain-bind-preflight.sh` | 域名上线不是只改 DNS，还要确认 APP_BASE_URL、HTTPS、Nginx 路由、后台 token、production smoke 和 performance smoke。 |
 | 视觉与作品集证据 | `scripts/capture-showcase-screenshots.sh`、`docs/screenshots/showcase/`、`docs-site/showcase.html` | `E2E_BASE_URL=http://127.0.0.1:5174 E2E_ADMIN_TOKEN=dev-token scripts/capture-showcase-screenshots.sh` | 项目展示不只靠文字，已经有 iPhone SE、安卓宽屏和桌面后台三类可复现截图。 |
 | 短码并发冲突 | `backend/src/main/java/com/wuxing/persona/service/shortlink/InternalShortLinkProvider.java`、`backend/src/main/java/com/wuxing/persona/mapper/ShortLinkMapper.java` | `mvn -q -f backend/pom.xml -Dtest=InternalShortLinkProviderTest test` | 当前短码生成依赖 `uk_short_code` 唯一键兜底，插入冲突时重试，避免 `count + insert` 的并发竞态。 |
 | 数据库迁移治理 | `backend/src/main/resources/db/schema.sql`、`backend/src/main/resources/application.yml`、`docs/db-migration-plan.md` | `docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml config` | 当前是初始化脚本和演示环境 DDL，不是成熟迁移体系；迁移治理计划说明了 Flyway 版本拆分、上线步骤和回滚边界。 |

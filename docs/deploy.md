@@ -2,6 +2,13 @@
 
 当前状态：Docker Compose 初版已配置，并已完成容器运行验收。MySQL、Redis、backend、nginx 均可启动，Nginx 入口可完成 API、短链 302 和后台统计验证。v0.4 已补齐 external 短链创建和统计配置，v0.7 已补生产短链路由示例和部署预检脚本，v1.0 已补稳定版发布检查表，v1.1 已新增 external 模式 Compose overlay、环境样例、预检脚本和 smoke 联调脚本，v1.2-v1.4 已新增 GitHub Actions、Docker smoke 脚本和 Testcontainers profile，v2.2-v2.4 已补生产 smoke、备份、恢复、回滚脚本和 Nginx 限流安全头。默认仍使用 `internal` 模式。
 
+真实域名上线前先阅读：
+
+```text
+docs/domain-launch-self-audit.md
+docs/five-hour-domain-workflow.md
+```
+
 ## 1. 部署架构
 
 ```text
@@ -253,8 +260,27 @@ scripts/external-shortlink-smoke-test.sh
 
 ```bash
 BASE_URL=https://your-domain.com \
-ADMIN_TOKEN=change-me \
+ADMIN_TOKEN=<your-admin-token> \
 scripts/production-smoke-test.sh
+```
+
+域名绑定预检：
+
+```bash
+DOMAIN=your-domain.com \
+EXPECTED_IP=<server-public-ip> \
+BASE_URL=https://your-domain.com \
+ADMIN_TOKEN=<your-admin-token> \
+scripts/domain-bind-preflight.sh
+```
+
+如果只是临时验证 HTTP 首绑，可显式打开：
+
+```bash
+ALLOW_HTTP=true \
+DOMAIN=your-domain.com \
+BASE_URL=http://your-domain.com \
+scripts/domain-bind-preflight.sh
 ```
 
 MySQL 备份：
@@ -281,7 +307,7 @@ TARGET_REF=v2.1.0-growth-analytics-foundation ENV_FILE=deploy/.env scripts/deplo
 
 - 打开 `http://localhost/`。
 - 完成一次测试并生成结果。
-- 复制短链接并打开。
+- 复制分享链接并打开。
 - 进入 `http://localhost/admin`，输入 `ADMIN_TOKEN` 后查看统计。
 
 ## 7. CI/CD 与容器集成测试

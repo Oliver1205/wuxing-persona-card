@@ -443,3 +443,10 @@ multi-role review support. The main outcomes are:
 - Documentation priority: keep public-facing project language aligned with the frontend copy cleanup.
 - Docs change: README, the promotion kit, docs-site copy, completion audit, and interview manual now describe user actions as "分享链接" while preserving "短链接系统" for backend architecture.
 - Portfolio value: ordinary readers see product language first, and interviewers can still trace the short-link engineering implementation.
+
+### Phase 64
+
+- Launch priority: start the five-hour real-domain workflow with a strict pre-domain self-audit instead of jumping straight to DNS changes.
+- Tooling change: added `scripts/domain-bind-preflight.sh` to verify DNS resolution, expected server IP, public health endpoints, and optional admin overview access.
+- Documentation change: added `docs/domain-launch-self-audit.md` and `docs/five-hour-domain-workflow.md`, then linked the domain workflow from README, deploy docs, and the interview learning manual.
+- Boundary value: first real-domain launch should use the main domain with internal short links; HTTPS, `APP_BASE_URL`, strong secrets, DNS access, and server SSH remain explicit preconditions.
