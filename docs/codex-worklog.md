@@ -478,3 +478,10 @@ multi-role review support. The main outcomes are:
 - Backend change: added `/api/matches/candidates/{shortCode}`, `POST /api/matches`, and `/api/matches/{partnerShortCode}/{currentShortCode}` around `MatchService`.
 - Frontend change: homepage detects valid clipboard short codes, asks whether to start matching, test submission routes to `/match/{partnerShortCode}/{currentShortCode}`, and result sharing now prioritizes copying the match short code.
 - Learning value: the interview manual now includes the dual-match sequence diagram, code-reading task card, and answer for why matching is computed from two short codes instead of immediately persisted.
+
+### Phase 69
+
+- Completion-audit priority: make the short-code matching entry more faithful to the original "enter homepage, detect clipboard" requirement.
+- Frontend change: homepage now attempts clipboard reading directly in real browsers, while keeping the no-interruption fallback path for denied clipboard access.
+- Analytics change: manual short-code entry now emits `MATCH_SHORT_CODE_ENTERED`, separate from `MATCH_CLIPBOARD_DETECTED`, so automatic detection and fallback usage can be distinguished later.
+- Learning value: the interview manual now explicitly explains why clipboard auto-detection needs a user-triggered fallback in production browsers.

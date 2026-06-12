@@ -110,6 +110,7 @@ sequenceDiagram
 面试要点：
 
 - 首页只接受 `6-7` 位 Base62 纯短码，不从链接里提取，避免误触发。
+- 浏览器剪贴板读取受权限策略限制，所以首页先尝试自动检测；失败时提供“检测剪贴板短码”和手动短码输入作为兜底。
 - 匹配页用两个短码查询，所以刷新页面不会丢状态。
 - 第一版不新增匹配表，降低迁移成本；如果未来要做历史匹配、排行榜或复访提醒，再把匹配结果持久化。
 
@@ -444,7 +445,7 @@ sequenceDiagram
 | --- | --- | --- | --- |
 | 移动端问答体验 | `frontend/src/pages/TestPage.vue` | `npm --prefix frontend run build` | 测试页从长表单变成逐题卡片流，默认出生年份也算有效选择，选中答案后由用户手动进入下一题，降低误触焦虑。 |
 | 输入契约守门 | `frontend/src/pages/TestPage.vue`、`backend/src/main/java/com/wuxing/persona/service/ElementCalculateService.java` | `mvn -q -f backend/pom.xml -Dtest=ElementCalculateServiceTest,MvpFlowIntegrationTest test` | 前端会按年份和月份动态收窄日期选择，例如 2 月不显示 31 日；但最终安全边界在后端，服务层会拒绝未来月份、未来日期和不存在的日历日期。 |
-| 双人短码匹配 | `frontend/src/pages/GuidePage.vue`、`frontend/src/pages/TestPage.vue`、`frontend/src/pages/MatchPage.vue`、`backend/src/main/java/com/wuxing/persona/service/MatchService.java` | `mvn -q -f backend/pom.xml -Dtest=MvpFlowIntegrationTest test && npm --prefix frontend run build` | 首页只从纯短码触发匹配邀请，测完后调用 `/api/matches`，最终进入可刷新访问的 `/match/{partnerShortCode}/{currentShortCode}`。 |
+| 双人短码匹配 | `frontend/src/pages/GuidePage.vue`、`frontend/src/pages/TestPage.vue`、`frontend/src/pages/MatchPage.vue`、`backend/src/main/java/com/wuxing/persona/service/MatchService.java` | `mvn -q -f backend/pom.xml -Dtest=MvpFlowIntegrationTest test && npm --prefix frontend run build` | 首页只从纯短码触发匹配邀请，剪贴板自动检测失败时有手动短码兜底，测完后调用 `/api/matches` 并进入可刷新访问的 `/match/{partnerShortCode}/{currentShortCode}`。 |
 | 结果页分享闭环 | `frontend/src/pages/ResultPage.vue` | `E2E_BASE_URL=http://127.0.0.1:5174 E2E_ADMIN_TOKEN=dev-token scripts/mobile-e2e.sh` | 结果页不只展示文案，还承担保存分享图、复制分享链接、系统分享、朋友回流和二次测试入口。 |
 | 创建结果链路 | `backend/src/main/java/com/wuxing/persona/service/ResultService.java` | `mvn -q -f backend/pom.xml -Dtest=MvpFlowIntegrationTest test` | 创建结果是强业务链路，结果、短链和关键事件要一起形成可恢复的业务证据。 |
 | 短链门面和适配 | `backend/src/main/java/com/wuxing/persona/service/ShortLinkService.java` | `mvn -q -f backend/pom.xml -Dtest=ExternalShortLinkProviderTest,InternalShortLinkProviderTest test` | Provider 让结果生成不用关心短链来自 internal 还是 external，外部失败时可以降级。 |
@@ -492,6 +493,7 @@ sequenceDiagram
 | 为什么不用 MQ？ | 当前单机阶段先优化热路径、索引、缓存和降级，避免过早复杂化；MQ 是流量继续放大后的下一步。 |
 | 统计会不会拖慢跳转？ | 跳转链路只做短码解析、事件入队和低频展示字段更新，不同步做 distinct 聚合，后台统计走独立查询路径。 |
 | 为什么双人匹配不建表？ | 第一版匹配是由两个已存在短码实时计算，先保证流程闭环和刷新可访问；只有当要做历史记录、关系复访或排行榜时，持久化匹配表才有明确收益。 |
+| 剪贴板自动检测会不会失败？ | 会，浏览器经常要求用户手势或权限授权；所以代码先做非阻塞自动尝试，失败时不影响首页，并提供手动检测/输入短码入口保证流程可达。 |
 | Redis 挂了是不是全挂？ | 不会。结果和短码缓存读取失败会回源 MySQL，写缓存失败只记录 warn，不阻断用户核心链路。 |
 | UV 准不准？ | 匿名项目只能做到相对可信：优先 clientId hash，缺失时用 IP/User-Agent 兜底；它适合运营观察，不等同登录用户数。 |
 

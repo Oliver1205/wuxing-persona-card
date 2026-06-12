@@ -133,9 +133,6 @@ async function detectClipboardShortCode(manual = false) {
     }
     return;
   }
-  if (!manual && !(await canAutoReadClipboard())) {
-    return;
-  }
   clipboardChecking.value = true;
   try {
     const text = await navigator.clipboard.readText();
@@ -157,18 +154,6 @@ async function detectClipboardShortCode(manual = false) {
   }
 }
 
-async function canAutoReadClipboard() {
-  try {
-    if (!navigator.permissions?.query) {
-      return false;
-    }
-    const permission = await navigator.permissions.query({ name: 'clipboard-read' as PermissionName });
-    return permission.state === 'granted';
-  } catch {
-    return false;
-  }
-}
-
 function normalizeClipboardShortCode(value: string) {
   const trimmed = value.trim();
   return shortCodePattern.test(trimmed) ? trimmed : null;
@@ -186,7 +171,7 @@ async function lookupManualShortCode() {
   }
   manualChecking.value = true;
   try {
-    await loadMatchCandidate(shortCode, 'MATCH_CLIPBOARD_DETECTED');
+    await loadMatchCandidate(shortCode, 'MATCH_SHORT_CODE_ENTERED');
   } catch {
     clipboardMessage.value = '没有识别到可用短码';
   } finally {
