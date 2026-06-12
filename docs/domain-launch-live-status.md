@@ -14,7 +14,7 @@
 | 服务器 SSH | `ubuntu@82.157.137.36` |
 | 服务器仓库路径 | `/opt/wuxing-persona-card` |
 | DNS 服务商 | 腾讯云 / DNSPod |
-| DNS A 记录 | 注册时已勾选快速解析，`@` 和 `www` 预期指向 `82.157.137.36`；当前本地公网检查尚未解析成功 |
+| DNS A 记录 | 当前仍待添加或等待生效：`@` 和 `www` 需要指向 `82.157.137.36` |
 | HTTPS 方案 | 首发建议 Certbot |
 | 短链子域名 | 首发暂不启用，保持 `SHORT_LINK_MODE=internal` |
 | 密钥/密码生成 | 用户允许 Codex 在服务器本地生成 |
@@ -22,11 +22,13 @@
 
 ## 2. 当前状态
 
-- 域名 `wuxingcard.cn` 已注册成功，等待 DNS A 记录在公网完全生效。
+- 域名 `wuxingcard.cn` 已注册成功，等待 DNS A 记录添加或在公网完全生效。
 - `wuxingcard.cn` 的 NS 已能查到 DNSPod：`brandy.dnspod.net`、`seventy.dnspod.net`。
-- 本地 DNS / HTTP 检查暂未解析到公网 IP，符合刚注册后等待审核、实名模板审核、A 记录传播或接入策略生效的状态。
-- `ssh ubuntu@82.157.137.36` 已能触达服务器，但当前 Codex 环境没有可用登录凭据，返回 `Permission denied (publickey,password)`，因此还没有登录服务器执行变更。
-- 当前环境直连 `http://82.157.137.36` 的 80 端口未成功，后续需要在服务器上确认宿主机 Nginx、Compose 入口和安全组。
+- `http://82.157.137.36` 已能从公网访问，首页返回 `HTTP/1.1 200 OK`。
+- 服务器已通过临时 SSH 公钥登录，代码已快进到 `9060df7`。
+- 服务器 `deploy/.env` 已切换为 `APP_BASE_URL=http://wuxingcard.cn`、`SHORT_LINK_MODE=internal`、`NGINX_HTTP_PORT=80`。
+- Docker Compose 已使用最新代码重建并启动，`scripts/production-smoke-test.sh` 在服务器本机通过，样例 `resultId=R20260612033152184633`、`shortCode=IEUReb`。
+- 当前本地和服务器侧仍无法解析 `wuxingcard.cn`，访问域名报 `Could not resolve host`，说明主要阻塞点是 DNS A 记录。
 - 仓库内前置准备已完成：域名自审、信息清单、宿主机 Nginx/TLS 模板、服务器 runbook 和学习手册均已落盘。
 
 ## 3. 等待 DNS 生效时的检查命令
