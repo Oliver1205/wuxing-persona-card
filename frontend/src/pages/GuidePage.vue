@@ -1,51 +1,72 @@
 <template>
   <main class="page guide-page">
-    <section class="shell hero-shell">
+    <div class="guide-art" aria-hidden="true">
+      <span class="mountain mountain-front"></span>
+      <span class="mountain mountain-back"></span>
+      <span class="deep-water"></span>
+    </div>
+    <section class="shell hero-shell" aria-label="五行人格卡首页">
       <div class="hero-copy stack">
-        <p class="eyebrow">东方人格灵感测试</p>
-        <h1>生成你的五行人格卡</h1>
-        <p class="lead">
-          90 秒完成出生年月和 5 道价值取向题，得到一个有身份名、关键词和分享链接的人格画像。
-        </p>
+        <div class="vertical-motto" aria-hidden="true">
+          <span>简于形 · 明于心</span>
+        </div>
+
+        <div class="hero-title-group">
+          <h1>五行人格卡</h1>
+          <div class="title-rule" aria-hidden="true">
+            <span></span>
+            <i></i>
+            <span></span>
+          </div>
+          <p class="lead">90 秒生成你的东方人格画像</p>
+        </div>
+
         <div class="hero-metrics" aria-label="测试特点">
-          <span>约 90 秒</span>
           <span>出生年月 + 5 题</span>
           <span>结果可分享</span>
         </div>
-        <div class="persona-preview-line" aria-label="结果样式">
-          <span>身份名</span>
-          <span>五行比例</span>
-          <span>人格关键词</span>
-          <span>分享链接</span>
-        </div>
+
         <div class="actions">
-          <RouterLink class="button-link primary-cta" to="/test" @click="start">开始测试</RouterLink>
+          <RouterLink data-testid="start-test-link" class="button-link primary-cta" to="/test" @click="start">开始测试</RouterLink>
           <a class="button-link secondary" href="#preview">先看样例</a>
+        </div>
+        <p
+          id="manual-match-message"
+          class="clipboard-message"
+          :class="{ empty: !clipboardMessage }"
+          role="status"
+          aria-live="polite"
+        >
+          {{ clipboardMessage }}
+        </p>
+        <form class="manual-match-entry" aria-label="手动输入匹配短码" :aria-busy="manualChecking" @submit.prevent="lookupManualShortCode">
+          <input
+            v-model="manualShortCode"
+            data-testid="manual-match-code"
+            maxlength="120"
+            inputmode="text"
+            autocomplete="off"
+            placeholder="短码或分享链接"
+            aria-label="已有匹配短码或分享链接"
+            aria-describedby="manual-match-message"
+            :aria-invalid="manualShortCode.length > 0 && !manualShortCodeValid"
+            @input="resetManualMatchCandidate"
+          >
+          <button data-testid="manual-match-submit" type="submit" :disabled="manualChecking">
+            {{ manualChecking ? '识别中' : '匹配' }}
+          </button>
+        </form>
+        <div class="manual-match-tools">
           <button
             type="button"
             class="secondary clipboard-check-button"
             :disabled="clipboardChecking"
             @click="detectClipboardShortCode(true)"
           >
-            {{ clipboardChecking ? '检测中' : '检测剪贴板短码' }}
+            {{ clipboardChecking ? '检测中' : '检测剪贴板' }}
           </button>
         </div>
-        <p v-if="clipboardMessage" class="clipboard-message">{{ clipboardMessage }}</p>
-        <form class="manual-match-entry" aria-label="手动输入匹配短码" @submit.prevent="lookupManualShortCode">
-          <input
-            v-model="manualShortCode"
-            data-testid="manual-match-code"
-            maxlength="7"
-            inputmode="text"
-            autocomplete="off"
-            placeholder="已有短码"
-            aria-label="已有匹配短码"
-          >
-          <button type="submit" :disabled="manualChecking">
-            {{ manualChecking ? '识别中' : '匹配' }}
-          </button>
-        </form>
-        <section v-if="matchCandidate" class="match-invite" aria-label="双人匹配邀请">
+        <section v-if="matchCandidate" class="match-invite" aria-label="双人匹配邀请" aria-live="polite">
           <div>
             <p class="match-kicker">检测到匹配短码</p>
             <h2>要和这张人格卡做双人匹配吗？</h2>
@@ -54,7 +75,7 @@
             </p>
           </div>
           <div class="match-actions">
-            <button type="button" @click="startMatch">开始双人匹配</button>
+            <button data-testid="match-accept-button" type="button" @click="startMatch">开始双人匹配</button>
             <button type="button" class="secondary" @click="dismissMatch">暂时不用</button>
           </div>
         </section>
@@ -65,27 +86,18 @@
 
       <div id="preview" class="hero-preview" aria-label="五行人格卡样例">
         <div class="preview-card">
-          <div class="preview-orbit" aria-hidden="true">
-            <span>金</span>
-            <span>木</span>
-            <span>水</span>
-            <span>火</span>
-            <span>土</span>
+          <div
+            v-for="item in elementVisuals"
+            :key="item.code"
+            class="element-column"
+            :style="{ '--element-color': item.color }"
+          >
+            <ElementMark :code="item.code" :name="item.name" />
+            <div class="element-keywords" :aria-label="`${item.name}关键词`">
+              <span v-for="keyword in item.keywords" :key="keyword">{{ keyword }}</span>
+            </div>
+            <i aria-hidden="true"></i>
           </div>
-          <p class="preview-label">样例人格卡</p>
-          <h2>金水观察者</h2>
-          <p>清醒判断 · 细腻洞察 · 稳定边界</p>
-          <div class="preview-tags" aria-label="样例关键词">
-            <span>规则感</span>
-            <span>观察力</span>
-            <span>低消耗社交</span>
-          </div>
-          <div class="preview-ratio">
-            <strong>68% 金</strong>
-            <span></span>
-            <strong>32% 水</strong>
-          </div>
-          <RouterLink class="preview-cta" to="/test" @click="start">生成我的人格卡</RouterLink>
         </div>
       </div>
     </section>
@@ -93,10 +105,13 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { fetchMatchCandidate } from '../api/matches';
 import type { MatchCandidate } from '../api/types';
+import ElementMark from '../components/ElementMark.vue';
+import { getAttribution } from '../utils/attribution';
+import { elementVisuals } from '../utils/elementVisuals';
 import { track } from '../utils/tracker';
 
 const router = useRouter();
@@ -106,11 +121,12 @@ const manualChecking = ref(false);
 const matchDismissed = ref(false);
 const clipboardMessage = ref('');
 const manualShortCode = ref('');
+const manualLookupSeq = ref(0);
 const shortCodePattern = /^[0-9a-zA-Z]{6,7}$/;
+const manualShortCodeValid = computed(() => Boolean(normalizeClipboardShortCode(manualShortCode.value)));
 
 onMounted(() => {
   track('PAGE_VIEW_HOME', '/');
-  void detectClipboardShortCode();
 });
 
 function start() {
@@ -118,8 +134,13 @@ function start() {
 }
 
 async function detectClipboardShortCode(manual = false) {
+  let lookupSeq: number | undefined;
   if (manual) {
     clipboardMessage.value = '';
+    matchCandidate.value = null;
+    matchDismissed.value = false;
+    manualLookupSeq.value += 1;
+    lookupSeq = manualLookupSeq.value;
   }
   if (!manual && new URLSearchParams(window.location.search).has('skipClipboardAuto')) {
     return;
@@ -139,11 +160,14 @@ async function detectClipboardShortCode(manual = false) {
     const shortCode = normalizeClipboardShortCode(text);
     if (!shortCode) {
       if (manual) {
-        clipboardMessage.value = '剪贴板里没有 6-7 位纯短码';
+        clipboardMessage.value = '剪贴板里没有可识别的短码或分享链接';
       }
       return;
     }
-    await loadMatchCandidate(shortCode, 'MATCH_CLIPBOARD_DETECTED');
+    if (manual) {
+      manualShortCode.value = shortCode;
+    }
+    await loadMatchCandidate(shortCode, 'MATCH_CLIPBOARD_DETECTED', lookupSeq);
   } catch {
     matchCandidate.value = null;
     if (manual) {
@@ -156,7 +180,20 @@ async function detectClipboardShortCode(manual = false) {
 
 function normalizeClipboardShortCode(value: string) {
   const trimmed = value.trim();
-  return shortCodePattern.test(trimmed) ? trimmed : null;
+  if (shortCodePattern.test(trimmed)) {
+    return trimmed;
+  }
+  const pathMatch = trimmed.match(/(?:^|[/?#&\s])s\/([0-9a-zA-Z]{6,7})(?=$|[/?#&\s])/);
+  if (pathMatch) {
+    return pathMatch[1];
+  }
+  try {
+    const url = new URL(trimmed);
+    const match = url.pathname.match(/^\/s\/([0-9a-zA-Z]{6,7})\/?$/);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
 }
 
 async function lookupManualShortCode() {
@@ -164,23 +201,45 @@ async function lookupManualShortCode() {
     return;
   }
   clipboardMessage.value = '';
+  matchCandidate.value = null;
+  matchDismissed.value = false;
+  manualLookupSeq.value += 1;
   const shortCode = normalizeClipboardShortCode(manualShortCode.value);
   if (!shortCode) {
-    clipboardMessage.value = '请输入 6-7 位纯短码';
+    clipboardMessage.value = '请输入 6 到 7 位短码，或粘贴 /s/ 开头的分享链接';
     return;
   }
+  const lookupSeq = manualLookupSeq.value;
   manualChecking.value = true;
   try {
-    await loadMatchCandidate(shortCode, 'MATCH_SHORT_CODE_ENTERED');
+    await loadMatchCandidate(shortCode, 'MATCH_SHORT_CODE_ENTERED', lookupSeq);
   } catch {
-    clipboardMessage.value = '没有识别到可用短码';
+    if (lookupSeq === manualLookupSeq.value) {
+      clipboardMessage.value = '没有识别到可用短码';
+    }
   } finally {
-    manualChecking.value = false;
+    if (lookupSeq === manualLookupSeq.value) {
+      manualChecking.value = false;
+    }
   }
 }
 
-async function loadMatchCandidate(shortCode: string, eventType: string) {
+function resetManualMatchCandidate() {
+  matchCandidate.value = null;
+  matchDismissed.value = false;
+  clipboardMessage.value = '';
+  manualChecking.value = false;
+  manualLookupSeq.value += 1;
+}
+
+async function loadMatchCandidate(shortCode: string, eventType: string, lookupSeq?: number) {
   const candidate = await fetchMatchCandidate(shortCode);
+  if (lookupSeq !== undefined) {
+    const currentShortCode = normalizeClipboardShortCode(manualShortCode.value);
+    if (lookupSeq !== manualLookupSeq.value || currentShortCode !== shortCode) {
+      return;
+    }
+  }
   if (matchDismissed.value) {
     return;
   }
@@ -195,13 +254,15 @@ function startMatch() {
     return;
   }
   const candidate = matchCandidate.value;
+  const attribution = getAttribution();
+  const preserveSynthetic = attribution.channel === 'perf-test';
   track('MATCH_MODE_ACCEPT', '/', candidate.resultId, candidate.shortCode);
   void router.push({
     path: '/test',
     query: {
       matchCode: candidate.shortCode,
-      channel: 'match',
-      campaign: 'clipboard-short-code',
+      channel: preserveSynthetic ? 'perf-test' : 'match',
+      campaign: preserveSynthetic ? (attribution.campaign ?? 'match-e2e') : 'clipboard-short-code',
     },
   });
 }
@@ -217,69 +278,215 @@ function dismissMatch() {
 
 <style scoped>
 .guide-page {
+  position: relative;
+  overflow: hidden;
   display: flex;
-  align-items: center;
+  align-items: stretch;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 54px 18px 120px;
   background:
-    linear-gradient(145deg, rgba(250, 248, 242, 0.94) 0%, rgba(237, 244, 239, 0.96) 48%, rgba(244, 234, 220, 0.9) 100%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cg fill='none' stroke='%232f6f5e' stroke-opacity='.12'%3E%3Cpath d='M90 20c38.66 0 70 31.34 70 70s-31.34 70-70 70-70-31.34-70-70 31.34-70 70-70Z'/%3E%3Cpath d='M90 42c26.51 0 48 21.49 48 48s-21.49 48-48 48-48-21.49-48-48 21.49-48 48-48Z'/%3E%3Cpath d='M90 20v140M20 90h140M40.5 40.5l99 99M139.5 40.5l-99 99'/%3E%3C/g%3E%3C/svg%3E");
-  background-size: auto, 180px 180px;
+    radial-gradient(circle at 48% 28%, rgba(255, 255, 255, 0.84), transparent 28%),
+    linear-gradient(180deg, #f8f3e9 0%, #f9f5eb 58%, #edf3ee 100%);
+}
+
+.guide-page::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.2;
+  background-image:
+    linear-gradient(rgba(36, 48, 47, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(36, 48, 47, 0.04) 1px, transparent 1px);
+  background-size: 42px 42px, 42px 42px;
+  mix-blend-mode: multiply;
+}
+
+.guide-art,
+.guide-art span {
+  position: absolute;
+  pointer-events: none;
+}
+
+.guide-art {
+  inset: 0;
+  z-index: 0;
+}
+
+.mountain {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 185px;
+  transform-origin: bottom center;
+}
+
+.mountain-back {
+  bottom: 28px;
+  background: rgba(154, 207, 207, 0.46);
+  clip-path: ellipse(72% 42% at 80% 100%);
+}
+
+.mountain-front {
+  bottom: 28px;
+  background: rgba(177, 211, 209, 0.72);
+  clip-path: ellipse(74% 45% at 18% 100%);
+}
+
+.deep-water {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 42px;
+  background: rgba(45, 96, 108, 0.24);
 }
 
 .hero-shell {
+  position: relative;
+  z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1.02fr) minmax(320px, 0.78fr);
-  gap: 28px;
+  grid-template-columns: 1fr;
+  gap: 34px;
+  align-items: start;
+  width: min(100%, 760px);
+  min-height: calc(100vh - 170px);
+}
+
+.hero-copy {
+  position: relative;
+  justify-items: center;
+  padding-top: 170px;
+  text-align: center;
+}
+
+.vertical-motto {
+  position: absolute;
+  top: 10px;
+  left: 8px;
+  color: #26302f;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.hero-title-group {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+}
+
+.hero-title-group h1 {
+  color: #202725;
+  font-family: "Songti SC", "STSong", "Noto Serif SC", var(--font-display);
+  font-size: 78px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-indent: 0;
+  line-height: 1.04;
+}
+
+.title-rule {
+  display: grid;
+  grid-template-columns: minmax(86px, 1fr) auto minmax(86px, 1fr);
+  gap: 18px;
   align-items: center;
+  width: min(100%, 440px);
+}
+
+.title-rule span {
+  height: 1px;
+  background: rgba(36, 48, 47, 0.45);
+}
+
+.title-rule i {
+  width: 9px;
+  height: 9px;
+  background: #bf8918;
+  transform: rotate(45deg);
 }
 
 .lead {
-  max-width: 620px;
   margin: 0;
-  color: #40514e;
-  font-size: 19px;
+  color: #303837;
+  font-size: 24px;
+  letter-spacing: 0;
+  text-indent: 0;
+  line-height: 1.45;
 }
 
 .hero-metrics {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  justify-content: center;
+  gap: 14px;
 }
 
 .hero-metrics span {
   border: 1px solid rgba(36, 48, 47, 0.12);
   border-radius: 999px;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.72);
-  color: #344542;
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.persona-preview-line {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  max-width: 540px;
-}
-
-.persona-preview-line span {
-  min-height: 42px;
-  border: 1px solid rgba(36, 48, 47, 0.12);
-  border-radius: 8px;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.66);
-  color: #253634;
-  font-size: 13px;
-  font-weight: 850;
-  text-align: center;
+  padding: 10px 18px;
+  background: rgba(255, 255, 255, 0.56);
+  color: #333c39;
+  font-size: 17px;
+  font-weight: 650;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.36);
 }
 
 .primary-cta {
-  min-width: 148px;
+  min-width: min(76vw, 500px);
+  min-height: 76px;
+  border: 1px solid rgba(191, 137, 24, 0.6);
+  border-radius: 8px;
+  background: #123253;
+  color: #fff;
+  font-family: "Songti SC", "STSong", "Noto Serif SC", var(--font-display);
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-indent: 0;
+  box-shadow: 0 18px 34px rgba(17, 45, 76, 0.24);
+}
+
+.primary-cta::before,
+.primary-cta::after {
+  content: "";
+  width: 11px;
+  height: 11px;
+  margin: 0 24px;
+  background: #e2b96b;
+  transform: rotate(45deg);
+}
+
+.actions {
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.actions .secondary {
+  border: 0;
+  border-bottom: 1px solid rgba(191, 137, 24, 0.52);
+  border-radius: 0;
+  background: transparent;
+  color: #303837;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 .clipboard-check-button {
-  min-width: 148px;
+  min-width: 0;
+  min-height: 44px;
+  border: 0;
+  border-bottom: 1px solid rgba(36, 48, 47, 0.18);
+  border-radius: 0;
+  padding: 0 2px;
+  background: transparent;
+  color: #65706d;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0;
 }
 
 .clipboard-message {
@@ -290,11 +497,32 @@ function dismissMatch() {
   font-weight: 800;
 }
 
+.clipboard-message.empty {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .manual-match-entry {
   display: grid;
   grid-template-columns: minmax(0, 180px) auto;
   gap: 8px;
   max-width: 350px;
+  justify-self: center;
+}
+
+.manual-match-tools {
+  display: flex;
+  justify-content: center;
+  margin-top: -10px;
+}
+
+.match-invite + .notice {
+  margin-top: 0;
 }
 
 .manual-match-entry input {
@@ -308,6 +536,11 @@ function dismissMatch() {
   font-weight: 850;
 }
 
+.manual-match-entry input[aria-invalid="true"] {
+  border-color: rgba(184, 91, 72, 0.42);
+  box-shadow: 0 0 0 3px rgba(184, 91, 72, 0.08);
+}
+
 .manual-match-entry button {
   min-width: 82px;
 }
@@ -318,6 +551,7 @@ function dismissMatch() {
   gap: 14px;
   align-items: center;
   max-width: 620px;
+  text-align: left;
   border: 1px solid rgba(47, 111, 94, 0.2);
   border-radius: 8px;
   padding: 14px;
@@ -355,138 +589,74 @@ function dismissMatch() {
 }
 
 .match-actions button {
-  min-height: 42px;
+  min-height: 44px;
   white-space: nowrap;
 }
 
 .hero-preview {
   display: grid;
   place-items: center;
+  margin-top: -2px;
 }
 
 .preview-card {
   position: relative;
-  width: min(100%, 380px);
-  min-height: 470px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0;
+  width: min(100%, 650px);
+  min-height: 280px;
   overflow: hidden;
-  border: 1px solid rgba(36, 48, 47, 0.14);
+  border: 1px solid rgba(36, 48, 47, 0.1);
   border-radius: 8px;
-  padding: 26px;
+  padding: 34px 22px 30px;
   background:
-    linear-gradient(160deg, rgba(255, 255, 255, 0.95), rgba(232, 243, 239, 0.86)),
-    linear-gradient(180deg, rgba(47, 111, 94, 0.1), transparent);
-  box-shadow: 0 24px 70px rgba(31, 48, 43, 0.16);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(253, 250, 244, 0.82)),
+    linear-gradient(90deg, rgba(197, 227, 226, 0.18), rgba(255, 255, 255, 0));
+  box-shadow: 0 20px 46px rgba(31, 48, 43, 0.16);
+  backdrop-filter: blur(10px);
 }
 
-.preview-orbit {
+.element-column {
+  position: relative;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 7px;
-  margin-bottom: 84px;
+  justify-items: center;
+  gap: 16px;
+  min-width: 0;
 }
 
-.preview-orbit span {
+.element-column + .element-column {
+  border-left: 1px solid rgba(36, 48, 47, 0.16);
+}
+
+.element-keywords {
   display: grid;
-  place-items: center;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: #24302f;
-  color: #fff;
-  font-weight: 900;
-}
-
-.preview-orbit span:nth-child(2) {
-  background: #5e8d63;
-}
-
-.preview-orbit span:nth-child(3) {
-  background: #486f92;
-}
-
-.preview-orbit span:nth-child(4) {
-  background: #b66045;
-}
-
-.preview-orbit span:nth-child(5) {
-  background: #9d7a42;
-}
-
-.preview-label {
-  margin: 0 0 8px;
-  color: #7b5d35;
-  font-weight: 900;
-}
-
-.preview-card h2 {
-  margin: 0 0 10px;
-  font-size: 34px;
-}
-
-.preview-card p {
-  color: #50615f;
-}
-
-.preview-tags {
-  display: flex;
-  flex-wrap: wrap;
   gap: 8px;
-  margin-top: 22px;
+  color: #252d2c;
+  font-family: "Songti SC", "STSong", "Noto Serif SC", var(--font-display);
+  font-size: 22px;
+  line-height: 1.18;
 }
 
-.preview-tags span {
-  border-radius: 999px;
-  padding: 8px 10px;
-  background: #24302f;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 850;
-}
-
-.preview-ratio {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 12px;
-  align-items: center;
-  margin-top: 48px;
-  color: #263735;
-}
-
-.preview-ratio span {
-  height: 10px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #2f6f5e 0 68%, #486f92 68% 100%);
-}
-
-.preview-cta {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-height: 48px;
-  margin-top: 26px;
-  border-radius: 8px;
-  background: #2f6f5e;
-  color: #fff;
-  font-weight: 900;
-  text-decoration: none;
-  box-shadow: 0 12px 28px rgba(47, 111, 94, 0.22);
-}
-
-.preview-cta:hover {
-  background: #25594c;
+.element-column i {
+  width: 9px;
+  height: 9px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: var(--element-color);
 }
 
 @media (max-width: 820px) {
   .guide-page {
-    align-items: start;
+    padding: 42px 14px 94px;
   }
 
   .hero-shell {
-    grid-template-columns: 1fr;
+    gap: 30px;
   }
 
-  .persona-preview-line {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .hero-copy {
+    padding-top: 118px;
   }
 
   .match-invite {
@@ -504,11 +674,63 @@ function dismissMatch() {
   }
 
   .preview-card {
-    min-height: 360px;
+    width: min(100%, 690px);
+    min-height: 246px;
+    padding: 28px 12px 24px;
   }
 
-  .preview-orbit {
-    margin-bottom: 42px;
+  .element-keywords {
+    gap: 7px;
+    font-size: 18px;
   }
+
+  .vertical-motto {
+    left: 2px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero-title-group h1 {
+    font-size: 48px;
+  }
+
+  .lead {
+    font-size: 17px;
+    letter-spacing: 0;
+    text-indent: 0;
+  }
+
+  .hero-metrics {
+    gap: 9px;
+  }
+
+  .hero-metrics span {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+
+  .primary-cta {
+    min-height: 62px;
+    font-size: 25px;
+  }
+
+  .primary-cta::before,
+  .primary-cta::after {
+    margin: 0 14px;
+  }
+
+  .preview-card {
+    padding-inline: 8px;
+  }
+
+  .element-column {
+    gap: 12px;
+  }
+
+  .element-keywords {
+    font-size: 15px;
+  }
+
 }
 </style>

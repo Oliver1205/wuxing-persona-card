@@ -14,7 +14,7 @@
 | --- | --- |
 | 当前版本 | `v2.6-card-question-flow` |
 | 稳定分支 | `main` |
-| 当前开发分支 | `codex/v2.6-card-question-flow` |
+| 当前开发状态 | `main` 工作树承载八小时性能展示工作流改动；发布前建议按交付索引拆分提交 |
 | MVP 状态 | v0.1 已完成完整单人测算闭环 |
 | v0.2 状态 | 已完成短链接 Provider 适配层，可配置 `internal` / `external` 模式 |
 | v0.3 状态 | 已增强 external 真实 HTTP 联调配置，并为后台总览、短链列表、访问日志增加日期筛选 |
@@ -71,12 +71,21 @@
     <td valign="top" width="25%">
       <strong>项目概览</strong><br>
       <a href="docs-site/index.html">项目文档站</a><br>
+      <a href="docs/wuxing-from-zero-learning-manual.md">从零学习手册 v1</a><br>
       <a href="docs/project-learning-guide-v1.md">项目学习文档 v1</a><br>
+      <a href="docs/wuxing-persona-standard-v1.md">五行人格评判标准 v1</a><br>
+      <a href="docs/persona-description-samples-v1.md">10 个五行人格样稿 v1</a><br>
+      <a href="docs/admin-data-center-guide.md">数据中台使用手册</a><br>
+      <a href="docs/admin-metric-dictionary.md">数据中台指标字典</a><br>
+      <a href="docs/rocketmq-visit-event-design.md">RocketMQ 统计削峰设计</a><br>
+      <a href="docs/local-preview-runbook.md">本地预览与短链代理 Runbook</a><br>
       <a href="docs/project-promotion-kit.md">项目宣传包</a><br>
+      <a href="docs/artifacts/presentations/README.md">项目展示 PPT 资产包</a><br>
       <a href="docs/role-review-matrix.md">多角色评审矩阵</a><br>
       <a href="docs/agent-workflow-orchestration.md">角色 Agent 编排</a><br>
       <a href="docs/next-iteration-role-backlog.md">下一轮角色 Backlog</a><br>
       <a href="docs/eight-hour-completion-audit.md">八小时完成度审计</a><br>
+      <a href="docs/eight-hour-performance-showcase-delivery.md">八小时性能展示交付索引</a><br>
       <a href="docs/real-user-validation-checklist.md">真实用户验收清单</a><br>
       <a href="#项目状态">项目状态</a><br>
       <a href="#核心亮点">核心亮点</a><br>
@@ -101,8 +110,13 @@
     <td valign="top" width="25%">
       <strong>质量与路线</strong><br>
       <a href="docs/interview-expression-guide-v1.md">面试表达文档 v1</a><br>
+      <a href="docs/wuxing-from-zero-learning-manual.md">从零学习手册 v1</a><br>
       <a href="docs/interview-learning-manual.md">面试学习手册</a><br>
       <a href="docs/big-tech-interviewer-qa.md">大厂面试官追问</a><br>
+      <a href="docs/performance-reports/README.md">压测报告索引</a><br>
+      <a href="docs/performance-visual-brief.md">压测视觉简报</a><br>
+      <a href="docs/production-load-observability-checklist.md">生产压测观测清单</a><br>
+      <a href="docs/performance-optimization-plan.md">性能优化方案</a><br>
       <a href="docs/production-load-alert-runbook.md">生产压测与告警演练</a><br>
       <a href="docs/production-operations-runbook.md">生产运维收口 Runbook</a><br>
       <a href="docs/domain-launch-self-audit.md">真实域名上线自审</a><br>
@@ -376,6 +390,15 @@ cd frontend
 BACKEND_PROXY_TARGET=http://127.0.0.1:18080 npm run preview -- --host 127.0.0.1 --port 4173
 ```
 
+本地联调短链时，页面能打开还不够，必须确认 `APP_BASE_URL` 和 `BACKEND_PROXY_TARGET` 指向同一组前后端。推荐使用 [本地预览与短链代理 Runbook](docs/local-preview-runbook.md)；`BACKEND_URL` 按实际后端端口填写，本轮验证使用过 `48082`，默认示例仍保留 `48081`：
+
+```bash
+FRONTEND_URL=http://127.0.0.1:5175 \
+BACKEND_URL=http://127.0.0.1:48081 \
+ADMIN_TOKEN=dev-token \
+scripts/local-preview-smoke-test.sh
+```
+
 ## Docker 部署方式
 
 ```bash
@@ -525,11 +548,12 @@ mvn -q -f backend/pom.xml -Pcontainer-it verify
 cd frontend
 npm install
 npx playwright install chromium
-npm run e2e:mobile
-npm run e2e:showcase
+cd ..
+scripts/mobile-e2e.sh
+scripts/capture-showcase-screenshots.sh
 ```
 
-也可以从仓库根目录运行 `scripts/mobile-e2e.sh` 和 `scripts/capture-showcase-screenshots.sh`；截图默认输出到 `docs/screenshots/showcase/`。
+请优先从仓库根目录运行 wrapper 脚本；它们会拒绝直接对公网 URL 跑会写入结果/访问数据的浏览器 E2E。只有明确授权的测试窗口内才设置 `ALLOW_PUBLIC_E2E=1`。截图默认输出到 `docs/screenshots/showcase/`。
 
 `docs/ci-browser-e2e-plan.md` 已整理 GitHub Actions `browser-e2e` 接入方案。当前推送凭据缺少 `workflow` scope，暂不能直接更新 `.github/workflows/quality-gate.yml`；启用后该 job 会在 H2 后端 + Vite 前端模式下安装 Chromium、运行移动端 E2E、捕获 showcase 截图，并把运行日志和截图作为 artifact 上传。
 

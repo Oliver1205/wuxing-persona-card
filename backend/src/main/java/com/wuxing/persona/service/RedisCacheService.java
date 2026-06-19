@@ -17,6 +17,7 @@ public class RedisCacheService {
     private static final Duration SHORT_LINK_TTL = Duration.ofDays(7);
     private static final Duration NULL_SHORT_LINK_TTL = Duration.ofMinutes(5);
     private static final Duration ADMIN_OVERVIEW_TTL = Duration.ofSeconds(45);
+    private static final String ADMIN_OVERVIEW_VERSION_KEY = "admin:overview:version";
 
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
@@ -102,6 +103,14 @@ public class RedisCacheService {
         }
     }
 
+    public void evictAdminOverview() {
+        try {
+            redisTemplate.opsForValue().increment(ADMIN_OVERVIEW_VERSION_KEY);
+        } catch (Exception ex) {
+            log.warn("Evict admin overview cache failed");
+        }
+    }
+
     private String resultKey(String resultId) {
         return "result:" + resultId;
     }
@@ -115,6 +124,16 @@ public class RedisCacheService {
     }
 
     private String adminOverviewKey(String rangeKey) {
-        return "admin:overview:" + rangeKey;
+        return "admin:overview:v" + adminOverviewVersion() + ':' + rangeKey;
+    }
+
+    private String adminOverviewVersion() {
+        try {
+            String version = redisTemplate.opsForValue().get(ADMIN_OVERVIEW_VERSION_KEY);
+            return version == null || version.isBlank() ? "0" : version;
+        } catch (Exception ex) {
+            log.warn("Read admin overview cache version failed");
+            return "0";
+        }
     }
 }

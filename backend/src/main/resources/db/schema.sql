@@ -73,23 +73,10 @@ CREATE TABLE IF NOT EXISTS visit_event (
     INDEX idx_session_id(session_id_hash),
     INDEX idx_channel_created(channel, created_at),
     INDEX idx_campaign_created(campaign, created_at),
+    INDEX idx_result_event_channel(result_id, event_type, channel),
+    INDEX idx_event_short_created_channel(event_type, short_code, created_at, channel),
     INDEX idx_event_date(event_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-ALTER TABLE visit_event ADD COLUMN session_id_hash VARCHAR(128) NULL;
-ALTER TABLE visit_event ADD COLUMN channel VARCHAR(64) NULL;
-ALTER TABLE visit_event ADD COLUMN campaign VARCHAR(64) NULL;
-ALTER TABLE visit_event ADD COLUMN device_type VARCHAR(32) NULL;
-ALTER TABLE visit_event ADD COLUMN event_date DATE NULL;
-CREATE INDEX idx_visit_event_session_id ON visit_event(session_id_hash);
-CREATE INDEX idx_visit_event_channel_created ON visit_event(channel, created_at);
-CREATE INDEX idx_visit_event_campaign_created ON visit_event(campaign, created_at);
-CREATE INDEX idx_visit_event_event_date ON visit_event(event_date);
-CREATE INDEX idx_visit_event_created_at ON visit_event(created_at);
-CREATE INDEX idx_visit_event_created_client ON visit_event(created_at, client_id_hash);
-CREATE INDEX idx_visit_event_created_ip ON visit_event(created_at, ip_hash);
-CREATE INDEX idx_visit_event_event_created_short ON visit_event(event_type, created_at, short_code);
-CREATE INDEX idx_short_link_status_created_at ON short_link(status, created_at);
 
 CREATE TABLE IF NOT EXISTS site_daily_metric (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,

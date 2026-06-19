@@ -1,0 +1,139 @@
+{
+  "output": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/docs/artifacts/presentations/wuxing-persona-project-showcase.pptx",
+  "outputBytes": 2640289,
+  "slideCount": 12,
+  "slideSize": {
+    "width": 1280,
+    "height": 720
+  },
+  "previewDir": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/preview",
+  "previewPaths": [
+    "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/preview/slide-01.png",
+    "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/preview/slide-02.png",
+    "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/preview/slide-03.png",
+    "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/preview/slide-04.png",
+    "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/preview/slide-05.png",
+    "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/preview/slide-06.png",
+    "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/preview/slide-07.png",
+    "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/preview/slide-08.png",
+    "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/preview/slide-09.png",
+    "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/preview/slide-10.png",
+    "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/preview/slide-11.png",
+    "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/preview/slide-12.png"
+  ],
+  "layoutDir": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/layout",
+  "layoutResults": [
+    {
+      "layoutPath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/layout/slide-01.layout.json"
+    },
+    {
+      "layoutPath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/layout/slide-02.layout.json"
+    },
+    {
+      "layoutPath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/layout/slide-03.layout.json"
+    },
+    {
+      "layoutPath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/layout/slide-04.layout.json"
+    },
+    {
+      "layoutPath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/layout/slide-05.layout.json"
+    },
+    {
+      "layoutPath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/layout/slide-06.layout.json"
+    },
+    {
+      "layoutPath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/layout/slide-07.layout.json"
+    },
+    {
+      "layoutPath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/layout/slide-08.layout.json"
+    },
+    {
+      "layoutPath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/layout/slide-09.layout.json"
+    },
+    {
+      "layoutPath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/layout/slide-10.layout.json"
+    },
+    {
+      "layoutPath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/layout/slide-11.layout.json"
+    },
+    {
+      "layoutPath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/layout/slide-12.layout.json"
+    }
+  ],
+  "contactSheet": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/preview/contact-sheet.png",
+  "archivedContactSheet": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/docs/artifacts/presentations/contact-sheet.png",
+  "slides": [
+    {
+      "index": 1,
+      "requestedSlideNumber": 1,
+      "modulePath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/slides/slide-01.mjs",
+      "exportName": "slide01"
+    },
+    {
+      "index": 2,
+      "requestedSlideNumber": 2,
+      "modulePath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/slides/slide-02.mjs",
+      "exportName": "slide02"
+    },
+    {
+      "index": 3,
+      "requestedSlideNumber": 3,
+      "modulePath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/slides/slide-03.mjs",
+      "exportName": "slide03"
+    },
+    {
+      "index": 4,
+      "requestedSlideNumber": 4,
+      "modulePath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/slides/slide-04.mjs",
+      "exportName": "slide04"
+    },
+    {
+      "index": 5,
+      "requestedSlideNumber": 5,
+      "modulePath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/slides/slide-05.mjs",
+      "exportName": "slide05"
+    },
+    {
+      "index": 6,
+      "requestedSlideNumber": 6,
+      "modulePath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/slides/slide-06.mjs",
+      "exportName": "slide06"
+    },
+    {
+      "index": 7,
+      "requestedSlideNumber": 7,
+      "modulePath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/slides/slide-07.mjs",
+      "exportName": "slide07"
+    },
+    {
+      "index": 8,
+      "requestedSlideNumber": 8,
+      "modulePath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/slides/slide-08.mjs",
+      "exportName": "slide08"
+    },
+    {
+      "index": 9,
+      "requestedSlideNumber": 9,
+      "modulePath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/slides/slide-09.mjs",
+      "exportName": "slide09"
+    },
+    {
+      "index": 10,
+      "requestedSlideNumber": 10,
+      "modulePath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/slides/slide-10.mjs",
+      "exportName": "slide10"
+    },
+    {
+      "index": 11,
+      "requestedSlideNumber": 11,
+      "modulePath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/slides/slide-11.mjs",
+      "exportName": "slide11"
+    },
+    {
+      "index": 12,
+      "requestedSlideNumber": 12,
+      "modulePath": "/Users/linyuxiang/JavaBackend/06_Tools/skills/wuxing-persona-card/outputs/019eb62f-8502-73e2-866e-af2130879105/presentations/wuxing-showcase/slides/slide-12.mjs",
+      "exportName": "slide12"
+    }
+  ]
+}

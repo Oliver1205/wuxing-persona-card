@@ -30,6 +30,7 @@ const emit = defineEmits<{
         :key="option.optionCode"
         type="button"
         class="option"
+        :data-testid="`question-${question.questionCode}-option-${option.optionCode}`"
         :class="{ active: modelValue === option.optionCode }"
         :aria-pressed="modelValue === option.optionCode"
         :disabled="disabled"
@@ -39,7 +40,7 @@ const emit = defineEmits<{
         <span class="option-body">
           <span class="option-title">{{ option.optionText }}</span>
         </span>
-        <span class="option-state">{{ modelValue === option.optionCode ? '已选' : '选择' }}</span>
+        <span class="option-state" aria-hidden="true"></span>
       </button>
     </div>
   </section>
@@ -48,14 +49,14 @@ const emit = defineEmits<{
 <style scoped>
 .question-card {
   display: grid;
-  gap: 16px;
+  gap: 14px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(252, 248, 241, 0.86));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(252, 249, 243, 0.88));
 }
 
 .question-head {
   display: grid;
-  grid-template-columns: 42px 1fr;
+  grid-template-columns: 40px 1fr;
   gap: 12px;
   align-items: start;
 }
@@ -63,13 +64,13 @@ const emit = defineEmits<{
 .question-number {
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: #24302f;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: #0f6c6e;
   color: #fff;
-  font-weight: 900;
-  box-shadow: 0 10px 22px rgba(36, 48, 47, 0.16);
+  font-weight: 850;
+  box-shadow: 0 8px 18px rgba(15, 108, 110, 0.16);
 }
 
 .question-title-block {
@@ -79,16 +80,18 @@ const emit = defineEmits<{
 
 .question-progress {
   margin: 0;
-  color: #9b6d32;
+  color: #bf8918;
   font-size: 12px;
-  font-weight: 950;
+  font-weight: 800;
 }
 
 h3 {
   margin: 0;
   color: #263735;
-  font-size: 18px;
-  line-height: 1.45;
+  font-family: "Songti SC", "STSong", "Noto Serif SC", var(--font-display);
+  font-size: 17px;
+  font-weight: 620;
+  line-height: 1.42;
   letter-spacing: 0;
 }
 
@@ -96,26 +99,33 @@ h3 {
   margin: 0;
   color: #7a8582;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 650;
 }
 
 .options {
   display: grid;
-  gap: 10px;
+  gap: 9px;
 }
 
 .option {
+  position: relative;
+  overflow: hidden;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 10px;
+  align-items: center;
   justify-content: flex-start;
-  min-height: 58px;
-  border: 1px solid rgba(36, 48, 47, 0.14);
+  min-height: 56px;
+  border: 1px solid rgba(36, 48, 47, 0.12);
+  border-radius: 8px;
+  padding: 11px 12px 11px 14px;
   background: rgba(255, 255, 255, 0.92);
   color: #263735;
+  font-size: 15px;
+  line-height: 1.45;
   text-align: left;
-  font-weight: 650;
-  box-shadow: 0 8px 18px rgba(31, 48, 43, 0.05);
+  font-weight: 620;
+  box-shadow: 0 8px 18px rgba(31, 48, 43, 0.04);
   transition:
     transform 150ms ease,
     border-color 150ms ease,
@@ -139,12 +149,10 @@ h3 {
 }
 
 .option.active {
-  border-color: #2f6f5e;
-  background:
-    linear-gradient(135deg, rgba(232, 243, 239, 0.98), rgba(252, 239, 216, 0.94)),
-    #fff;
-  color: #173d34;
-  box-shadow: 0 14px 30px rgba(47, 111, 94, 0.16);
+  border-color: rgba(15, 108, 110, 0.48);
+  background: rgba(239, 248, 244, 0.92);
+  color: #174943;
+  box-shadow: 0 12px 24px rgba(15, 108, 110, 0.11);
   transform: translateY(-1px);
 }
 
@@ -155,11 +163,10 @@ h3 {
   flex: 0 0 auto;
   width: 30px;
   height: 30px;
-  margin-right: 10px;
-  border-radius: 50%;
+  border-radius: 999px;
   background: #f1eadc;
   color: #6d4f29;
-  font-weight: 800;
+  font-weight: 760;
 }
 
 .option-body {
@@ -169,44 +176,120 @@ h3 {
 }
 
 .option-title {
+  display: block;
   line-height: 1.45;
   word-break: break-word;
 }
 
 .option-state {
+  display: grid;
+  place-items: center;
+  justify-self: end;
   align-self: center;
-  border: 1px solid rgba(36, 48, 47, 0.1);
+  width: 24px;
+  height: 24px;
+  border: 1px solid transparent;
   border-radius: 999px;
-  padding: 4px 8px;
-  background: rgba(246, 243, 236, 0.76);
-  color: #6a7774;
-  font-size: 12px;
-  font-weight: 900;
-  white-space: nowrap;
+  background: transparent;
+  opacity: 0;
+  transition:
+    opacity 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.option-state::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(106, 119, 116, 0.36);
 }
 
 .option.active .option-mark {
-  background: #2f6f5e;
+  background: #0f6c6e;
   color: #fff;
-}
-
-.option.active .option-state {
-  color: #2f6f5e;
 }
 
 .option.active .option-state {
   border-color: rgba(47, 111, 94, 0.22);
   background: rgba(255, 255, 255, 0.78);
+  opacity: 1;
+}
+
+.option.active .option-state::before {
+  content: "✓";
+  width: auto;
+  height: auto;
+  color: #2f6f5e;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
 }
 
 @media (max-width: 520px) {
+  .question-card {
+    gap: 12px;
+  }
+
+  .question-head {
+    grid-template-columns: 34px 1fr;
+    gap: 10px;
+  }
+
+  .question-number {
+    width: 34px;
+    height: 34px;
+    font-size: 14px;
+  }
+
+  h3 {
+    font-size: 16px;
+    line-height: 1.38;
+  }
+
+  .question-hint {
+    display: none;
+  }
+
   .option {
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: 26px minmax(0, 1fr) 28px;
+    gap: 8px;
+    min-height: 52px;
+    padding: 10px 10px 10px 12px;
+  }
+
+  .option-mark {
+    width: 26px;
+    height: 26px;
+    font-size: 13px;
+  }
+
+  .option-title {
+    font-size: 14px;
+    line-height: 1.38;
   }
 
   .option-state {
-    grid-column: 2;
-    justify-self: start;
+    width: 24px;
+    height: 24px;
+    border-color: rgba(36, 48, 47, 0.14);
   }
+
+  .option.active {
+    background: rgba(239, 248, 244, 0.96);
+  }
+
+  .option.active .option-title {
+    color: #174943;
+    font-weight: 760;
+  }
+
+  .option.active .option-state {
+    border-color: rgba(47, 111, 94, 0.28);
+    background: #fff;
+  }
+
 }
 </style>

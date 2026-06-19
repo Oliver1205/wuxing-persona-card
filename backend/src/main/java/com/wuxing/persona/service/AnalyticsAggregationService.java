@@ -27,17 +27,20 @@ public class AnalyticsAggregationService {
     private final ShortLinkMapper shortLinkMapper;
     private final SiteDailyMetricMapper siteDailyMetricMapper;
     private final ShortLinkDailyMetricMapper shortLinkDailyMetricMapper;
+    private final RedisCacheService redisCacheService;
 
     public AnalyticsAggregationService(VisitEventMapper visitEventMapper,
                                        UserResultMapper userResultMapper,
                                        ShortLinkMapper shortLinkMapper,
                                        SiteDailyMetricMapper siteDailyMetricMapper,
-                                       ShortLinkDailyMetricMapper shortLinkDailyMetricMapper) {
+                                       ShortLinkDailyMetricMapper shortLinkDailyMetricMapper,
+                                       RedisCacheService redisCacheService) {
         this.visitEventMapper = visitEventMapper;
         this.userResultMapper = userResultMapper;
         this.shortLinkMapper = shortLinkMapper;
         this.siteDailyMetricMapper = siteDailyMetricMapper;
         this.shortLinkDailyMetricMapper = shortLinkDailyMetricMapper;
+        this.redisCacheService = redisCacheService;
     }
 
     @Transactional
@@ -58,6 +61,7 @@ public class AnalyticsAggregationService {
             days += 1;
             cursor = cursor.plusDays(1);
         }
+        redisCacheService.evictAdminOverview();
 
         AnalyticsAggregationVO vo = new AnalyticsAggregationVO();
         vo.setStartDate(startDate.toString());

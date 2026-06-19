@@ -79,39 +79,50 @@ flowchart LR
 可复现截图流程：
 
 ```bash
-E2E_BASE_URL=http://127.0.0.1:5174 \
+E2E_BASE_URL=http://127.0.0.1:5175 \
 E2E_ADMIN_TOKEN=dev-token \
 scripts/capture-showcase-screenshots.sh
 ```
 
-脚本会在 Playwright 可用时生成首页、出生信息卡、问答卡、结果页、分享回流页和后台总览截图，默认输出到 `docs/screenshots/showcase/`。`@playwright/test` 已纳入前端依赖；新机器需要先执行 `npm install` 和 `npx playwright install chromium`。`docs/ci-browser-e2e-plan.md` 已整理 GitHub Actions `browser-e2e` 方案，待具备 `workflow` scope 的凭据启用后，可自动运行同一组截图流程并上传 artifact。
+脚本会在 Playwright 可用时生成首页、出生信息卡、问答卡、结果页、分享回流页、双人匹配、404、移动后台、桌面后台和短链详情截图，默认输出到 `docs/screenshots/showcase/`。`@playwright/test` 已纳入前端依赖；新机器需要先执行 `npm install` 和 `npx playwright install chromium`。`docs/ci-browser-e2e-plan.md` 已整理 GitHub Actions `browser-e2e` 方案，待具备 `workflow` scope 的凭据启用后，可自动运行同一组截图流程并上传 artifact。
 
-当前已归档 11 张自动化 showcase 截图，覆盖 iPhone SE、安卓宽屏和桌面后台：
+当前已归档 21 张自动化 showcase 截图，覆盖 iPhone SE、安卓宽屏、移动后台和桌面后台：
 
 - `docs/screenshots/showcase/iphone-se-01-home.png`
 - `docs/screenshots/showcase/iphone-se-02-test-birth-card.png`
 - `docs/screenshots/showcase/iphone-se-03-test-question-card.png`
 - `docs/screenshots/showcase/iphone-se-04-result.png`
 - `docs/screenshots/showcase/iphone-se-05-shared-result.png`
+- `docs/screenshots/showcase/iphone-se-06-match.png`
+- `docs/screenshots/showcase/iphone-se-07-not-found.png`
+- `docs/screenshots/showcase/iphone-se-08-admin-overview.png`
 - `docs/screenshots/showcase/android-wide-01-home.png`
 - `docs/screenshots/showcase/android-wide-02-test-birth-card.png`
 - `docs/screenshots/showcase/android-wide-03-test-question-card.png`
 - `docs/screenshots/showcase/android-wide-04-result.png`
 - `docs/screenshots/showcase/android-wide-05-shared-result.png`
+- `docs/screenshots/showcase/android-wide-06-match.png`
+- `docs/screenshots/showcase/android-wide-07-not-found.png`
+- `docs/screenshots/showcase/android-wide-08-admin-overview.png`
 - `docs/screenshots/showcase/desktop-06-admin-overview.png`
+- `docs/screenshots/showcase/desktop-07-result.png`
+- `docs/screenshots/showcase/desktop-08-shortlink-detail.png`
+- `docs/screenshots/showcase/desktop-09-match.png`
+- `docs/screenshots/showcase/desktop-10-not-found.png`
 
 当前脚本会覆盖三类展示视口：
 
 | 视口 | 输出文件前缀 | 用途 |
 | --- | --- | --- |
-| iPhone SE 小屏 | `iphone-se-*` | 检查最窄常见手机下按钮、卡片和文字是否拥挤 |
-| 安卓宽屏手机 | `android-wide-*` | 检查常见大屏手机下结果页和分享区的视觉节奏 |
-| 桌面后台 | `desktop-*` | 展示后台 KPI、漏斗和运营信息层级 |
+| iPhone SE 小屏 | `iphone-se-*` | 检查最窄常见手机下按钮、卡片、后台折叠布局和文字是否拥挤 |
+| 安卓宽屏手机 | `android-wide-*` | 检查常见大屏手机下结果页、分享区、匹配页和移动后台的视觉节奏 |
+| 桌面后台 | `desktop-*` | 展示桌面结果页、后台 KPI、漏斗、短链详情、匹配结果和 404 信息层级 |
 
 ## 已有视觉资产
 
 - [五行人格卡项目主视觉](assets/wuxing-promo-poster.svg)：16:9 SVG，可用于 README、作品集、答辩 PPT 和项目介绍页。
 - [五行人格卡架构与热路径图](assets/wuxing-architecture-map.svg)：16:9 SVG，可用于面试讲解、项目复盘和工程闭环展示。
+- [项目展示 PPT 资产包](artifacts/presentations/README.md)：包含 12 页 PPT、总览图、源码、布局检查和逐页讲稿。
 - [作品集展示页](../docs-site/showcase.html)：零依赖 HTML 长图式展示页，整合真实截图、产品故事、后端热路径和 5 分钟面试主线。
 
 ## 宣传图建议

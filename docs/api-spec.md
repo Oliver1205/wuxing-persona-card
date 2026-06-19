@@ -28,13 +28,72 @@ GET /api/health
 
 返回服务状态和当前时间。
 
+## 1.1 就绪检查
+
+```http
+GET /api/readiness
+```
+
+返回服务是否具备处理核心业务请求的基础就绪状态。当前 `scope` 为 `core_schema`，表示它会检查 `user_result`、`short_link`、`visit_event`、`site_daily_metric`、`short_link_daily_metric` 等核心表是否可查询；Redis、RocketMQ 和访问事件运行态要继续看后台 runtime 接口。
+
+正常时返回 HTTP `200`：
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "status": "UP",
+    "scope": "core_schema",
+    "service": "wuxing-persona-backend",
+    "time": "2026-06-14T07:00:00+08:00",
+    "coreTables": {
+      "user_result": "ok",
+      "short_link": "ok",
+      "visit_event": "ok",
+      "site_daily_metric": "ok",
+      "short_link_daily_metric": "ok"
+    }
+  }
+}
+```
+
+如果核心表不可用，返回 HTTP `503`，`data.status` 为 `DOWN`，对应表标记为 `unavailable`。生产 smoke、域名绑定预检和压测脚本会用这个接口拦截“进程还活着但数据库 schema 不可用”的情况。
+
 ## 2. 获取题目配置
 
 ```http
 GET /api/questions
 ```
 
-返回 5 道价值取向题，每题 5 个选项，选项 code 对应五行元素。
+返回 5 道价值取向题，每题 5 个选项，选项 code 对应五行元素。前端答题卡、五行图例和结果分布都依赖这组稳定枚举：
+
+| elementCode / optionCode | elementName | 前端图例关键词 |
+| --- | --- | --- |
+| `METAL` | 金 | 收束 / 淬炼 / 清醒 |
+| `WOOD` | 木 | 生长 / 舒展 / 灵动 |
+| `WATER` | 水 | 润泽 / 沉静 / 蓄藏 |
+| `FIRE` | 火 | 热烈 / 上扬 / 明朗 |
+| `EARTH` | 土 | 承载 / 滋养 / 收成 |
+
+单题结构示例：
+
+```json
+{
+  "questionCode": "Q1",
+  "title": "做决定时，你更看重什么？",
+  "options": [
+    {
+      "optionCode": "METAL",
+      "optionText": "标准、边界和清晰判断",
+      "elementCode": "METAL",
+      "elementName": "金"
+    }
+  ]
+}
+```
+
+前端排序可以调整展示顺序，但提交时必须回传后端给出的 `questionCode` 和 `optionCode`，不要回传 A/B/C/D 这类纯展示序号。
 
 ## 3. 创建测算结果
 
@@ -77,6 +136,20 @@ X-Campaign: <campaign>
 - 生成内置短链接并保存 `short_link`。
 - 写入 `TEST_SUBMIT`、`RESULT_CREATED`、`SHORT_LINK_CREATED` 事件。
 
+返回结果字段是前端结果页、分享图和双人匹配页的共同契约：
+
+| 字段 | 用途 |
+| --- | --- |
+| `primaryElement` / `secondaryElement` | 驱动五行人物、图例色彩、匹配页双方摘要 |
+| `primaryElementName` / `secondaryElementName` | 展示中文主副元素 |
+| `primaryPercent` / `secondaryPercent` | 结果卡主副比例条 |
+| `allElementScores` | 完整五行分布图，key 必须使用 `METAL/WOOD/WATER/FIRE/EARTH` |
+| `starOfficerName` / `keywords` | 结果身份、人格短句、分享图摘要 |
+| `layoutExplanation` / `strengthText` / `relationshipText` | 三段结果解释：为什么像你、元素逐项解读、元素互动总览 |
+| `shortCode` / `shortUrl` | 分享链接、双人匹配短码、短链回流追踪 |
+
+前端不再依赖静态占位图生成结果卡；五行人物、图例和分布图都从这组字段渲染。
+
 ## 4. 查询测算结果
 
 ```http
@@ -110,6 +183,8 @@ POST /api/matches
 Content-Type: application/json
 X-Client-Id: <client-id>
 X-Session-Id: <session-id>
+X-Channel: <channel>
+X-Campaign: <campaign>
 ```
 
 请求体：
@@ -138,6 +213,8 @@ X-Session-Id: <session-id>
 - `partnerShortCode` / `currentShortCode`：匹配结果页可刷新访问所需的两个短码。
 - `compatibilityScore`、`relationLabel`、`headline`、`summary`、`strengths`、`suggestions`。
 
+匹配页前端会复用 `ResultDetail` 中的五行字段展示双方主副元素，并用 `compatibilityScore` 绘制分数条。后端应保证 `compatibilityScore` 在 `0-100` 范围内，`strengths` 和 `suggestions` 至少各返回 1 条可展示文本。
+
 ### 5.3 通过两个短码查询匹配结果
 
 ```http
@@ -162,8 +239,9 @@ GET /s/{shortCode}?channel=share&campaign=result-card
 - 写入 `SHORT_LINK_VISIT` 事件。
 - 优先读取 Redis `shortlink:code:{shortCode}`。
 - Redis 未命中查 `short_link`。
-- 有效短码 302 到 `/result/{resultId}?sc={shortCode}`。
-- 如果访问短链时带 `channel` / `campaign` / `utm_source` / `utm_campaign`，会写入访问事件，并继续透传到结果页 query。
+- 有效短码 302 到 `/result/{resultId}?sc={shortCode}`；external 模式创建给外部短链服务的原始落地 URL 直接使用 `/result/{resultId}?channel=share&campaign=result-card`，让外部短链回流也进入分享落地态。
+- 如果访问短链时带 `channel` / `campaign` / `utm_source` / `utm_campaign`，会写入访问事件，并继续透传到结果页 query；例如 `/s/KWfD1W?channel=share&campaign=result-card` 会跳转到 `/result/{resultId}?sc=KWfD1W&channel=share&campaign=result-card`。
+- 结果页看到 `sc`、`channel=share` 或 `channel=shared-result` 时进入分享落地态：隐藏二次分享盒，保留“我也测一张”作为主要回流入口。
 - 无效短码写入 Redis 空值缓存 `shortlink:null:{shortCode}` 并跳转 `/not-found`。
 
 ## 7. 记录前端事件
@@ -225,12 +303,28 @@ v2.1 归因规则：
 - 后端会根据 User-Agent 自动写入 `device_type`。
 - v2.2 起，后台趋势会返回 `metricSource` 和 `aggregatedThroughDate`，用于说明日趋势来自实时事件还是日聚合表。
 
+部署边界：生产环境仍推荐前端和后端通过同源 Nginx 反代暴露 `/api/*` 与 `/s/*`，这是默认、最少浏览器兼容成本的上线方式。
+
+如果未来拆成独立 API 域名，后端已支持显式 CORS 白名单：
+
+```bash
+CORS_ALLOWED_ORIGINS=https://www.wuxingcard.cn,https://wuxingcard.cn
+CORS_MAX_AGE_SECONDS=3600
+```
+
+开启后，后端允许 `GET`、`POST`、`OPTIONS`，允许前端当前使用的 `Content-Type`、`X-Client-Id`、`X-Session-Id`、`X-Channel`、`X-Campaign`、`X-Admin-Token` 请求头，并暴露 `Content-Disposition` 与 `Location`。默认不配置 `CORS_ALLOWED_ORIGINS` 时不开放跨域，避免误把任意来源放进生产 API。`MvpFlowIntegrationTest` 已覆盖允许来源 preflight 通过、未配置来源 preflight 拒绝。
+
 ## 8. 管理后台总览
 
 ```http
-GET /api/admin/overview
+GET /api/admin/overview?includeSynthetic=false&forceRefresh=false
 X-Admin-Token: <admin-token>
 ```
+
+查询参数：
+
+- `includeSynthetic`：默认 `false`，排除 `channel=perf-test` 的测试流量；设为 `true` 时包含全量，适合压测和 smoke 复核。
+- `forceRefresh`：默认 `false`，命中后台 overview 短缓存；设为 `true` 时跳过读缓存并重新计算，适合上线 smoke 或刚写入样本后的验收检查。
 
 返回：
 
@@ -259,6 +353,14 @@ GET /api/admin/short-links?page=1&pageSize=20
 X-Admin-Token: <admin-token>
 ```
 
+支持的查询参数：
+
+- `page` / `pageSize`：页码和每页数量，`pageSize` 最大 100。
+- `keyword`：按短码、结果 ID、短链或星官关键词过滤，最多 64 个字符。
+- `startDate` / `endDate`：按短链创建时间过滤，格式为 `YYYY-MM-DD`。
+- `includeSynthetic`：默认 `false`，排除 `channel=perf-test` 的测试流量；压测复盘或 smoke 校验可设为 `true`。
+- `statSource`：可选 `local` 或 `external`。该筛选需要计算统计来源，最多扫描 500 条短链；超过上限会返回 400，提示缩小日期或关键词。显式筛选外部来源时，如果外部统计服务不可用，会返回 502，而不是静默显示为空或当成本地统计。
+
 返回短码、短链接、结果 ID、五行组合、星官、创建时间、PV、UV、UIP、统计来源、统计口径和最近访问时间。
 
 - `statSource`：`local` 表示五行项目本地统计，`external` 表示独立短链服务统计。
@@ -271,9 +373,45 @@ GET /api/admin/short-links/{shortCode}/visits?page=1&pageSize=20
 X-Admin-Token: <admin-token>
 ```
 
-返回单条短链访问日志，只展示 hash 后的匿名标识。
+支持的查询参数：
 
-## 11. 访问事件异步队列状态
+- `page` / `pageSize`：页码和每页数量，`pageSize` 最大 100。
+- `startDate` / `endDate`：按访问时间过滤，格式为 `YYYY-MM-DD`。
+- `includeSynthetic`：默认 `false`，排除 `channel=perf-test`；设为 `true` 时包含测试流量。
+- `statSource`：可选 `local` 或 `external`。不传时默认读取本地访问记录，且仅在 `includeSynthetic=true` 的兼容口径下优先尝试外部明细；传 `external` 时明确读取外部短链平台访问明细，外部不可用时返回空页，不回退成本地记录。
+
+返回单条短链访问日志，只展示 hash 后的匿名标识。`statSource` 控制明细来源，`includeSynthetic` 只控制是否排除测试流量，两者不要混用为同一口径。
+
+## 11. 短链接 CSV 导出
+
+```http
+GET /api/admin/short-links/export?keyword=KWfD1W&includeSynthetic=true
+X-Admin-Token: <admin-token>
+```
+
+支持的查询参数：
+
+- `keyword`：按短码、结果 ID、短链或星官关键词过滤。
+- `statSource`：按统计来源过滤，例如 `local` 或 `external`。
+- `startDate` / `endDate`：按短链创建时间过滤，格式为 `YYYY-MM-DD`。
+- `includeSynthetic`：默认 `false`，后台运营口径会排除 `channel=perf-test`；本地 smoke 和压测复盘需要设置为 `true`，这样刚生成的验证数据才会出现在导出结果中。
+
+响应：
+
+```http
+Content-Type: text/csv;charset=UTF-8
+Content-Disposition: attachment; filename="wuxing-short-links-2026-06-15.csv"
+```
+
+CSV 使用 UTF-8 BOM，表头为：
+
+```csv
+shortCode,resultId,shortUrl,elementCombo,starOfficerName,pv,uv,uip,statSource,metricSource,createdAt,lastVisitAt
+```
+
+该接口和 `/api/admin/short-links` 使用同一筛选口径，适合运营下载短链明细，也用于本地联调脚本确认后台 token、短链查询、统计口径和 CSV header 没有错配。
+
+## 12. 访问事件异步队列状态
 
 ```http
 GET /api/admin/visit-events/runtime
@@ -295,14 +433,26 @@ X-Admin-Token: <admin-token>
     "lastFlushAt": "2026-06-12T03:30:00",
     "lastBatchSize": 16,
     "batchWriteFailures": 0,
-    "workerAlive": true
+    "workerAlive": true,
+    "asyncMode": "local",
+    "rocketMqAvailable": false,
+    "rocketMqFallbackToLocal": true,
+    "rocketMqTopic": "wuxing-visit-event",
+    "rocketMqPublishedEvents": 0,
+    "rocketMqPublishFailures": 0,
+    "rocketMqFallbackEvents": 0,
+    "rocketMqShadowLocalEvents": 0,
+    "rocketMqConsumerEnabled": false,
+    "rocketMqConsumerPersistenceReady": false,
+    "healthStatus": "ok",
+    "healthMessage": "访问事件异步写入正常。"
   }
 }
 ```
 
-用于性能 smoke 和后台排查：确认短链访问事件队列是否积压、后台 writer 是否存活、是否持续排水，以及低延迟是否以丢弃过多低价值事件或批量写失败为代价。
+用于性能 smoke 和后台排查：确认短链访问事件队列是否积压、后台 writer 是否存活、是否持续排水，以及低延迟是否以丢弃过多低价值事件或批量写失败为代价。`totalFlushedEvents` 表示批量写成功或批量失败后单条降级写成功的累计数，不把最终失败的写入尝试算作成功。`healthStatus` 取值为 `ok`、`watch`、`danger`；`danger` 表示 writer 异常、写库失败、队列接近满载或 MQ 无回退等需要立即处理的状态。`asyncMode=rocketmq` 时，这组字段还会展示 MQ 发布、回退和 shadow 本地落库状态；生产启用 MQ consumer 前，推荐保持 `rocketMqConsumerEnabled=false`。即使配置了 `rocketMqConsumerEnabled=true`，只有 `rocketMqConsumerPersistenceReady=true` 时才会让 MQ consumer 接管落库，否则仍保持 shadow 本地写入。
 
-## 12. 手动刷新增长聚合
+## 13. 手动刷新增长聚合
 
 ```http
 POST /api/admin/analytics/aggregate?startDate=2026-06-10&endDate=2026-06-10
@@ -315,6 +465,7 @@ X-Admin-Token: <admin-token>
 - 单次最多聚合 31 天。
 - 重复聚合同一天会先删除旧快照再写入新快照，避免重复数据。
 - 生成 `site_daily_metric` 和 `short_link_daily_metric`。
+- 聚合成功后会推进 overview 缓存版本，让下一次 `/api/admin/overview` 读取直接使用新聚合口径。
 
 返回：
 

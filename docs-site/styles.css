@@ -567,6 +567,107 @@ h3 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.persona-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.persona-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-top: 5px solid var(--green);
+  border-radius: 14px;
+  background: var(--surface-strong);
+  padding: 20px;
+  box-shadow: 0 12px 26px rgb(42 54 47 / 7%);
+}
+
+.persona-card.water {
+  border-top-color: var(--blue);
+}
+
+.persona-card.wood {
+  border-top-color: var(--green);
+}
+
+.persona-card.fire {
+  border-top-color: var(--red);
+}
+
+.persona-card.earth {
+  border-top-color: var(--amber);
+}
+
+.persona-card.metal {
+  border-top-color: #63707a;
+}
+
+.persona-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.persona-head span {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: #f3faf6;
+  color: var(--green-dark);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.persona-head strong {
+  color: var(--ink);
+  font-size: 21px;
+  line-height: 1.25;
+}
+
+.persona-structure {
+  margin: 0;
+  color: var(--amber);
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-row span {
+  border: 1px solid #d9e4dd;
+  border-radius: 999px;
+  background: #f7fbf8;
+  color: var(--green-dark);
+  font-size: 13px;
+  font-weight: 850;
+  padding: 5px 9px;
+}
+
+.persona-card p {
+  margin: 0;
+  color: #41524c;
+}
+
+.persona-card small {
+  border-radius: 10px;
+  background: #f6f3ec;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.6;
+  padding: 10px;
+}
+
 .doc-actions {
   display: flex;
   flex-wrap: wrap;
@@ -767,6 +868,7 @@ h3 {
   .workflow-grid,
   .roadmap-grid,
   .experience-grid,
+  .persona-grid,
   .doc-grid,
   .preview-actions,
   .material-board,

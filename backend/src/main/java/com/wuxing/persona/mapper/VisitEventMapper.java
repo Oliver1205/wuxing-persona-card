@@ -58,6 +58,21 @@ public interface VisitEventMapper {
     long countAllBetween(@Param("startAt") LocalDateTime startAt,
                          @Param("endAt") LocalDateTime endAt);
 
+    @Select("""
+            <script>
+            SELECT COUNT(*) FROM visit_event
+            WHERE 1 = 1
+            <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+            <if test="excludedChannel != null and excludedChannel != ''">
+                AND (channel IS NULL OR channel != #{excludedChannel})
+            </if>
+            </script>
+            """)
+    long countAllBetweenExcludingChannel(@Param("startAt") LocalDateTime startAt,
+                                         @Param("endAt") LocalDateTime endAt,
+                                         @Param("excludedChannel") String excludedChannel);
+
     @Select("SELECT COUNT(DISTINCT client_id_hash) FROM visit_event WHERE client_id_hash IS NOT NULL")
     long countDistinctClient();
 
@@ -72,6 +87,22 @@ public interface VisitEventMapper {
             """)
     long countDistinctClientBetween(@Param("startAt") LocalDateTime startAt,
                                     @Param("endAt") LocalDateTime endAt);
+
+    @Select("""
+            <script>
+            SELECT COUNT(DISTINCT client_id_hash)
+            FROM visit_event
+            WHERE client_id_hash IS NOT NULL
+            <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+            <if test="excludedChannel != null and excludedChannel != ''">
+                AND (channel IS NULL OR channel != #{excludedChannel})
+            </if>
+            </script>
+            """)
+    long countDistinctClientBetweenExcludingChannel(@Param("startAt") LocalDateTime startAt,
+                                                    @Param("endAt") LocalDateTime endAt,
+                                                    @Param("excludedChannel") String excludedChannel);
 
     @Select("SELECT COUNT(DISTINCT ip_hash) FROM visit_event WHERE ip_hash IS NOT NULL")
     long countDistinctIp();
@@ -88,6 +119,22 @@ public interface VisitEventMapper {
     long countDistinctIpBetween(@Param("startAt") LocalDateTime startAt,
                                 @Param("endAt") LocalDateTime endAt);
 
+    @Select("""
+            <script>
+            SELECT COUNT(DISTINCT ip_hash)
+            FROM visit_event
+            WHERE ip_hash IS NOT NULL
+            <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+            <if test="excludedChannel != null and excludedChannel != ''">
+                AND (channel IS NULL OR channel != #{excludedChannel})
+            </if>
+            </script>
+            """)
+    long countDistinctIpBetweenExcludingChannel(@Param("startAt") LocalDateTime startAt,
+                                                @Param("endAt") LocalDateTime endAt,
+                                                @Param("excludedChannel") String excludedChannel);
+
     @Select("SELECT COUNT(*) FROM visit_event WHERE event_type = #{eventType}")
     long countByEventType(@Param("eventType") String eventType);
 
@@ -102,6 +149,22 @@ public interface VisitEventMapper {
     long countByEventTypeBetween(@Param("eventType") String eventType,
                                  @Param("startAt") LocalDateTime startAt,
                                  @Param("endAt") LocalDateTime endAt);
+
+    @Select("""
+            <script>
+            SELECT COUNT(*) FROM visit_event
+            WHERE event_type = #{eventType}
+            <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+            <if test="excludedChannel != null and excludedChannel != ''">
+                AND (channel IS NULL OR channel != #{excludedChannel})
+            </if>
+            </script>
+            """)
+    long countByEventTypeBetweenExcludingChannel(@Param("eventType") String eventType,
+                                                 @Param("startAt") LocalDateTime startAt,
+                                                 @Param("endAt") LocalDateTime endAt,
+                                                 @Param("excludedChannel") String excludedChannel);
 
     @Select("SELECT COUNT(*) FROM visit_event WHERE short_code = #{shortCode} AND event_type = 'SHORT_LINK_VISIT'")
     long countPvByShortCode(@Param("shortCode") String shortCode);
@@ -180,6 +243,32 @@ public interface VisitEventMapper {
                                                                   @Param("startAt") LocalDateTime startAt,
                                                                   @Param("endAt") LocalDateTime endAt);
 
+    @Select("""
+            <script>
+            SELECT short_code AS shortCode,
+                   COUNT(*) AS pv,
+                   COUNT(DISTINCT client_id_hash) AS uv,
+                   COUNT(DISTINCT ip_hash) AS uip
+            FROM visit_event
+            WHERE event_type = 'SHORT_LINK_VISIT'
+              AND short_code IN
+              <foreach collection="shortCodes" item="shortCode" open="(" separator="," close=")">
+                #{shortCode}
+              </foreach>
+            <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+            <if test="excludedChannel != null and excludedChannel != ''">
+                AND (channel IS NULL OR channel != #{excludedChannel})
+            </if>
+            GROUP BY short_code
+            </script>
+            """)
+    List<java.util.Map<String, Object>> listShortLinkStatsBetweenExcludingChannel(
+            @Param("shortCodes") List<String> shortCodes,
+            @Param("startAt") LocalDateTime startAt,
+            @Param("endAt") LocalDateTime endAt,
+            @Param("excludedChannel") String excludedChannel);
+
     @Select("SELECT COUNT(*) FROM visit_event WHERE short_code = #{shortCode} AND event_type = 'SHORT_LINK_VISIT'")
     long countByShortCode(@Param("shortCode") String shortCode);
 
@@ -195,6 +284,23 @@ public interface VisitEventMapper {
     long countByShortCodeBetween(@Param("shortCode") String shortCode,
                                  @Param("startAt") LocalDateTime startAt,
                                  @Param("endAt") LocalDateTime endAt);
+
+    @Select("""
+            <script>
+            SELECT COUNT(*)
+            FROM visit_event
+            WHERE short_code = #{shortCode} AND event_type = 'SHORT_LINK_VISIT'
+            <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+            <if test="excludedChannel != null and excludedChannel != ''">
+                AND (channel IS NULL OR channel != #{excludedChannel})
+            </if>
+            </script>
+            """)
+    long countByShortCodeBetweenExcludingChannel(@Param("shortCode") String shortCode,
+                                                 @Param("startAt") LocalDateTime startAt,
+                                                 @Param("endAt") LocalDateTime endAt,
+                                                 @Param("excludedChannel") String excludedChannel);
 
     @Select("""
             SELECT id, event_type AS eventType, page_path AS pagePath, result_id AS resultId,
@@ -234,6 +340,31 @@ public interface VisitEventMapper {
 
     @Select("""
             <script>
+            SELECT id, event_type AS eventType, page_path AS pagePath, result_id AS resultId,
+                   short_code AS shortCode, client_id_hash AS clientIdHash, ip_hash AS ipHash,
+                   session_id_hash AS sessionIdHash, user_agent_hash AS userAgentHash,
+                   channel, campaign, device_type AS deviceType, referer,
+                   event_date AS eventDate, created_at AS createdAt
+            FROM visit_event
+            WHERE short_code = #{shortCode} AND event_type = 'SHORT_LINK_VISIT'
+            <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+            <if test="excludedChannel != null and excludedChannel != ''">
+                AND (channel IS NULL OR channel != #{excludedChannel})
+            </if>
+            ORDER BY created_at DESC
+            LIMIT #{limit} OFFSET #{offset}
+            </script>
+            """)
+    List<VisitEventEntity> listByShortCodeBetweenExcludingChannel(@Param("shortCode") String shortCode,
+                                                                  @Param("startAt") LocalDateTime startAt,
+                                                                  @Param("endAt") LocalDateTime endAt,
+                                                                  @Param("offset") long offset,
+                                                                  @Param("limit") long limit,
+                                                                  @Param("excludedChannel") String excludedChannel);
+
+    @Select("""
+            <script>
             SELECT channel AS name, COUNT(*) AS count
             FROM visit_event
             WHERE channel IS NOT NULL AND channel != ''
@@ -250,6 +381,24 @@ public interface VisitEventMapper {
 
     @Select("""
             <script>
+            SELECT channel AS name, COUNT(*) AS count
+            FROM visit_event
+            WHERE channel IS NOT NULL AND channel != ''
+            <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+            <if test="excludedChannel != null and excludedChannel != ''">AND channel != #{excludedChannel}</if>
+            GROUP BY channel
+            ORDER BY count DESC, channel ASC
+            LIMIT #{limit}
+            </script>
+            """)
+    List<java.util.Map<String, Object>> listTopChannelsBetweenExcludingChannel(@Param("limit") int limit,
+                                                                               @Param("startAt") LocalDateTime startAt,
+                                                                               @Param("endAt") LocalDateTime endAt,
+                                                                               @Param("excludedChannel") String excludedChannel);
+
+    @Select("""
+            <script>
             SELECT campaign AS name, COUNT(*) AS count
             FROM visit_event
             WHERE campaign IS NOT NULL AND campaign != ''
@@ -263,6 +412,26 @@ public interface VisitEventMapper {
     List<java.util.Map<String, Object>> listTopCampaignsBetween(@Param("limit") int limit,
                                                                 @Param("startAt") LocalDateTime startAt,
                                                                 @Param("endAt") LocalDateTime endAt);
+
+    @Select("""
+            <script>
+            SELECT campaign AS name, COUNT(*) AS count
+            FROM visit_event
+            WHERE campaign IS NOT NULL AND campaign != ''
+            <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+            <if test="excludedChannel != null and excludedChannel != ''">
+                AND (channel IS NULL OR channel != #{excludedChannel})
+            </if>
+            GROUP BY campaign
+            ORDER BY count DESC, campaign ASC
+            LIMIT #{limit}
+            </script>
+            """)
+    List<java.util.Map<String, Object>> listTopCampaignsBetweenExcludingChannel(@Param("limit") int limit,
+                                                                                @Param("startAt") LocalDateTime startAt,
+                                                                                @Param("endAt") LocalDateTime endAt,
+                                                                                @Param("excludedChannel") String excludedChannel);
 
     @Select("""
             SELECT short_code AS shortCode,

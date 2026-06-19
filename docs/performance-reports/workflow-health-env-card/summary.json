@@ -1,0 +1,201 @@
+{
+  "runId": "workflow-health-env-card",
+  "baseUrl": "http://127.0.0.1:18082",
+  "environment": {
+    "gitSha": "e317d64",
+    "gitState": "dirty",
+    "javaVersion": "openjdk version 17.0.19 2026-04-21",
+    "pythonVersion": "Python 3.9.6",
+    "hostName": "linyuxiangdeMacBook-Air.local"
+  },
+  "startedAt": "2026-06-14T03:03:08",
+  "finishedAt": "2026-06-14T03:03:08",
+  "health": {
+    "code": 0,
+    "message": "success",
+    "data": {
+      "status": "UP",
+      "time": "2026-06-14T03:03:08.158042+08:00",
+      "service": "wuxing-persona-backend"
+    }
+  },
+  "questionsCount": 5,
+  "resultId": "R20260614030308213734526",
+  "shortCode": "tnQ9hz",
+  "workload": "health",
+  "syntheticChannel": "perf-test",
+  "syntheticCampaign": "performance-limit-test",
+  "allowPublicLoadTest": false,
+  "steps": [
+    1,
+    2
+  ],
+  "requestsPerStage": 12,
+  "stopP95Ms": 1200,
+  "stopErrorRate": 0.05,
+  "stopReason": "completed all stages",
+  "stages": [
+    {
+      "concurrency": 1,
+      "requests": 12,
+      "ok": 12,
+      "errors": 0,
+      "errorRate": 0.0,
+      "totalMs": 12,
+      "rps": 1000.0,
+      "avgMs": 0.08,
+      "p50Ms": 0,
+      "p95Ms": 1,
+      "p99Ms": 1,
+      "runtimeBefore": {
+        "queueSize": 0,
+        "queueCapacity": 2048,
+        "drainLimit": 64,
+        "droppedAsyncEvents": 0,
+        "totalFlushedEvents": 0,
+        "lastFlushAt": null,
+        "lastBatchSize": 0,
+        "batchWriteFailures": 0,
+        "workerAlive": true,
+        "asyncMode": "local",
+        "rocketMqAvailable": false,
+        "rocketMqFallbackToLocal": true,
+        "rocketMqTopic": "wuxing-visit-event",
+        "rocketMqPublishedEvents": 0,
+        "rocketMqPublishFailures": 0,
+        "rocketMqFallbackEvents": 0,
+        "rocketMqShadowLocalEvents": 0,
+        "rocketMqConsumerEnabled": false,
+        "rocketMqConsumerPersistenceReady": false,
+        "healthStatus": "ok",
+        "healthMessage": "访问事件异步写入正常。"
+      },
+      "runtimeAfter": {
+        "queueSize": 0,
+        "queueCapacity": 2048,
+        "drainLimit": 64,
+        "droppedAsyncEvents": 0,
+        "totalFlushedEvents": 0,
+        "lastFlushAt": null,
+        "lastBatchSize": 0,
+        "batchWriteFailures": 0,
+        "workerAlive": true,
+        "asyncMode": "local",
+        "rocketMqAvailable": false,
+        "rocketMqFallbackToLocal": true,
+        "rocketMqTopic": "wuxing-visit-event",
+        "rocketMqPublishedEvents": 0,
+        "rocketMqPublishFailures": 0,
+        "rocketMqFallbackEvents": 0,
+        "rocketMqShadowLocalEvents": 0,
+        "rocketMqConsumerEnabled": false,
+        "rocketMqConsumerPersistenceReady": false,
+        "healthStatus": "ok",
+        "healthMessage": "访问事件异步写入正常。"
+      },
+      "runtimeDelta": {
+        "totalFlushedEvents": 0,
+        "droppedAsyncEvents": 0,
+        "batchWriteFailures": 0,
+        "rocketMqPublishedEvents": 0,
+        "rocketMqFallbackEvents": 0,
+        "rocketMqShadowLocalEvents": 0
+      },
+      "byKind": {
+        "health": {
+          "requests": 12,
+          "ok": 12,
+          "errors": 0,
+          "avgMs": 0.08,
+          "p50Ms": 0,
+          "p95Ms": 1,
+          "p99Ms": 1,
+          "statusCounts": {
+            "200": 12
+          }
+        }
+      }
+    },
+    {
+      "concurrency": 2,
+      "requests": 12,
+      "ok": 12,
+      "errors": 0,
+      "errorRate": 0.0,
+      "totalMs": 7,
+      "rps": 1714.29,
+      "avgMs": 0.5,
+      "p50Ms": 0,
+      "p95Ms": 1,
+      "p99Ms": 1,
+      "runtimeBefore": {
+        "queueSize": 0,
+        "queueCapacity": 2048,
+        "drainLimit": 64,
+        "droppedAsyncEvents": 0,
+        "totalFlushedEvents": 0,
+        "lastFlushAt": null,
+        "lastBatchSize": 0,
+        "batchWriteFailures": 0,
+        "workerAlive": true,
+        "asyncMode": "local",
+        "rocketMqAvailable": false,
+        "rocketMqFallbackToLocal": true,
+        "rocketMqTopic": "wuxing-visit-event",
+        "rocketMqPublishedEvents": 0,
+        "rocketMqPublishFailures": 0,
+        "rocketMqFallbackEvents": 0,
+        "rocketMqShadowLocalEvents": 0,
+        "rocketMqConsumerEnabled": false,
+        "rocketMqConsumerPersistenceReady": false,
+        "healthStatus": "ok",
+        "healthMessage": "访问事件异步写入正常。"
+      },
+      "runtimeAfter": {
+        "queueSize": 0,
+        "queueCapacity": 2048,
+        "drainLimit": 64,
+        "droppedAsyncEvents": 0,
+        "totalFlushedEvents": 0,
+        "lastFlushAt": null,
+        "lastBatchSize": 0,
+        "batchWriteFailures": 0,
+        "workerAlive": true,
+        "asyncMode": "local",
+        "rocketMqAvailable": false,
+        "rocketMqFallbackToLocal": true,
+        "rocketMqTopic": "wuxing-visit-event",
+        "rocketMqPublishedEvents": 0,
+        "rocketMqPublishFailures": 0,
+        "rocketMqFallbackEvents": 0,
+        "rocketMqShadowLocalEvents": 0,
+        "rocketMqConsumerEnabled": false,
+        "rocketMqConsumerPersistenceReady": false,
+        "healthStatus": "ok",
+        "healthMessage": "访问事件异步写入正常。"
+      },
+      "runtimeDelta": {
+        "totalFlushedEvents": 0,
+        "droppedAsyncEvents": 0,
+        "batchWriteFailures": 0,
+        "rocketMqPublishedEvents": 0,
+        "rocketMqFallbackEvents": 0,
+        "rocketMqShadowLocalEvents": 0
+      },
+      "byKind": {
+        "health": {
+          "requests": 12,
+          "ok": 12,
+          "errors": 0,
+          "avgMs": 0.5,
+          "p50Ms": 0,
+          "p95Ms": 1,
+          "p99Ms": 1,
+          "statusCounts": {
+            "200": 12
+          }
+        }
+      }
+    }
+  ]
+}

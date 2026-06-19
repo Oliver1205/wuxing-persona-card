@@ -3,6 +3,7 @@ package com.wuxing.persona.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -15,10 +16,12 @@ import com.wuxing.persona.config.AppProperties;
 import com.wuxing.persona.entity.VisitEventEntity;
 import com.wuxing.persona.enums.EventType;
 import com.wuxing.persona.mapper.VisitEventMapper;
+import com.wuxing.persona.vo.VisitEventRuntimeVO;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,7 +45,7 @@ class VisitEventServiceTest {
     void setUp() {
         AppProperties appProperties = new AppProperties();
         appProperties.setHashSalt("test-salt");
-        service = new VisitEventService(visitEventMapper, appProperties);
+        service = localService(appProperties);
     }
 
     @AfterEach
@@ -92,6 +95,100 @@ class VisitEventServiceTest {
         assertEquals(1, service.runtime().getTotalFlushedEvents());
         assertEquals(1, service.runtime().getLastBatchSize());
         assertNotNull(service.runtime().getLastFlushAt());
+        assertEquals("ok", service.runtime().getHealthStatus());
+    }
+
+    @Test
+    void recordAsyncShouldPublishToRocketMqWhenModeEnabledAndPublisherAvailable() {
+        stubRequest("/s/abc123?channel=share");
+        AppProperties appProperties = rocketMqProperties(true);
+        CapturingRocketMqPublisher publisher = new CapturingRocketMqPublisher(true);
+        VisitEventService customService = new VisitEventService(visitEventMapper, appProperties, publisher);
+
+        try {
+            customService.recordAsync(EventType.SHORT_LINK_VISIT, "/s/abc123", "R1", "abc123", "client-a", request);
+
+            VisitEventRuntimeVO runtime = customService.runtime();
+            assertEquals("rocketmq", runtime.getAsyncMode());
+            assertTrue(runtime.isRocketMqAvailable());
+            assertEquals(1, runtime.getRocketMqPublishedEvents());
+            assertEquals(0, runtime.getRocketMqPublishFailures());
+            assertEquals(1, runtime.getRocketMqShadowLocalEvents());
+            assertEquals("watch", runtime.getHealthStatus());
+            assertEquals("abc123", publisher.lastEvent().getShortCode());
+            assertEquals("wuxing-test-event", runtime.getRocketMqTopic());
+            ArgumentCaptor<List<VisitEventEntity>> captor = ArgumentCaptor.forClass(List.class);
+            verify(visitEventMapper, timeout(1000)).insertBatch(captor.capture());
+            assertEquals("abc123", captor.getValue().get(0).getShortCode());
+        } finally {
+            customService.shutdown();
+        }
+    }
+
+    @Test
+    void recordAsyncShouldKeepShadowLocalQueueWhenConsumerSwitchIsEnabledButPersistenceIsNotReady() {
+        stubRequest("/s/abc123?channel=share");
+        AppProperties appProperties = rocketMqProperties(true);
+        appProperties.getVisitEvent().getRocketmq().setConsumerEnabled(true);
+        CapturingRocketMqPublisher publisher = new CapturingRocketMqPublisher(true);
+        VisitEventService customService = new VisitEventService(visitEventMapper, appProperties, publisher);
+
+        try {
+            customService.recordAsync(EventType.SHORT_LINK_VISIT, "/s/abc123", "R1", "abc123", "client-a", request);
+
+            ArgumentCaptor<List<VisitEventEntity>> captor = ArgumentCaptor.forClass(List.class);
+            verify(visitEventMapper, timeout(1000)).insertBatch(captor.capture());
+            VisitEventRuntimeVO runtime = customService.runtime();
+            assertEquals(1, runtime.getRocketMqPublishedEvents());
+            assertEquals(1, runtime.getRocketMqShadowLocalEvents());
+            assertTrue(runtime.isRocketMqConsumerEnabled());
+            assertEquals(false, runtime.isRocketMqConsumerPersistenceReady());
+            assertEquals("watch", runtime.getHealthStatus());
+        } finally {
+            customService.shutdown();
+        }
+    }
+
+    @Test
+    void recordAsyncShouldFallbackToLocalQueueWhenRocketMqUnavailable() {
+        stubRequest("/s/abc123?channel=share");
+        AppProperties appProperties = rocketMqProperties(true);
+        CapturingRocketMqPublisher publisher = new CapturingRocketMqPublisher(false);
+        VisitEventService customService = new VisitEventService(visitEventMapper, appProperties, publisher);
+
+        try {
+            customService.recordAsync(EventType.SHORT_LINK_VISIT, "/s/abc123", "R1", "abc123", "client-a", request);
+
+            ArgumentCaptor<List<VisitEventEntity>> captor = ArgumentCaptor.forClass(List.class);
+            verify(visitEventMapper, timeout(1000)).insertBatch(captor.capture());
+            assertEquals("SHORT_LINK_VISIT", captor.getValue().get(0).getEventType());
+            assertEquals(1, customService.runtime().getRocketMqPublishFailures());
+            assertEquals(1, customService.runtime().getRocketMqFallbackEvents());
+            assertEquals(1, customService.runtime().getTotalFlushedEvents());
+            assertEquals("watch", customService.runtime().getHealthStatus());
+        } finally {
+            customService.shutdown();
+        }
+    }
+
+    @Test
+    void recordAsyncShouldDropWhenRocketMqUnavailableAndFallbackDisabled() {
+        stubRequest("/s/abc123?channel=share");
+        AppProperties appProperties = rocketMqProperties(false);
+        VisitEventService customService = new VisitEventService(
+                visitEventMapper, appProperties, new CapturingRocketMqPublisher(false));
+
+        try {
+            customService.recordAsync(EventType.SHORT_LINK_VISIT, "/s/abc123", "R1", "abc123", "client-a", request);
+
+            VisitEventRuntimeVO runtime = customService.runtime();
+            assertEquals(1, runtime.getRocketMqPublishFailures());
+            assertEquals(1, runtime.getDroppedAsyncEvents());
+            assertEquals(0, runtime.getTotalFlushedEvents());
+            assertEquals("danger", runtime.getHealthStatus());
+        } finally {
+            customService.shutdown();
+        }
     }
 
     @Test
@@ -118,6 +215,22 @@ class VisitEventServiceTest {
         verify(visitEventMapper, timeout(1000).atLeastOnce()).insert(any(VisitEventEntity.class));
         assertEquals(1, service.runtime().getBatchWriteFailures());
         assertEquals(1, service.runtime().getTotalFlushedEvents());
+        assertEquals("danger", service.runtime().getHealthStatus());
+    }
+
+    @Test
+    void recordAsyncShouldNotCountFlushWhenBatchAndFallbackInsertFail() {
+        stubRequest("/s/abc123?channel=share");
+        doThrow(new RuntimeException("batch busy")).when(visitEventMapper).insertBatch(any());
+        doThrow(new RuntimeException("single busy")).when(visitEventMapper).insert(any(VisitEventEntity.class));
+
+        service.recordAsync(EventType.SHORT_LINK_VISIT, "/s/abc123", "R1", "abc123", "client-a", request);
+
+        verify(visitEventMapper, timeout(1000).atLeastOnce()).insertBatch(any());
+        verify(visitEventMapper, timeout(1000).atLeastOnce()).insert(any(VisitEventEntity.class));
+        assertEquals(1, service.runtime().getBatchWriteFailures());
+        assertEquals(0, service.runtime().getTotalFlushedEvents());
+        assertEquals("danger", service.runtime().getHealthStatus());
     }
 
     @Test
@@ -128,14 +241,22 @@ class VisitEventServiceTest {
         visitEventProperties.setAsyncDrainLimit(3);
         appProperties.setVisitEvent(visitEventProperties);
 
-        VisitEventService customService = new VisitEventService(visitEventMapper, appProperties);
+        VisitEventService customService = localService(appProperties);
 
         try {
             assertEquals(7, customService.runtime().getQueueCapacity());
             assertEquals(3, customService.runtime().getDrainLimit());
+            assertEquals("ok", customService.runtime().getHealthStatus());
         } finally {
             customService.shutdown();
         }
+    }
+
+    @Test
+    void visitEventAsyncModeShouldRejectUnknownValue() {
+        AppProperties.VisitEventProperties visitEventProperties = new AppProperties.VisitEventProperties();
+
+        assertThrows(IllegalArgumentException.class, () -> visitEventProperties.setAsyncMode("rocket-mq"));
     }
 
     @Test
@@ -153,7 +274,7 @@ class VisitEventServiceTest {
             return 1;
         });
         stubRequest("/s/abc123");
-        VisitEventService customService = new VisitEventService(visitEventMapper, appProperties);
+        VisitEventService customService = localService(appProperties);
 
         try {
             customService.recordAsync(EventType.SHORT_LINK_VISIT, "/s/abc123", "R1", "abc123", "client-a", request);
@@ -165,6 +286,7 @@ class VisitEventServiceTest {
             assertEquals(1, customService.runtime().getQueueSize());
             assertEquals(1, customService.runtime().getDroppedAsyncEvents());
             assertTrue(customService.runtime().isWorkerAlive());
+            assertEquals("danger", customService.runtime().getHealthStatus());
         } finally {
             releaseWorker.countDown();
             customService.shutdown();
@@ -193,9 +315,51 @@ class VisitEventServiceTest {
         });
     }
 
+    private AppProperties rocketMqProperties(boolean fallbackToLocal) {
+        AppProperties appProperties = new AppProperties();
+        appProperties.setHashSalt("test-salt");
+        AppProperties.VisitEventProperties visitEventProperties = new AppProperties.VisitEventProperties();
+        visitEventProperties.setAsyncMode("rocketmq");
+        visitEventProperties.getRocketmq().setTopic("wuxing-test-event");
+        visitEventProperties.getRocketmq().setFallbackToLocal(fallbackToLocal);
+        appProperties.setVisitEvent(visitEventProperties);
+        return appProperties;
+    }
+
+    private VisitEventService localService(AppProperties appProperties) {
+        return new VisitEventService(visitEventMapper, appProperties, new DisabledVisitEventRocketMqPublisher());
+    }
+
     private VisitEventEntity capturedEntity() {
         ArgumentCaptor<VisitEventEntity> captor = ArgumentCaptor.forClass(VisitEventEntity.class);
         verify(visitEventMapper).insert(captor.capture());
         return captor.getValue();
+    }
+
+    private static class CapturingRocketMqPublisher implements VisitEventRocketMqPublisher {
+
+        private final boolean available;
+        private final AtomicReference<VisitEventEntity> lastEvent = new AtomicReference<>();
+
+        private CapturingRocketMqPublisher(boolean available) {
+            this.available = available;
+        }
+
+        @Override
+        public boolean isAvailable() {
+            return available;
+        }
+
+        @Override
+        public void publish(VisitEventEntity entity) {
+            if (!available) {
+                throw new IllegalStateException("publisher unavailable");
+            }
+            lastEvent.set(entity);
+        }
+
+        private VisitEventEntity lastEvent() {
+            return lastEvent.get();
+        }
     }
 }

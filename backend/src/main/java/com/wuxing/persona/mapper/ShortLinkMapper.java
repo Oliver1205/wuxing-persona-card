@@ -79,6 +79,31 @@ public interface ShortLinkMapper {
                                  @Param("keyword") String keyword);
 
     @Select("""
+            <script>
+            SELECT COUNT(*) FROM short_link sl
+            WHERE sl.status = 1
+            <if test="startAt != null">AND sl.created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND sl.created_at &lt; #{endAt}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (sl.short_code LIKE CONCAT('%', #{keyword}, '%')
+                     OR sl.result_id LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="excludedChannel != null and excludedChannel != ''">
+                AND NOT EXISTS (
+                    SELECT 1 FROM visit_event ve
+                    WHERE ve.result_id = sl.result_id
+                      AND ve.event_type = 'SHORT_LINK_CREATED'
+                      AND ve.channel = #{excludedChannel}
+                )
+            </if>
+            </script>
+            """)
+    long countAllBetweenFilteredExcludingChannel(@Param("startAt") LocalDateTime startAt,
+                                                 @Param("endAt") LocalDateTime endAt,
+                                                 @Param("keyword") String keyword,
+                                                 @Param("excludedChannel") String excludedChannel);
+
+    @Select("""
             SELECT id, short_code AS shortCode, result_id AS resultId, original_path AS originalPath,
                    short_url AS shortUrl, pv_count AS pvCount, uv_count AS uvCount, uip_count AS uipCount,
                    last_visit_at AS lastVisitAt, status, created_at AS createdAt, updated_at AS updatedAt
@@ -129,6 +154,38 @@ public interface ShortLinkMapper {
                                                   @Param("startAt") LocalDateTime startAt,
                                                   @Param("endAt") LocalDateTime endAt,
                                                   @Param("keyword") String keyword);
+
+    @Select("""
+            <script>
+            SELECT id, short_code AS shortCode, result_id AS resultId, original_path AS originalPath,
+                   short_url AS shortUrl, pv_count AS pvCount, uv_count AS uvCount, uip_count AS uipCount,
+                   last_visit_at AS lastVisitAt, status, created_at AS createdAt, updated_at AS updatedAt
+            FROM short_link sl
+            WHERE sl.status = 1
+            <if test="startAt != null">AND sl.created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND sl.created_at &lt; #{endAt}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (sl.short_code LIKE CONCAT('%', #{keyword}, '%')
+                     OR sl.result_id LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="excludedChannel != null and excludedChannel != ''">
+                AND NOT EXISTS (
+                    SELECT 1 FROM visit_event ve
+                    WHERE ve.result_id = sl.result_id
+                      AND ve.event_type = 'SHORT_LINK_CREATED'
+                      AND ve.channel = #{excludedChannel}
+                )
+            </if>
+            ORDER BY sl.created_at DESC
+            LIMIT #{limit} OFFSET #{offset}
+            </script>
+            """)
+    List<ShortLinkEntity> listPageBetweenFilteredExcludingChannel(@Param("offset") long offset,
+                                                                  @Param("limit") long limit,
+                                                                  @Param("startAt") LocalDateTime startAt,
+                                                                  @Param("endAt") LocalDateTime endAt,
+                                                                  @Param("keyword") String keyword,
+                                                                  @Param("excludedChannel") String excludedChannel);
 
     @Update("""
             UPDATE short_link

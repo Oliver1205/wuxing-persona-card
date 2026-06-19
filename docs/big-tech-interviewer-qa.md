@@ -17,7 +17,7 @@
 仓库证据：
 
 - `backend/src/main/java/com/wuxing/persona/controller/ShortLinkController.java`
-- `backend/src/main/java/com/wuxing/persona/service/InternalShortLinkProvider.java`
+- `backend/src/main/java/com/wuxing/persona/service/shortlink/InternalShortLinkProvider.java`
 - `backend/src/main/java/com/wuxing/persona/mapper/ShortLinkMapper.java`
 
 回答要点：
@@ -33,28 +33,31 @@
 - 如果 Redis 命中后仍需要补充 DB 实体字段，后续还可以继续把跳转所需最小数据缓存成完整快照。
 - 真正高并发还需要线上压测、告警、限流阈值和容量评估。
 
-## 2. 异步访问事件为什么不用 MQ？
+## 2. 异步访问事件为什么先做 MQ Shadow，而不是直接接管主链路？
 
-面试官在考：你是否理解“异步化”和“引入中间件”的区别。
+面试官在考：你是否理解“异步化”“引入中间件”和“让中间件成为事实来源”的区别。
 
 仓库证据：
 
 - `backend/src/main/java/com/wuxing/persona/service/VisitEventService.java`
+- `backend/src/main/java/com/wuxing/persona/service/VisitEventRocketMqPublisher.java`
 - `backend/src/test/java/com/wuxing/persona/service/VisitEventServiceTest.java`
-- `backend/src/test/java/com/wuxing/persona/service/shortlink/InternalShortLinkProviderTest.java`
+- `docs/rocketmq-visit-event-design.md`
 
 回答要点：
 
 - 短链访问事件是统计事实来源，但不应该阻塞用户跳转。
 - 当前采用有界内存队列和后台 daemon worker，把短链访问事件从请求线程挪出。
-- 队列满时会记录 warn 并丢弃事件，主链路继续返回 302。
-- 这适合单机 MVP 和作品集阶段，因为运维复杂度低，代码证据清楚。
+- 新增的 RocketMQ 模式不是立即替换主链路，而是先 shadow 发布：MQ 发一份，本地队列仍负责落库。
+- 即使配置了 `consumerEnabled=true`，只有 publisher 明确声明 consumer 落库已就绪，系统才会跳过本地 shadow 写入。
+- 这样可以先观察 MQ 发布失败、回退和队列压力，再决定是否让 MQ 成为主链路。
 
 边界要主动说：
 
 - 进程重启可能丢失未刷入数据库的队列事件。
-- 没有消息重试、死信队列和跨实例消费协调。
-- 如果流量继续上升，下一步应该用 MQ 或日志管道承接事件，再批量落库。
+- 当前还没有生产级 RocketMQ producer、consumer、死信队列和跨实例消费协调。
+- 没有 `event_id` 幂等前，不能让 MQ 至少一次投递直接抬高 PV。
+- 统计数据是最终一致的运营数据，核心业务结果生成不能依赖这条异步链路。
 
 ## 3. 后台统计怎么避免主库被运营刷新打爆？
 
@@ -69,7 +72,7 @@
 回答要点：
 
 - 后台总览不是金融交易，不需要每一次刷新都强实时。
-- overview 可以用 45 秒 Redis 短缓存，减少运营反复刷新造成的重复聚合。
+- overview 使用 45 秒 Redis 短缓存，减少运营反复刷新造成的重复聚合；手动日聚合成功后通过缓存版本号切换到新 overview key，不需要等旧缓存自然过期。
 - 趋势查询限制日期范围，历史日期优先读 `site_daily_metric` 和 `short_link_daily_metric`。
 - 短链列表按 page 拉短链，再批量补结果信息和统计，避免一页触发 N+1 查询。
 
@@ -79,14 +82,38 @@
 - 日聚合当前主要靠手动或测试链路验证，生产阶段应补定时任务和补偿机制。
 - 缓存只能削峰，不能替代索引、归档和慢查询治理。
 
+## 3.1 数据中台这些指标是真实用户数据吗？
+
+面试官在考：你是否会把演示数据、功能验证数据、压测数据和真实运营结论混在一起讲。
+
+仓库证据：
+
+- `frontend/src/pages/AdminDashboard.vue`
+- `backend/src/main/java/com/wuxing/persona/vo/AdminOverviewVO.java`
+- `docs/admin-metric-dictionary.md`
+- `docs/synthetic-traffic-isolation-design.md`
+
+回答要点：
+
+- 当前数据中台主要服务本地验证、功能验证、压测复盘和后续真实运营观察。
+- `shareActions` 只代表用户触发复制短链、保存分享图或系统分享这些可观测动作，不等于完整站外传播。
+- 默认视图按 `visit_event.channel=perf-test` 排除正确打标的测试流量，并在 overview 里返回 `syntheticIsolationLevel=event_channel`。
+- 真实用户结论需要上线后的自然流量、渠道标记、用户访谈和更长时间窗口，不应该只靠本地样本下结论。
+
+边界要主动说：
+
+- 当前测试流量隔离是事件查询层隔离，不是 `user_result` / `short_link` 实体层强隔离。
+- 如果测试流量没有正确打 `perf-test`，默认视图也无法自动识别。
+- 浏览器权限失败、用户截图转发、手动复制地址栏等行为可能绕过分享埋点。
+
 ## 4. external stats 缓存解决什么？为什么不是 Redis？
 
 面试官在考：你是否能解释一个看似小优化背后的成本收益。
 
 仓库证据：
 
-- `backend/src/main/java/com/wuxing/persona/service/ExternalShortLinkStatsAdapter.java`
-- `backend/src/test/java/com/wuxing/persona/service/ExternalShortLinkStatsAdapterTest.java`
+- `backend/src/main/java/com/wuxing/persona/service/shortlink/ExternalShortLinkStatsAdapter.java`
+- `backend/src/test/java/com/wuxing/persona/service/shortlink/ExternalShortLinkStatsAdapterTest.java`
 - `docs/external-shortlink-integration-guide.md`
 
 回答要点：
@@ -141,6 +168,8 @@
 - `visit_event` 是后台统计的事实表，日期范围、事件类型、shortCode、clientIdHash、ipHash 都会影响查询。
 - `short_link` 列表按状态和创建时间分页，所以需要围绕 `status + created_at` 设计索引。
 - 日聚合表承担历史趋势和短链历史统计，避免每次都扫明细。
+- 默认视图排除压测流量时，`user_result` / `short_link` 需要通过创建事件反查，所以补了 `result_id + event_type + channel` 组合索引。
+- 短链列表的 PV/UV/UIP 批量统计围绕 `event_type + short_code + created_at + channel` 设计，避免每条短链单独查一次。
 - 查询优化不是只看单条 SQL，而是看页面一次刷新会触发多少次数据库往返。
 
 边界要主动说：
@@ -247,22 +276,26 @@
 
 仓库证据：
 
-- `scripts/performance-smoke-test.sh`
-- `scripts/quality-check.sh`
-- `docs/quality-scorecard.md`
-- `docs/eight-hour-completion-audit.md`
+- `scripts/performance-limit-test.sh`
+- `docs/performance-visual-brief.md`
+- `docs/performance-reports/README.md`
+- `docs/performance-load-test-record-20260614.md`
 
 回答要点：
 
-- 当前有性能 smoke，用真实创建结果、短链访问和后台 overview 读取观察是否明显退化。
-- 这属于回归检查，不是生产压测报告。
-- 面试中可以讲优化思路、代码证据和本地 smoke 结果，但不要宣称已验证某个生产 QPS。
+- 当前完成的是本地 `Spring Boot + H2 + local async queue` 的方法验证，不是生产 QPS 承诺。
+- 本地历史报告显示：配置并发阶梯 `512`、`256` 请求样本下 P95 为 `406ms`，错误率和队列丢弃为 `0`；配置并发阶梯 `768` 时 P95 到 `1769ms` 后停止。
+- 因为 health、shortlink、result、admin 同时变慢，且错误率和异步丢弃仍为 `0`，当前判断更像本地整体运行环境或线程/查询响应边界。
+- 当前代码又补了一组小阶梯回归证据：mixed 1-32 最高 P95 `104ms`，admin 1-64 最高 P95 `216ms`，result 1-64 最高 P95 `112ms`，shortlink 1-64 最高 P95 `185ms`，错误率、事件丢弃和批量写失败均为 `0`。这组数据用于证明“改动后没有明显退化”，不是用来宣称线上容量。
+- 新版脚本已经补环境卡片、`perf-test` 标记、`RUN_ID` / effective campaign 批次追踪、短链 `Location` 校验和 runtime 停止门禁；下一步要在 `Nginx + Spring Boot + MySQL + Redis + 公网链路` 重测。
+- 压测前置门禁现在会先调用 `/api/readiness`，它的 `scope=core_schema`，只说明结果、短链、访问事件和日聚合核心表可用；Redis、RocketMQ、外部短链服务和全链路写入能力还要看各自 runtime 与 smoke 证据。
+- 回答时把工具分层：readiness 是依赖前置检查，performance smoke 是低成本回归门，performance limit 是阶梯探测报告；这三者都不是单独的生产容量结论。
 
 边界要主动说：
 
 - 生产 QPS 需要固定机器规格、数据规模、并发模型、压测工具、指标和报告。
-- 后续可用 k6、wrk 或 Gatling 做分层压测：短链跳转、结果查询、事件上报、后台统计分开测。
-- 压测之后还要看 CPU、内存、连接池、慢 SQL、Redis 命中率和错误率。
+- 公网压测必须有备案/授权窗口、最大并发上限、冷却等待、Nginx 限流预期和回滚动作。
+- 压测之后还要看 CPU、内存、GC、连接池、慢 SQL、Redis 命中率、Nginx upstream time、错误率和访问事件 runtime。
 
 ## 防翻车三句话
 

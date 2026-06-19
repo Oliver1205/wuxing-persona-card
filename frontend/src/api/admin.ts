@@ -1,4 +1,4 @@
-import { request } from './request';
+import { apiUrl, request } from './request';
 import type {
   AdminOverview,
   AnalyticsAggregation,
@@ -6,11 +6,17 @@ import type {
   PageResult,
   ShortLinkListItem,
   ShortLinkVisit,
+  VisitEventRuntime,
 } from './types';
 
 export interface AdminDateFilter {
   startDate?: string;
   endDate?: string;
+  includeSynthetic?: boolean;
+}
+
+export interface AdminOverviewFilter extends AdminDateFilter {
+  forceRefresh?: boolean;
 }
 
 export interface AdminShortLinkFilter extends AdminDateFilter {
@@ -18,7 +24,11 @@ export interface AdminShortLinkFilter extends AdminDateFilter {
   statSource?: 'local' | 'external' | '';
 }
 
-export function fetchAdminOverview(token: string, filter: AdminDateFilter = {}) {
+export interface AdminShortLinkVisitFilter extends AdminDateFilter {
+  statSource?: 'local' | 'external' | '';
+}
+
+export function fetchAdminOverview(token: string, filter: AdminOverviewFilter = {}) {
   return request<AdminOverview>(`/api/admin/overview${toQuery(filter)}`, { adminToken: token });
 }
 
@@ -35,7 +45,7 @@ export function fetchAdminShortLinks(token: string, page = 1, pageSize = 20, fil
 }
 
 export async function exportAdminShortLinks(token: string, filter: AdminShortLinkFilter = {}) {
-  const response = await fetch(`/api/admin/short-links/export${toShortLinkQuery(filter)}`, {
+  const response = await fetch(apiUrl(`/api/admin/short-links/export${toShortLinkQuery(filter)}`), {
     headers: {
       'X-Admin-Token': token,
     },
@@ -54,6 +64,10 @@ export function fetchExternalShortLinkRuntime(token: string, probe = false) {
   );
 }
 
+export function fetchVisitEventRuntime(token: string) {
+  return request<VisitEventRuntime>('/api/admin/visit-events/runtime', { adminToken: token });
+}
+
 export function aggregateAdminAnalytics(token: string, filter: AdminDateFilter = {}) {
   return request<AnalyticsAggregation>(
     `/api/admin/analytics/aggregate${toQuery(filter)}`,
@@ -66,22 +80,28 @@ export function fetchShortLinkVisits(
   shortCode: string,
   page = 1,
   pageSize = 20,
-  filter: AdminDateFilter = {},
+  filter: AdminShortLinkVisitFilter = {},
 ) {
   const params = new URLSearchParams({
     page: String(page),
     pageSize: String(pageSize),
   });
   appendDateFilter(params, filter);
+  if (filter.statSource) {
+    params.set('statSource', filter.statSource);
+  }
   return request<PageResult<ShortLinkVisit>>(
     `/api/admin/short-links/${encodeURIComponent(shortCode)}/visits?${params.toString()}`,
     { adminToken: token },
   );
 }
 
-function toQuery(filter: AdminDateFilter) {
+function toQuery(filter: AdminOverviewFilter) {
   const params = new URLSearchParams();
   appendDateFilter(params, filter);
+  if (filter.forceRefresh) {
+    params.set('forceRefresh', 'true');
+  }
   const query = params.toString();
   return query ? `?${query}` : '';
 }
@@ -109,5 +129,8 @@ function appendDateFilter(params: URLSearchParams, filter: AdminDateFilter) {
   }
   if (filter.endDate) {
     params.set('endDate', filter.endDate);
+  }
+  if (filter.includeSynthetic) {
+    params.set('includeSynthetic', 'true');
   }
 }

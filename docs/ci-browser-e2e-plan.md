@@ -2,7 +2,7 @@
 
 记录日期：2026-06-12
 
-本文档沉淀移动端 E2E 与 showcase 截图接入 GitHub Actions 的方案。当前本地已验证 YAML 语法和项目质量门禁，但推送 `.github/workflows/quality-gate.yml` 时被 GitHub 拒绝：当前凭据缺少 `workflow` scope，不能创建或更新 workflow 文件。
+本文档沉淀移动端 E2E 与 showcase 截图接入 GitHub Actions 的方案。当前仓库的 `.github/workflows/quality-gate.yml` 已包含 `browser-e2e` job；如果后续推送 workflow 文件时被 GitHub 拒绝，通常是当前凭据缺少 `workflow` scope，需要换用具备该 scope 的 token 或在 GitHub 网页端手动提交 workflow 变更。
 
 ## 1. 接入目标
 
@@ -11,15 +11,16 @@
 - 安装 Playwright Chromium。
 - 运行 `scripts/mobile-e2e.sh`，覆盖移动端主链路、短链回流和后台指标。
 - 运行 `scripts/capture-showcase-screenshots.sh`，生成 iPhone SE、安卓宽屏和桌面后台截图。
-- 上传后端日志、前端日志和 showcase 截图 artifact，方便失败排查和作品集归档。
+- 上传后端日志、前端日志、Playwright `test-results/`、HTML report 和 showcase 截图 artifact，方便失败排查和作品集归档。
+- 在 quality job 早期用 `git ls-files --error-unmatch` 检查关键质量门脚本是否已纳入版本控制，避免本地未跟踪脚本导致 CI checkout 后断链。
 
 ## 2. 启用前提
 
-需要使用具备 GitHub `workflow` scope 的 token 推送 workflow 文件，或在 GitHub 网页端手动编辑 `.github/workflows/quality-gate.yml`。
+需要使用具备 GitHub `workflow` scope 的 token 推送 workflow 文件，或在 GitHub 网页端手动编辑 `.github/workflows/quality-gate.yml`。CI 运行时需要能下载 Playwright Chromium 依赖；如果公司网络限制 GitHub Actions 下载浏览器依赖，需要预装缓存或改用带浏览器的 runner 镜像。
 
-## 3. 建议 Job
+## 3. 当前 Job
 
-将下面 job 追加到 `.github/workflows/quality-gate.yml`：
+当前 `.github/workflows/quality-gate.yml` 中的 `browser-e2e` job 与下面结构保持一致：
 
 ```yaml
   browser-e2e:
@@ -53,7 +54,7 @@
       - name: Start backend in local H2 mode
         env:
           SERVER_PORT: '48081'
-          APP_BASE_URL: http://127.0.0.1:5174
+          APP_BASE_URL: http://127.0.0.1:5175
           ADMIN_TOKEN: dev-token
         run: |
           nohup mvn -q -f backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=local > backend-e2e.log 2>&1 &
@@ -73,12 +74,12 @@
         env:
           BACKEND_PROXY_TARGET: http://127.0.0.1:48081
         run: |
-          nohup npm --prefix frontend run dev -- --host 127.0.0.1 --port 5174 --strictPort > frontend-e2e.log 2>&1 &
+          nohup npm --prefix frontend run dev -- --host 127.0.0.1 --port 5175 --strictPort > frontend-e2e.log 2>&1 &
 
       - name: Wait for frontend
         run: |
           for i in {1..60}; do
-            if curl -fsS http://127.0.0.1:5174/ >/dev/null; then
+            if curl -fsS http://127.0.0.1:5175/ >/dev/null; then
               exit 0
             fi
             sleep 2
@@ -88,16 +89,19 @@
 
       - name: Run mobile E2E
         env:
-          E2E_BASE_URL: http://127.0.0.1:5174
+          E2E_BASE_URL: http://127.0.0.1:5175
           E2E_ADMIN_TOKEN: dev-token
         run: scripts/mobile-e2e.sh
 
       - name: Capture showcase screenshots
         env:
-          E2E_BASE_URL: http://127.0.0.1:5174
+          E2E_BASE_URL: http://127.0.0.1:5175
           E2E_ADMIN_TOKEN: dev-token
           SHOWCASE_SCREENSHOT_DIR: docs/screenshots/showcase
         run: scripts/capture-showcase-screenshots.sh
+
+      - name: Verify showcase artifacts
+        run: scripts/verify-eight-hour-artifacts.sh
 
       - name: Upload E2E artifacts
         if: always()
@@ -107,6 +111,8 @@
           path: |
             backend-e2e.log
             frontend-e2e.log
+            frontend/test-results/
+            frontend/playwright-report/
             docs/screenshots/showcase/
           if-no-files-found: ignore
 ```

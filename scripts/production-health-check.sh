@@ -37,9 +37,10 @@ require_command curl
 require_command python3
 
 health_response="$(mktemp)"
+readiness_response="$(mktemp)"
 questions_response="$(mktemp)"
 admin_response="$(mktemp)"
-trap 'rm -f "$health_response" "$questions_response" "$admin_response"' EXIT
+trap 'rm -f "$health_response" "$readiness_response" "$questions_response" "$admin_response"' EXIT
 
 home_status="$(curl -sS -o /dev/null -w '%{http_code}' "$BASE_URL/")"
 [[ "$home_status" == "200" ]] || fail "home returned HTTP $home_status"
@@ -47,6 +48,10 @@ home_status="$(curl -sS -o /dev/null -w '%{http_code}' "$BASE_URL/")"
 curl -fsS "$BASE_URL/api/health" -o "$health_response"
 service_status="$(json_get "$health_response" data.status)"
 [[ "$service_status" == "UP" ]] || fail "health status is not UP: $service_status"
+
+curl -fsS "$BASE_URL/api/readiness" -o "$readiness_response"
+readiness_status="$(json_get "$readiness_response" data.status)"
+[[ "$readiness_status" == "UP" ]] || fail "readiness status is not UP: $readiness_status"
 
 curl -fsS "$BASE_URL/api/questions" -o "$questions_response"
 question_count="$(python3 - "$questions_response" <<'PY'
@@ -78,6 +83,7 @@ echo "Production health check passed"
 echo "baseUrl=$BASE_URL"
 echo "homeStatus=$home_status"
 echo "healthStatus=$service_status"
+echo "readinessStatus=$readiness_status"
 echo "questionCount=$question_count"
 if [[ -n "$ADMIN_TOKEN" ]]; then
   echo "adminOverview=checked"

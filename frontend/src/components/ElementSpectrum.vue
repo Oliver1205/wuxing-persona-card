@@ -1,27 +1,27 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import ElementMark from './ElementMark.vue';
+import { elementVisualByCode } from '../utils/elementVisuals';
 
 const props = defineProps<{
   scores: Record<string, number>;
 }>();
 
-const elementNames: Record<string, string> = {
-  METAL: '金',
-  WOOD: '木',
-  WATER: '水',
-  FIRE: '火',
-  EARTH: '土',
-};
-
 const rows = computed(() => {
   const total = Object.values(props.scores).reduce((sum, score) => sum + score, 0);
   return Object.entries(props.scores)
-    .map(([code, score]) => ({
-      code,
-      name: elementNames[code] ?? code,
-      score,
-      percent: total > 0 ? Math.round((score / total) * 100) : 0,
-    }))
+    .map(([code, score]) => {
+      const visual = elementVisualByCode(code);
+      return {
+        code,
+        name: visual.name,
+        keywords: visual.keywords,
+        color: visual.color,
+        soft: visual.soft,
+        score,
+        percent: total > 0 ? Math.round((score / total) * 100) : 0,
+      };
+    })
     .sort((left, right) => right.score - left.score);
 });
 </script>
@@ -33,9 +33,15 @@ const rows = computed(() => {
       <p>主副元素用于展示，完整分数用于解释你的整体倾向。</p>
     </div>
     <div class="spectrum-list">
-      <div v-for="item in rows" :key="item.code" class="spectrum-row" :data-element="item.code">
+      <div
+        v-for="item in rows"
+        :key="item.code"
+        class="spectrum-row"
+        :style="{ '--element-color': item.color, '--element-soft': item.soft }"
+      >
+        <ElementMark :code="item.code" :name="item.name" compact size="legend" />
         <div class="row-label">
-          <strong>{{ item.name }}</strong>
+          <strong>{{ item.keywords.join(' / ') }}</strong>
           <span>{{ item.percent }}%</span>
         </div>
         <div class="row-track">
@@ -50,6 +56,7 @@ const rows = computed(() => {
 .element-spectrum {
   display: grid;
   gap: 16px;
+  border-radius: 8px;
 }
 
 .spectrum-head {
@@ -66,6 +73,12 @@ const rows = computed(() => {
   color: #697674;
 }
 
+.spectrum-head h2 {
+  color: #202725;
+  font-family: "Songti SC", "STSong", "Noto Serif SC", var(--font-display);
+  font-weight: 650;
+}
+
 .spectrum-list {
   display: grid;
   gap: 12px;
@@ -73,7 +86,13 @@ const rows = computed(() => {
 
 .spectrum-row {
   display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 7px;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--element-color), transparent 82%);
+  border-radius: 8px;
+  padding: 9px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.76), var(--element-soft));
 }
 
 .row-label {
@@ -83,37 +102,33 @@ const rows = computed(() => {
   color: #263735;
 }
 
+.row-label,
 .row-track {
-  height: 9px;
+  grid-column: 2;
+}
+
+.row-track {
+  height: 8px;
   overflow: hidden;
   border-radius: 999px;
-  background: rgba(36, 48, 47, 0.1);
+  background: rgba(36, 48, 47, 0.08);
 }
 
 .row-track span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #2f6f5e;
+  background: var(--element-color);
 }
 
-.spectrum-row[data-element="METAL"] .row-track span {
-  background: #5c6670;
-}
+@media (max-width: 460px) {
+  .spectrum-row {
+    grid-template-columns: 1fr;
+  }
 
-.spectrum-row[data-element="WOOD"] .row-track span {
-  background: #5e8d63;
-}
-
-.spectrum-row[data-element="WATER"] .row-track span {
-  background: #486f92;
-}
-
-.spectrum-row[data-element="FIRE"] .row-track span {
-  background: #b66045;
-}
-
-.spectrum-row[data-element="EARTH"] .row-track span {
-  background: #9d7a42;
+  .row-label,
+  .row-track {
+    grid-column: auto;
+  }
 }
 </style>

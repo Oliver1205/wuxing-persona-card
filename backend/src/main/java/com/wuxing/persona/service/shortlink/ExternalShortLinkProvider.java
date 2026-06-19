@@ -41,8 +41,13 @@ public class ExternalShortLinkProvider implements ShortLinkProvider {
         if (existing != null) {
             return existing;
         }
+        ExternalShortLinkCreateResponse response;
         try {
-            ExternalShortLinkCreateResponse response = externalShortLinkClient.create(buildCreateRequest(resultId));
+            response = externalShortLinkClient.create(buildCreateRequest(resultId));
+        } catch (BusinessException ex) {
+            return fallbackOrThrowExternalCreateFailure(resultId, ex);
+        }
+        try {
             String shortCode = ShortLinkCodeUtils.extractFromFullShortUrl(response.getFullShortUrl());
             if (shortLinkMapper.countByShortCode(shortCode) > 0) {
                 throw new BusinessException("external shortCode already exists in local binding");
@@ -61,6 +66,17 @@ public class ExternalShortLinkProvider implements ShortLinkProvider {
             log.warn("External short link create failed, fallback to internal provider, resultId={}", resultId);
             return internalShortLinkProvider.createForResult(resultId);
         }
+    }
+
+    private ShortLinkEntity fallbackOrThrowExternalCreateFailure(String resultId, BusinessException ex) {
+        if (!appProperties.getShortLink().getExternal().isFallbackToInternal()) {
+            if (ex.getCode() >= 500) {
+                throw ex;
+            }
+            throw new BusinessException(502, ex.getMessage());
+        }
+        log.warn("External short link create failed, fallback to internal provider, resultId={}", resultId);
+        return internalShortLinkProvider.createForResult(resultId);
     }
 
     @Override
@@ -82,7 +98,8 @@ public class ExternalShortLinkProvider implements ShortLinkProvider {
         AppProperties.ExternalShortLinkProperties external = appProperties.getShortLink().getExternal();
         ExternalShortLinkCreateRequest request = new ExternalShortLinkCreateRequest();
         request.setDomain(external.getDomain());
-        request.setOriginUrl(appProperties.getBaseUrl() + "/result/" + resultId);
+        request.setOriginUrl(appProperties.getBaseUrl() + "/result/" + resultId
+                + "?channel=share&campaign=result-card");
         request.setGid(external.getGroupId());
         request.setCreatedType(0);
         request.setValidDateType(0);
@@ -96,7 +113,7 @@ public class ExternalShortLinkProvider implements ShortLinkProvider {
         ShortLinkEntity entity = new ShortLinkEntity();
         entity.setShortCode(shortCode);
         entity.setResultId(resultId);
-        entity.setOriginalPath("/result/" + resultId);
+        entity.setOriginalPath("/result/" + resultId + "?channel=share&campaign=result-card");
         entity.setShortUrl(shortUrl);
         entity.setPvCount(0L);
         entity.setUvCount(0L);

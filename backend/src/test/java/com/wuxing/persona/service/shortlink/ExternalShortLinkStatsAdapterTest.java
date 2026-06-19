@@ -1,6 +1,8 @@
 package com.wuxing.persona.service.shortlink;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -182,6 +184,34 @@ class ExternalShortLinkStatsAdapterTest {
     }
 
     @Test
+    void shouldKeepMissingExternalAccessRecordFingerprintsNullable() {
+        ExternalShortLinkAccessRecordResponse record = new ExternalShortLinkAccessRecordResponse();
+        record.setCreateTime(LocalDateTime.of(2026, 6, 9, 15, 30));
+        ExternalShortLinkAccessRecordPageResponse response = new ExternalShortLinkAccessRecordPageResponse();
+        response.setCurrent(1L);
+        response.setSize(20L);
+        response.setTotal(1L);
+        response.setRecords(List.of(record));
+        when(externalShortLinkClient.accessRecords(any(ExternalShortLinkAccessRecordRequest.class))).thenReturn(response);
+
+        Optional<PageVO<ShortLinkVisitVO>> page = adapter.fetchAccessRecords(
+                shortLink("abc123", "http://nurl.ink:8003/abc123"),
+                1,
+                20,
+                AdminDateRange.of(LocalDate.of(2026, 6, 8), LocalDate.of(2026, 6, 9))
+        );
+
+        assertTrue(page.isPresent());
+        ShortLinkVisitVO visit = page.get().getRecords().get(0);
+        assertEquals("EXTERNAL_SHORT_LINK_VISIT", visit.getEventType());
+        assertEquals("external", visit.getStatSource());
+        assertNull(visit.getClientIdHash());
+        assertNull(visit.getIpHash());
+        assertNull(visit.getUserAgentHash());
+        assertNull(visit.getReferer());
+    }
+
+    @Test
     void shouldFallbackToLocalStatsWhenExternalStatsFails() {
         when(externalShortLinkClient.stats(any(ExternalShortLinkStatsRequest.class)))
                 .thenThrow(new BusinessException("external short link stats unavailable"));
@@ -192,6 +222,34 @@ class ExternalShortLinkStatsAdapterTest {
         );
 
         assertTrue(snapshot.isEmpty());
+    }
+
+    @Test
+    void shouldFailStrictExternalStatsWhenExternalStatsFails() {
+        when(externalShortLinkClient.stats(any(ExternalShortLinkStatsRequest.class)))
+                .thenThrow(new BusinessException("external short link stats unavailable"));
+
+        BusinessException error = assertThrows(BusinessException.class, () -> adapter.fetchStatsStrict(
+                shortLink("abc123", "http://nurl.ink:8003/abc123"),
+                AdminDateRange.of(LocalDate.of(2026, 6, 8), LocalDate.of(2026, 6, 9))
+        ));
+
+        assertEquals(502, error.getCode());
+        assertEquals("external short link stats unavailable", error.getMessage());
+    }
+
+    @Test
+    void shouldFailStrictExternalStatsWhenExternalStatsAreDisabled() {
+        appProperties.getShortLink().getExternal().setStatsEnabled(false);
+
+        BusinessException error = assertThrows(BusinessException.class, () -> adapter.fetchStatsStrict(
+                shortLink("abc123", "http://nurl.ink:8003/abc123"),
+                AdminDateRange.of(LocalDate.of(2026, 6, 8), LocalDate.of(2026, 6, 9))
+        ));
+
+        assertEquals(502, error.getCode());
+        assertTrue(error.getMessage().contains("disabled"));
+        verify(externalShortLinkClient, never()).stats(any());
     }
 
     @Test
@@ -215,6 +273,18 @@ class ExternalShortLinkStatsAdapterTest {
         );
 
         assertTrue(snapshot.isEmpty());
+        verify(externalShortLinkClient, never()).stats(any());
+    }
+
+    @Test
+    void shouldFailStrictExternalStatsWhenDomainDoesNotMatch() {
+        BusinessException error = assertThrows(BusinessException.class, () -> adapter.fetchStatsStrict(
+                shortLink("abc123", "http://localhost:8080/s/abc123"),
+                AdminDateRange.of(LocalDate.of(2026, 6, 8), LocalDate.of(2026, 6, 9))
+        ));
+
+        assertEquals(502, error.getCode());
+        assertTrue(error.getMessage().contains("domain mismatch"));
         verify(externalShortLinkClient, never()).stats(any());
     }
 

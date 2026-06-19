@@ -1,5 +1,8 @@
 package com.wuxing.persona.config;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -10,6 +13,7 @@ public class AppProperties {
     private String baseUrl;
     private String adminToken;
     private String hashSalt;
+    private CorsProperties cors = new CorsProperties();
     private ShortLinkProperties shortLink = new ShortLinkProperties();
     private VisitEventProperties visitEvent = new VisitEventProperties();
 
@@ -35,6 +39,16 @@ public class AppProperties {
 
     public void setHashSalt(String hashSalt) {
         this.hashSalt = hashSalt;
+    }
+
+    public CorsProperties getCors() {
+        return cors;
+    }
+
+    public void setCors(CorsProperties cors) {
+        if (cors != null) {
+            this.cors = cors;
+        }
     }
 
     public ShortLinkProperties getShortLink() {
@@ -65,6 +79,36 @@ public class AppProperties {
             value = value.substring(0, value.length() - 1);
         }
         return value;
+    }
+
+    public static class CorsProperties {
+
+        private List<String> allowedOrigins = new ArrayList<>();
+        private long maxAgeSeconds = 3600;
+
+        public List<String> getAllowedOrigins() {
+            return allowedOrigins;
+        }
+
+        public void setAllowedOrigins(List<String> allowedOrigins) {
+            if (allowedOrigins == null) {
+                this.allowedOrigins = new ArrayList<>();
+                return;
+            }
+            this.allowedOrigins = allowedOrigins.stream()
+                    .map(origin -> origin == null ? "" : origin.trim())
+                    .filter(origin -> !origin.isBlank())
+                    .distinct()
+                    .toList();
+        }
+
+        public long getMaxAgeSeconds() {
+            return maxAgeSeconds;
+        }
+
+        public void setMaxAgeSeconds(long maxAgeSeconds) {
+            this.maxAgeSeconds = Math.max(0, maxAgeSeconds);
+        }
     }
 
     public static class ShortLinkProperties {
@@ -226,6 +270,8 @@ public class AppProperties {
 
         private int asyncQueueCapacity = 2048;
         private int asyncDrainLimit = 64;
+        private String asyncMode = "local";
+        private RocketMqProperties rocketmq = new RocketMqProperties();
 
         public int getAsyncQueueCapacity() {
             return asyncQueueCapacity;
@@ -241,6 +287,116 @@ public class AppProperties {
 
         public void setAsyncDrainLimit(int asyncDrainLimit) {
             this.asyncDrainLimit = Math.max(1, asyncDrainLimit);
+        }
+
+        public String getAsyncMode() {
+            return asyncMode;
+        }
+
+        public void setAsyncMode(String asyncMode) {
+            if (asyncMode == null || asyncMode.isBlank()) {
+                this.asyncMode = "local";
+                return;
+            }
+            String normalized = asyncMode.trim().toLowerCase(Locale.ROOT);
+            if (!"local".equals(normalized) && !"rocketmq".equals(normalized)) {
+                throw new IllegalArgumentException("app.visit-event.async-mode must be local or rocketmq");
+            }
+            this.asyncMode = normalized;
+        }
+
+        public boolean isRocketMqMode() {
+            return "rocketmq".equalsIgnoreCase(asyncMode);
+        }
+
+        public RocketMqProperties getRocketmq() {
+            return rocketmq;
+        }
+
+        public void setRocketmq(RocketMqProperties rocketmq) {
+            if (rocketmq != null) {
+                this.rocketmq = rocketmq;
+            }
+        }
+    }
+
+    public static class RocketMqProperties {
+
+        private String nameServer = "localhost:9876";
+        private String topic = "wuxing-visit-event";
+        private String tag = "visit";
+        private String producerGroup = "wuxing-persona-producer";
+        private String consumerGroup = "wuxing-persona-consumer";
+        private int publishTimeoutMillis = 1000;
+        private boolean fallbackToLocal = true;
+        private boolean consumerEnabled = false;
+
+        public String getNameServer() {
+            return nameServer;
+        }
+
+        public void setNameServer(String nameServer) {
+            this.nameServer = defaultIfBlank(nameServer, "localhost:9876");
+        }
+
+        public String getTopic() {
+            return topic;
+        }
+
+        public void setTopic(String topic) {
+            this.topic = defaultIfBlank(topic, "wuxing-visit-event");
+        }
+
+        public String getTag() {
+            return tag;
+        }
+
+        public void setTag(String tag) {
+            this.tag = defaultIfBlank(tag, "visit");
+        }
+
+        public String getProducerGroup() {
+            return producerGroup;
+        }
+
+        public void setProducerGroup(String producerGroup) {
+            this.producerGroup = defaultIfBlank(producerGroup, "wuxing-persona-producer");
+        }
+
+        public String getConsumerGroup() {
+            return consumerGroup;
+        }
+
+        public void setConsumerGroup(String consumerGroup) {
+            this.consumerGroup = defaultIfBlank(consumerGroup, "wuxing-persona-consumer");
+        }
+
+        public int getPublishTimeoutMillis() {
+            return publishTimeoutMillis;
+        }
+
+        public void setPublishTimeoutMillis(int publishTimeoutMillis) {
+            this.publishTimeoutMillis = Math.max(100, publishTimeoutMillis);
+        }
+
+        public boolean isFallbackToLocal() {
+            return fallbackToLocal;
+        }
+
+        public void setFallbackToLocal(boolean fallbackToLocal) {
+            this.fallbackToLocal = fallbackToLocal;
+        }
+
+        public boolean isConsumerEnabled() {
+            return consumerEnabled;
+        }
+
+        public void setConsumerEnabled(boolean consumerEnabled) {
+            this.consumerEnabled = consumerEnabled;
+        }
+
+        private String defaultIfBlank(String value, String defaultValue) {
+            return value == null || value.isBlank() ? defaultValue : value.trim();
         }
     }
 }
