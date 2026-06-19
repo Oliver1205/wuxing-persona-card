@@ -37,6 +37,7 @@ public class VisitEventService {
 
     private final VisitEventMapper visitEventMapper;
     private final AppProperties appProperties;
+    private final VisitEventRocketMqPublisher rocketMqPublisher;
     private final int asyncQueueCapacity;
     private final int asyncDrainLimit;
     private final BlockingQueue<VisitEventEntity> asyncQueue;
@@ -44,13 +45,20 @@ public class VisitEventService {
     private final AtomicLong droppedAsyncEvents = new AtomicLong();
     private final AtomicLong totalFlushedEvents = new AtomicLong();
     private final AtomicLong batchWriteFailures = new AtomicLong();
+    private final AtomicLong rocketMqPublishedEvents = new AtomicLong();
+    private final AtomicLong rocketMqPublishFailures = new AtomicLong();
+    private final AtomicLong rocketMqFallbackEvents = new AtomicLong();
+    private final AtomicLong rocketMqShadowLocalEvents = new AtomicLong();
     private final AtomicInteger lastBatchSize = new AtomicInteger();
     private final Thread asyncWorker;
     private volatile LocalDateTime lastFlushAt;
 
-    public VisitEventService(VisitEventMapper visitEventMapper, AppProperties appProperties) {
+    public VisitEventService(VisitEventMapper visitEventMapper,
+                             AppProperties appProperties,
+                             VisitEventRocketMqPublisher rocketMqPublisher) {
         this.visitEventMapper = visitEventMapper;
         this.appProperties = appProperties;
+        this.rocketMqPublisher = rocketMqPublisher;
         this.asyncQueueCapacity = appProperties.getVisitEvent().getAsyncQueueCapacity();
         this.asyncDrainLimit = appProperties.getVisitEvent().getAsyncDrainLimit();
         this.asyncQueue = new LinkedBlockingQueue<>(asyncQueueCapacity);
@@ -102,6 +110,31 @@ public class VisitEventService {
                             String campaign) {
         VisitEventEntity entity = buildEntity(eventType, pagePath, resultId, shortCode, clientId, request,
                 sessionId, channel, campaign);
+        if (appProperties.getVisitEvent().isRocketMqMode()) {
+            if (publishToRocketMq(entity, eventType, pagePath, resultId, shortCode)) {
+                if (shouldUseRocketMqConsumerPersistence()) {
+                    return;
+                }
+                rocketMqShadowLocalEvents.incrementAndGet();
+                enqueueLocal(entity, eventType, pagePath, resultId, shortCode);
+                return;
+            }
+            if (!appProperties.getVisitEvent().getRocketmq().isFallbackToLocal()) {
+                long dropped = droppedAsyncEvents.incrementAndGet();
+                log.warn("Visit event RocketMQ publish failed and local fallback is disabled, dropped={}, eventType={}, pagePath={}, resultId={}, shortCode={}",
+                        dropped, eventType, pagePath, resultId, shortCode);
+                return;
+            }
+            rocketMqFallbackEvents.incrementAndGet();
+        }
+        enqueueLocal(entity, eventType, pagePath, resultId, shortCode);
+    }
+
+    private void enqueueLocal(VisitEventEntity entity,
+                              EventType eventType,
+                              String pagePath,
+                              String resultId,
+                              String shortCode) {
         if (!asyncQueue.offer(entity)) {
             long dropped = droppedAsyncEvents.incrementAndGet();
             log.warn("Visit event async queue full, dropped={}, eventType={}, pagePath={}, resultId={}, shortCode={}",
@@ -120,7 +153,106 @@ public class VisitEventService {
         runtime.setLastBatchSize(lastBatchSize.get());
         runtime.setBatchWriteFailures(batchWriteFailures.get());
         runtime.setWorkerAlive(asyncWorker.isAlive());
+        runtime.setAsyncMode(appProperties.getVisitEvent().getAsyncMode());
+        runtime.setRocketMqAvailable(rocketMqPublisher.isAvailable());
+        runtime.setRocketMqFallbackToLocal(appProperties.getVisitEvent().getRocketmq().isFallbackToLocal());
+        runtime.setRocketMqTopic(appProperties.getVisitEvent().getRocketmq().getTopic());
+        runtime.setRocketMqPublishedEvents(rocketMqPublishedEvents.get());
+        runtime.setRocketMqPublishFailures(rocketMqPublishFailures.get());
+        runtime.setRocketMqFallbackEvents(rocketMqFallbackEvents.get());
+        runtime.setRocketMqShadowLocalEvents(rocketMqShadowLocalEvents.get());
+        runtime.setRocketMqConsumerEnabled(appProperties.getVisitEvent().getRocketmq().isConsumerEnabled());
+        runtime.setRocketMqConsumerPersistenceReady(rocketMqPublisher.isConsumerPersistenceReady());
+        applyHealth(runtime);
         return runtime;
+    }
+
+    private boolean shouldUseRocketMqConsumerPersistence() {
+        return appProperties.getVisitEvent().getRocketmq().isConsumerEnabled()
+                && rocketMqPublisher.isConsumerPersistenceReady();
+    }
+
+    private void applyHealth(VisitEventRuntimeVO runtime) {
+        int queueUsagePercent = runtime.getQueueCapacity() <= 0
+                ? 0
+                : (int) Math.round(runtime.getQueueSize() * 100.0 / runtime.getQueueCapacity());
+        if (!runtime.isWorkerAlive()) {
+            runtime.setHealthStatus("danger");
+            runtime.setHealthMessage("访问事件异步写入线程异常，统计数据可能停止落库。");
+            return;
+        }
+        if (runtime.getBatchWriteFailures() > 0) {
+            runtime.setHealthStatus("danger");
+            runtime.setHealthMessage("访问事件批量写入出现失败，已降级单条写入，需要排查数据库压力。");
+            return;
+        }
+        if (appProperties.getVisitEvent().isRocketMqMode()
+                && !runtime.isRocketMqAvailable()
+                && !runtime.isRocketMqFallbackToLocal()) {
+            runtime.setHealthStatus("danger");
+            runtime.setHealthMessage("RocketMQ 不可用且本地回退关闭，低价值统计事件会被丢弃。");
+            return;
+        }
+        if (queueUsagePercent >= 80) {
+            runtime.setHealthStatus("danger");
+            runtime.setHealthMessage("访问事件本地队列接近满载，继续升高会触发丢弃。");
+            return;
+        }
+        if (runtime.getDroppedAsyncEvents() > 0) {
+            runtime.setHealthStatus("watch");
+            runtime.setHealthMessage("已有访问事件被丢弃，需要关注队列容量、写入速度或 MQ 回退配置。");
+            return;
+        }
+        if (appProperties.getVisitEvent().isRocketMqMode() && !runtime.isRocketMqAvailable()) {
+            runtime.setHealthStatus("watch");
+            runtime.setHealthMessage("RocketMQ 当前不可用，统计事件正在回退到本地队列。");
+            return;
+        }
+        if (appProperties.getVisitEvent().isRocketMqMode() && runtime.isRocketMqConsumerEnabled()
+                && !runtime.isRocketMqConsumerPersistenceReady()) {
+            runtime.setHealthStatus("watch");
+            runtime.setHealthMessage("RocketMQ 主消费开关已配置，但 consumer 落库尚未就绪，系统保持 shadow 本地落库。");
+            return;
+        }
+        if (appProperties.getVisitEvent().isRocketMqMode() && !shouldUseRocketMqConsumerPersistence()) {
+            runtime.setHealthStatus("watch");
+            runtime.setHealthMessage("RocketMQ 处于 shadow 观察模式，数据中台仍由本地队列落库。");
+            return;
+        }
+        runtime.setHealthStatus("ok");
+        runtime.setHealthMessage("访问事件异步写入正常。");
+    }
+
+    private boolean publishToRocketMq(VisitEventEntity entity,
+                                      EventType eventType,
+                                      String pagePath,
+                                      String resultId,
+                                      String shortCode) {
+        if (!rocketMqPublisher.isAvailable()) {
+            recordRocketMqPublishFailure(eventType, pagePath, resultId, shortCode, "publisher unavailable");
+            return false;
+        }
+        try {
+            rocketMqPublisher.publish(entity);
+            rocketMqPublishedEvents.incrementAndGet();
+            return true;
+        } catch (RuntimeException ex) {
+            recordRocketMqPublishFailure(eventType, pagePath, resultId, shortCode,
+                    ex.getClass().getSimpleName() + ": " + ex.getMessage());
+            return false;
+        }
+    }
+
+    private void recordRocketMqPublishFailure(EventType eventType,
+                                              String pagePath,
+                                              String resultId,
+                                              String shortCode,
+                                              String reason) {
+        long failures = rocketMqPublishFailures.incrementAndGet();
+        if (failures <= 3 || failures % 100 == 0) {
+            log.warn("Visit event RocketMQ publish unavailable, failures={}, eventType={}, pagePath={}, resultId={}, shortCode={}, reason={}",
+                    failures, eventType, pagePath, resultId, shortCode, reason);
+        }
     }
 
     @PreDestroy
@@ -169,16 +301,22 @@ public class VisitEventService {
         }
         lastBatchSize.set(batch.size());
         lastFlushAt = LocalDateTime.now();
-        totalFlushedEvents.addAndGet(batch.size());
         try {
             visitEventMapper.insertBatch(List.copyOf(batch));
+            totalFlushedEvents.addAndGet(batch.size());
         } catch (RuntimeException ex) {
             batchWriteFailures.incrementAndGet();
             log.warn("Visit event batch write failed, size={}, error={}: {}", batch.size(),
                     ex.getClass().getSimpleName(), ex.getMessage());
+            long degradedSuccesses = 0;
             for (VisitEventEntity entity : batch) {
-                insertWithDegrade(entity, EventType.valueOf(entity.getEventType()), entity.getPagePath(),
-                        entity.getResultId(), entity.getShortCode());
+                if (insertWithDegrade(entity, EventType.valueOf(entity.getEventType()), entity.getPagePath(),
+                        entity.getResultId(), entity.getShortCode())) {
+                    degradedSuccesses++;
+                }
+            }
+            if (degradedSuccesses > 0) {
+                totalFlushedEvents.addAndGet(degradedSuccesses);
             }
         }
     }
@@ -220,16 +358,18 @@ public class VisitEventService {
         return entity;
     }
 
-    private void insertWithDegrade(VisitEventEntity entity,
-                                   EventType eventType,
-                                   String pagePath,
-                                   String resultId,
-                                   String shortCode) {
+    private boolean insertWithDegrade(VisitEventEntity entity,
+                                      EventType eventType,
+                                      String pagePath,
+                                      String resultId,
+                                      String shortCode) {
         try {
             visitEventMapper.insert(entity);
+            return true;
         } catch (RuntimeException ex) {
             log.warn("Visit event write failed, eventType={}, pagePath={}, resultId={}, shortCode={}, error={}: {}",
                     eventType, pagePath, resultId, shortCode, ex.getClass().getSimpleName(), ex.getMessage());
+            return false;
         }
     }
 

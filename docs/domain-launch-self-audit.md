@@ -41,7 +41,7 @@ https://<主域名>/s/{code} -> 内置短链跳转
 - `/admin` 前端把 token 存在 `localStorage`，演示环境可接受；正式运营建议改为更完整的后台认证。
 - `deploy/nginx.shortlink-routing.example.conf` 是示例，不含当前主 Nginx 的限流和安全响应头；如果以后复制使用，要同步限流和 header。
 - `docs/deploy.md` 的章节编号有两个 `## 8`，不影响部署，但后续整理文档时应修正。
-- `production-smoke-test.sh` 会创建真实结果数据；正式环境重复执行会产生测试数据，需要用固定 channel/campaign 标识并在后台识别。
+- `production-smoke-test.sh` 会创建结果和短链样本；脚本默认使用 `X-Channel=perf-test` 并在后台验证时显式包含测试流量，日常数据中台默认不会把这些样本混进真实运营口径。
 
 ## 5. 推荐本轮上线顺序
 

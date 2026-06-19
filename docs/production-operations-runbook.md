@@ -74,6 +74,19 @@ BASE_URL=https://www.wuxingcard.cn ADMIN_TOKEN="$ADMIN_TOKEN" scripts/production
 https://www.wuxingcard.cn/admin
 ```
 
+### 独立 API 域名可选配置
+
+默认推荐继续用同源 Nginx 反代，让 `https://www.wuxingcard.cn/api/*` 和 `/s/*` 转到后端；这种模式不需要 CORS。
+
+如果以后把前端和 API 拆成不同来源，例如前端 `https://www.wuxingcard.cn`、API `https://api.wuxingcard.cn`，需要在后端环境中显式配置：
+
+```bash
+CORS_ALLOWED_ORIGINS=https://www.wuxingcard.cn,https://wuxingcard.cn
+CORS_MAX_AGE_SECONDS=3600
+```
+
+不要使用 `*` 作为生产白名单；上线后用浏览器真实访问和 `OPTIONS /api/questions` preflight 同时验证。
+
 ## 4. 安全收口
 
 真实服务器做完联调后执行：
@@ -151,9 +164,10 @@ CONFIRM_RESTORE=yes scripts/restore-mysql.sh backups/<backup-file>.sql.gz
 
 1. `curl -I http://82.157.137.36/admin`：确认服务器和应用入口是否活着。
 2. `curl -fsS http://82.157.137.36/api/health`：确认后端是否活着。
-3. `docker compose --env-file deploy/.env -f deploy/docker-compose.yml ps`：确认容器状态。
-4. `sudo ss -ltnp | grep -E ':(80|443|8088)'`：确认宿主机和容器端口。
-5. `sudo tail -80 /var/log/nginx/error.log`：确认宿主机 Nginx 错误。
-6. `docker compose --env-file deploy/.env -f deploy/docker-compose.yml logs --tail=120 backend nginx`：确认应用日志。
+3. `curl -fsS http://82.157.137.36/api/readiness`：确认核心业务表可查询。
+4. `docker compose --env-file deploy/.env -f deploy/docker-compose.yml ps`：确认容器状态。
+5. `sudo ss -ltnp | grep -E ':(80|443|8088)'`：确认宿主机和容器端口。
+6. `sudo tail -80 /var/log/nginx/error.log`：确认宿主机 Nginx 错误。
+7. `docker compose --env-file deploy/.env -f deploy/docker-compose.yml logs --tail=120 backend nginx`：确认应用日志。
 
 备案未完成时，域名访问显示腾讯云备案拦截页是预期现象，不应按应用故障处理。

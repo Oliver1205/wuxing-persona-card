@@ -85,6 +85,9 @@ export interface AdminOverview {
   shortLinkCreated: number;
   shortLinkVisits: number;
   completionRate: number;
+  syntheticTrafficExcluded: boolean;
+  syntheticIsolationLevel: string;
+  syntheticIsolationNote: string;
   metricSource: 'live_event' | 'daily_metric' | 'mixed';
   aggregatedThroughDate: string | null;
   dailyTrends: DailyMetric[];
@@ -126,6 +129,30 @@ export interface ExternalShortLinkRuntime {
   checkedAt: string;
 }
 
+export interface VisitEventRuntime {
+  queueSize: number;
+  queueCapacity: number;
+  drainLimit: number;
+  droppedAsyncEvents: number;
+  totalFlushedEvents: number;
+  lastFlushAt: string | null;
+  lastBatchSize: number;
+  batchWriteFailures: number;
+  workerAlive: boolean;
+  asyncMode: 'local' | 'rocketmq';
+  rocketMqAvailable: boolean;
+  rocketMqFallbackToLocal: boolean;
+  rocketMqTopic: string;
+  rocketMqPublishedEvents: number;
+  rocketMqPublishFailures: number;
+  rocketMqFallbackEvents: number;
+  rocketMqShadowLocalEvents: number;
+  rocketMqConsumerEnabled: boolean;
+  rocketMqConsumerPersistenceReady: boolean;
+  healthStatus: 'ok' | 'watch' | 'danger';
+  healthMessage: string;
+}
+
 export interface DailyMetric {
   date: string;
   pv: number;
@@ -164,9 +191,9 @@ export interface ShortLinkListItem {
 export interface ShortLinkVisit {
   createdAt: string;
   eventType: string;
-  clientIdHash: string;
-  ipHash: string;
-  userAgentHash: string;
+  clientIdHash: string | null;
+  ipHash: string | null;
+  userAgentHash: string | null;
   channel: string | null;
   campaign: string | null;
   deviceType: string | null;

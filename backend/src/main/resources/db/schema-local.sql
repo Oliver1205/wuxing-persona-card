@@ -75,6 +75,8 @@ CREATE INDEX IF NOT EXISTS idx_visit_event_ip ON visit_event(ip_hash);
 CREATE INDEX IF NOT EXISTS idx_visit_event_session ON visit_event(session_id_hash);
 CREATE INDEX IF NOT EXISTS idx_visit_event_channel_created ON visit_event(channel, created_at);
 CREATE INDEX IF NOT EXISTS idx_visit_event_campaign_created ON visit_event(campaign, created_at);
+CREATE INDEX IF NOT EXISTS idx_visit_event_result_event_channel ON visit_event(result_id, event_type, channel);
+CREATE INDEX IF NOT EXISTS idx_visit_event_event_short_created_channel ON visit_event(event_type, short_code, created_at, channel);
 CREATE INDEX IF NOT EXISTS idx_visit_event_event_date ON visit_event(event_date);
 
 CREATE TABLE IF NOT EXISTS site_daily_metric (

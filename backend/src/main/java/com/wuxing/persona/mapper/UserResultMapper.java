@@ -76,6 +76,26 @@ public interface UserResultMapper {
                          @Param("endAt") LocalDateTime endAt);
 
     @Select("""
+            <script>
+            SELECT COUNT(*) FROM user_result ur
+            WHERE ur.status = 1
+            <if test="startAt != null">AND ur.created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND ur.created_at &lt; #{endAt}</if>
+            <if test="excludedChannel != null and excludedChannel != ''">
+                AND NOT EXISTS (
+                    SELECT 1 FROM visit_event ve
+                    WHERE ve.result_id = ur.result_id
+                      AND ve.event_type = 'RESULT_CREATED'
+                      AND ve.channel = #{excludedChannel}
+                )
+            </if>
+            </script>
+            """)
+    long countAllBetweenExcludingChannel(@Param("startAt") LocalDateTime startAt,
+                                         @Param("endAt") LocalDateTime endAt,
+                                         @Param("excludedChannel") String excludedChannel);
+
+    @Select("""
             SELECT primary_element AS primaryElement, secondary_element AS secondaryElement, COUNT(*) AS count
             FROM user_result
             WHERE status = 1
@@ -100,6 +120,31 @@ public interface UserResultMapper {
     List<Map<String, Object>> listPopularElementCombosBetween(@Param("limit") int limit,
                                                               @Param("startAt") LocalDateTime startAt,
                                                               @Param("endAt") LocalDateTime endAt);
+
+    @Select("""
+            <script>
+            SELECT primary_element AS primaryElement, secondary_element AS secondaryElement, COUNT(*) AS count
+            FROM user_result ur
+            WHERE ur.status = 1
+            <if test="startAt != null">AND ur.created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND ur.created_at &lt; #{endAt}</if>
+            <if test="excludedChannel != null and excludedChannel != ''">
+                AND NOT EXISTS (
+                    SELECT 1 FROM visit_event ve
+                    WHERE ve.result_id = ur.result_id
+                      AND ve.event_type = 'RESULT_CREATED'
+                      AND ve.channel = #{excludedChannel}
+                )
+            </if>
+            GROUP BY primary_element, secondary_element
+            ORDER BY count DESC
+            LIMIT #{limit}
+            </script>
+            """)
+    List<Map<String, Object>> listPopularElementCombosBetweenExcludingChannel(@Param("limit") int limit,
+                                                                              @Param("startAt") LocalDateTime startAt,
+                                                                              @Param("endAt") LocalDateTime endAt,
+                                                                              @Param("excludedChannel") String excludedChannel);
 
     @Select("""
             SELECT star_officer_name AS starOfficerName, COUNT(*) AS count
@@ -128,6 +173,31 @@ public interface UserResultMapper {
                                                              @Param("endAt") LocalDateTime endAt);
 
     @Select("""
+            <script>
+            SELECT star_officer_name AS starOfficerName, COUNT(*) AS count
+            FROM user_result ur
+            WHERE ur.status = 1
+            <if test="startAt != null">AND ur.created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND ur.created_at &lt; #{endAt}</if>
+            <if test="excludedChannel != null and excludedChannel != ''">
+                AND NOT EXISTS (
+                    SELECT 1 FROM visit_event ve
+                    WHERE ve.result_id = ur.result_id
+                      AND ve.event_type = 'RESULT_CREATED'
+                      AND ve.channel = #{excludedChannel}
+                )
+            </if>
+            GROUP BY star_officer_name
+            ORDER BY count DESC
+            LIMIT #{limit}
+            </script>
+            """)
+    List<Map<String, Object>> listPopularStarOfficersBetweenExcludingChannel(@Param("limit") int limit,
+                                                                             @Param("startAt") LocalDateTime startAt,
+                                                                             @Param("endAt") LocalDateTime endAt,
+                                                                             @Param("excludedChannel") String excludedChannel);
+
+    @Select("""
             SELECT id, result_id AS resultId, primary_element AS primaryElement,
                    secondary_element AS secondaryElement, star_officer_name AS starOfficerName,
                    created_at AS createdAt
@@ -154,4 +224,30 @@ public interface UserResultMapper {
     List<UserResultEntity> listRecentBetween(@Param("limit") int limit,
                                              @Param("startAt") LocalDateTime startAt,
                                              @Param("endAt") LocalDateTime endAt);
+
+    @Select("""
+            <script>
+            SELECT id, result_id AS resultId, primary_element AS primaryElement,
+                   secondary_element AS secondaryElement, star_officer_name AS starOfficerName,
+                   created_at AS createdAt
+            FROM user_result ur
+            WHERE ur.status = 1
+            <if test="startAt != null">AND ur.created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND ur.created_at &lt; #{endAt}</if>
+            <if test="excludedChannel != null and excludedChannel != ''">
+                AND NOT EXISTS (
+                    SELECT 1 FROM visit_event ve
+                    WHERE ve.result_id = ur.result_id
+                      AND ve.event_type = 'RESULT_CREATED'
+                      AND ve.channel = #{excludedChannel}
+                )
+            </if>
+            ORDER BY ur.created_at DESC
+            LIMIT #{limit}
+            </script>
+            """)
+    List<UserResultEntity> listRecentBetweenExcludingChannel(@Param("limit") int limit,
+                                                             @Param("startAt") LocalDateTime startAt,
+                                                             @Param("endAt") LocalDateTime endAt,
+                                                             @Param("excludedChannel") String excludedChannel);
 }

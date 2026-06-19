@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="五行人格卡第一版五行人格评判标准，说明权重、分类、点睛元素和正向文案边界。">
+    <title>五行人格评判标准 v1｜五行人格卡</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <div class="site-shell">
+      <aside class="sidebar" aria-label="文档目录">
+        <a class="brand" href="./index.html">
+          <span class="brand-mark">五</span>
+          <span>
+            <strong>五行人格卡</strong>
+            <small>Persona Standard</small>
+          </span>
+        </a>
+        <nav class="toc">
+          <p class="toc-title">本页目录</p>
+          <a href="#position">1. 项目定位</a>
+          <a href="#theory">2. 理论参照</a>
+          <a href="#weight">3. 权重规则</a>
+          <a href="#classify">4. 分类标准</a>
+          <a href="#tone">5. 正向话术</a>
+          <a href="#review">6. 命理审校</a>
+          <a href="#next">7. 下一版扩展</a>
+        </nav>
+        <div class="sidebar-note">
+          <strong>当前策略</strong>
+          <span>先定标准，再扩文案，不一次性枚举全部命格。</span>
+        </div>
+      </aside>
+
+      <main class="content">
+        <section class="hero" id="position">
+          <div class="hero-copy">
+            <p class="eyebrow">五行人格生成要求 · v1</p>
+            <h1>先让结果可信，再让文案好看</h1>
+            <p class="hero-lead">
+              这份标准用于约束结果生成：五行只作为文化人格隐喻，不做命运判断。
+              文案必须解释主元素、辅元素和点睛元素的相互作用，并且只讲优势、潜力、互补和调和。
+            </p>
+            <div class="hero-actions">
+              <a class="primary-action" href="http://127.0.0.1:5174/admin">打开数据中台</a>
+              <a class="secondary-action" href="./persona-description-samples-v1.html">查看 10 个样稿</a>
+              <a class="secondary-action" href="./index.html">回到文档站</a>
+              <a class="secondary-action" href="../docs/wuxing-persona-standard-v1.md">查看 Markdown 源文档</a>
+            </div>
+          </div>
+          <div class="hero-card" aria-label="生成策略摘要">
+            <div>
+              <small>生成结构</small>
+              <strong class="metric">主元素 + 辅元素 + 点睛元素</strong>
+            </div>
+            <div>
+              <small>语言边界</small>
+              <strong class="metric">不说缺陷，只说调和</strong>
+            </div>
+            <div>
+              <small>迭代方式</small>
+              <strong class="metric">先看数据，再精修高频组合</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="theory">
+          <h2>理论参照</h2>
+          <p>
+            第一版只使用五行里最稳定、最适合产品化的概念：五行本义、相生、相克。
+            相克在产品里不写成冲突，而转译成边界、分寸、聚焦和平衡。
+          </p>
+          <div class="status-grid">
+            <article>
+              <span>五行本义</span>
+              <strong>金木水火土</strong>
+              <p>作为五种人格气质方向，不作为命运判断。</p>
+            </article>
+            <article>
+              <span>相生</span>
+              <strong>推动与滋养</strong>
+              <p>写成推动、滋养、点亮、承接，让组合更有流动感。</p>
+            </article>
+            <article>
+              <span>相克</span>
+              <strong>正向制衡</strong>
+              <p>写成校准、边界和分寸，避免负面和恐吓表达。</p>
+            </article>
+          </div>
+          <p>
+            参考来源：
+            <a href="https://ctext.org/shang-shu/great-plan/zh">Chinese Text Project《尚书·洪范》</a>、
+            <a href="https://zh.wikisource.org/wiki/%E5%B0%9A%E6%9B%B8/%E6%B4%AA%E7%AF%84">维基文库《尚书/洪范》</a>、
+            <a href="https://zh.wikipedia.org/wiki/%E4%BA%94%E8%A1%8C">五行说明</a>。
+          </p>
+        </section>
+
+        <section class="section" id="weight">
+          <h2>权重规则</h2>
+          <p>
+            当前计算不是八字排盘，而是“文化背景 + 自我选择”的人格倾向分数。出生信息负责底色，答题负责当下人格表达。
+          </p>
+          <div class="flow">
+            <div>基础分<br>各 20</div>
+            <div>出生年份<br>+8</div>
+            <div>出生月份<br>+25 / +10</div>
+            <div>日期时段<br>+6 / +8</div>
+            <div>五道题<br>每题 +12</div>
+            <div>排序生成结果</div>
+          </div>
+          <div class="table-card">
+            <table>
+              <thead>
+                <tr>
+                  <th>来源</th>
+                  <th>权重</th>
+                  <th>意义</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>基础分</td>
+                  <td>五行各 20</td>
+                  <td>保证每个人都有完整五行，不说“缺某一行”。</td>
+                </tr>
+                <tr>
+                  <td>出生月份</td>
+                  <td>主气 +25 / 辅气 +10</td>
+                  <td>作为季节背景，是最强的出生背景权重。</td>
+                </tr>
+                <tr>
+                  <td>5 道答题</td>
+                  <td>合计 +60</td>
+                  <td>代表用户当下价值选择，是人格表达核心。</td>
+                </tr>
+                <tr>
+                  <td>年份、日期、时段</td>
+                  <td>+8 / +6 / +8</td>
+                  <td>作为轻量修饰，不压过用户主动选择。</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="section" id="classify">
+          <h2>分类标准</h2>
+          <article class="panel">
+            <h3>输出格式</h3>
+            <ol>
+              <li>为什么判定为这个命盘：说明年份干支/纳音、月份节令/月令、可选日期/时段取象和 5 题选择如何影响主次元素。</li>
+              <li>元素逐项解读：分别解释主元素、次元素和点睛元素带来的具体关键词。</li>
+              <li>元素互动与总览：分析元素之间的相生、制衡或互补，再给整体正向评价。</li>
+            </ol>
+          </article>
+          <div class="two-column">
+            <article class="panel">
+              <h3>主元素</h3>
+              <p>主元素是用户最容易被看见的人格底色，例如水代表观察、木代表成长、火代表行动。</p>
+            </article>
+            <article class="panel">
+              <h3>辅元素</h3>
+              <p>辅元素不是第二人格，而是主元素的表达方式，用来解释相生、滋养、边界和互补。</p>
+            </article>
+          </div>
+          <article class="panel">
+            <h3>点睛元素</h3>
+            <p>
+              第三元素达到全五行总分 13% 以上时进入结果文案。它不抢主角，而是提供“点睛之笔”。
+              例如水木为主、火排第三时，火会被写成让观察和规划多了行动温度。
+            </p>
+          </article>
+        </section>
+
+        <section class="section" id="tone">
+          <h2>正向话术边界</h2>
+          <p>所有结果只讲优势、潜力、互补和调和，不做现实决策建议。</p>
+          <div class="table-card">
+            <table>
+              <thead>
+                <tr>
+                  <th>不推荐</th>
+                  <th>推荐</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>缺火</td>
+                  <td>火作为背景色，若出现则是点睛之笔。</td>
+                </tr>
+                <tr>
+                  <td>水克火</td>
+                  <td>水给火带来分寸，让热情更有节奏。</td>
+                </tr>
+                <tr>
+                  <td>木太旺</td>
+                  <td>木的成长感很集中，适合长期推进。</td>
+                </tr>
+                <tr>
+                  <td>金弱</td>
+                  <td>金不抢主角，但会在需要判断时提供清醒感。</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="section" id="review">
+          <h2>命理大师审校意见</h2>
+          <div class="status-grid">
+            <article>
+              <span>审校 1</span>
+              <strong>讲流动</strong>
+              <p>不要只说“你是水型人格”，要讲水如何生木、火如何点亮。</p>
+            </article>
+            <article>
+              <span>审校 2</span>
+              <strong>月令只作背景</strong>
+              <p>出生月份可以作为底色，但不能压过用户答题。</p>
+            </article>
+            <article>
+              <span>审校 3</span>
+              <strong>相克要正向</strong>
+              <p>相克写成边界、分寸和校准，而不是冲突和坏结果。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" id="next">
+          <h2>下一版扩展方式</h2>
+          <ol>
+            <li>先观察后台热门五行组合。</li>
+            <li>为 Top 10 主副组合写人工精修版。</li>
+            <li>再为高频第三元素写点睛句。</li>
+            <li>每次只上线一小批，观察分享率、完成率和用户反馈。</li>
+          </ol>
+          <div class="doc-actions">
+            <a class="doc-link" href="http://127.0.0.1:5174/admin">打开数据中台看组合数据</a>
+            <a class="doc-link" href="./persona-description-samples-v1.html">查看 10 个随机人格样稿</a>
+            <a class="doc-link" href="http://127.0.0.1:5174/test">打开测试页体验生成效果</a>
+            <a class="doc-link" href="./index.html">返回项目文档站</a>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

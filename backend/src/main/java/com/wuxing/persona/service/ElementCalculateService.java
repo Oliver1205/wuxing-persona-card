@@ -23,10 +23,10 @@ public class ElementCalculateService {
         for (ElementType elementType : ElementType.values()) {
             scores.put(elementType, 20);
         }
-        add(scores, yearElement(request.getBirthYear()), 8);
+        add(scores, WuxingCalendarTerms.yearTone(request.getBirthYear()).nayinElement(), 8);
         addMonthWeight(scores, request.getBirthMonth());
         if (request.getBirthDay() != null) {
-            add(scores, elementByMod(request.getBirthDay() % 5), 6);
+            add(scores, WuxingCalendarTerms.dayTone(request.getBirthDay()).element(), 6);
         }
         BirthTimeRange timeRange = parseBirthTimeRange(request.getBirthTimeRange());
         if (timeRange != null) {
@@ -118,54 +118,19 @@ public class ElementCalculateService {
         }
     }
 
-    private ElementType yearElement(int birthYear) {
-        return switch (birthYear % 5) {
-            case 0 -> ElementType.METAL;
-            case 1 -> ElementType.WATER;
-            case 2 -> ElementType.WOOD;
-            case 3 -> ElementType.FIRE;
-            case 4 -> ElementType.EARTH;
-            default -> throw new IllegalStateException("unexpected mod");
-        };
-    }
-
-    private ElementType elementByMod(int mod) {
-        return switch (mod) {
-            case 0 -> ElementType.METAL;
-            case 1 -> ElementType.WATER;
-            case 2 -> ElementType.WOOD;
-            case 3 -> ElementType.FIRE;
-            case 4 -> ElementType.EARTH;
-            default -> throw new IllegalStateException("unexpected mod");
-        };
-    }
-
     private void addMonthWeight(EnumMap<ElementType, Integer> scores, int month) {
-        switch (month) {
-            case 1 -> { add(scores, ElementType.WATER, 25); add(scores, ElementType.EARTH, 10); }
-            case 2 -> { add(scores, ElementType.WOOD, 25); add(scores, ElementType.WATER, 10); }
-            case 3 -> { add(scores, ElementType.WOOD, 25); add(scores, ElementType.FIRE, 10); }
-            case 4 -> { add(scores, ElementType.WOOD, 25); add(scores, ElementType.EARTH, 10); }
-            case 5 -> { add(scores, ElementType.FIRE, 25); add(scores, ElementType.WOOD, 10); }
-            case 6 -> { add(scores, ElementType.FIRE, 25); add(scores, ElementType.EARTH, 10); }
-            case 7 -> { add(scores, ElementType.EARTH, 25); add(scores, ElementType.FIRE, 10); }
-            case 8 -> { add(scores, ElementType.METAL, 25); add(scores, ElementType.EARTH, 10); }
-            case 9 -> { add(scores, ElementType.METAL, 25); add(scores, ElementType.WATER, 10); }
-            case 10 -> { add(scores, ElementType.EARTH, 25); add(scores, ElementType.METAL, 10); }
-            case 11 -> { add(scores, ElementType.WATER, 25); add(scores, ElementType.METAL, 10); }
-            case 12 -> { add(scores, ElementType.WATER, 25); add(scores, ElementType.EARTH, 10); }
-            default -> throw new BusinessException("birthMonth must be between 1 and 12");
+        try {
+            WuxingCalendarTerms.MonthTone monthTone = WuxingCalendarTerms.monthTone(month);
+            add(scores, monthTone.main(), 25);
+            add(scores, monthTone.secondary(), 10);
+        } catch (IllegalArgumentException ex) {
+            throw new BusinessException("birthMonth must be between 1 and 12");
         }
     }
 
     private void addTimeWeight(EnumMap<ElementType, Integer> scores, BirthTimeRange timeRange) {
-        switch (timeRange) {
-            case MORNING -> add(scores, ElementType.WOOD, 8);
-            case NOON -> add(scores, ElementType.FIRE, 8);
-            case AFTERNOON -> add(scores, ElementType.EARTH, 8);
-            case EVENING -> add(scores, ElementType.METAL, 8);
-            case NIGHT -> add(scores, ElementType.WATER, 8);
-            case UNKNOWN -> { }
+        if (timeRange != BirthTimeRange.UNKNOWN) {
+            add(scores, WuxingCalendarTerms.timeTone(timeRange).element(), 8);
         }
     }
 

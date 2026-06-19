@@ -14,6 +14,9 @@ public class AdminOverviewVO {
     private long shortLinkCreated;
     private long shortLinkVisits;
     private double completionRate;
+    private boolean syntheticTrafficExcluded;
+    private String syntheticIsolationLevel;
+    private String syntheticIsolationNote;
     private String metricSource;
     private String aggregatedThroughDate;
     private List<DailyMetricVO> dailyTrends;
@@ -103,6 +106,30 @@ public class AdminOverviewVO {
 
     public void setCompletionRate(double completionRate) {
         this.completionRate = completionRate;
+    }
+
+    public boolean isSyntheticTrafficExcluded() {
+        return syntheticTrafficExcluded;
+    }
+
+    public void setSyntheticTrafficExcluded(boolean syntheticTrafficExcluded) {
+        this.syntheticTrafficExcluded = syntheticTrafficExcluded;
+    }
+
+    public String getSyntheticIsolationLevel() {
+        return syntheticIsolationLevel;
+    }
+
+    public void setSyntheticIsolationLevel(String syntheticIsolationLevel) {
+        this.syntheticIsolationLevel = syntheticIsolationLevel;
+    }
+
+    public String getSyntheticIsolationNote() {
+        return syntheticIsolationNote;
+    }
+
+    public void setSyntheticIsolationNote(String syntheticIsolationNote) {
+        this.syntheticIsolationNote = syntheticIsolationNote;
     }
 
     public String getMetricSource() {

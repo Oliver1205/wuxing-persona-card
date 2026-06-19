@@ -6,6 +6,8 @@
 
 本文档用于收束八小时工作流的阶段成果。它不替代 `docs/codex-worklog.md`，而是把用户体验、后端抗峰值、宣传材料和面试学习材料放到同一张证据表里，方便后续继续开发、路演展示和面试复盘。
 
+2026-06-14 性能、PPT 和数据中台专项交付见 [`eight-hour-performance-showcase-delivery.md`](eight-hour-performance-showcase-delivery.md)。
+
 ## 1. 目标拆解
 
 | 目标 | 当前结论 | 证据 |

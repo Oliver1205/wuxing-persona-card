@@ -74,7 +74,7 @@ realName: wuxing-system
 ```json
 {
   "domain": "s.example.com",
-  "originUrl": "https://wuxing.example.com/result/R202606100001",
+  "originUrl": "https://wuxing.example.com/result/R202606100001?channel=share&campaign=result-card",
   "gid": "wuxing_persona",
   "createdType": 0,
   "validDateType": 0,
@@ -105,8 +105,10 @@ resultId -> shortCode -> shortUrl
 推荐生产入口：
 
 ```text
-https://s.example.com/Abc123 -> 外部短链服务 -> 302 -> https://wuxing.example.com/result/{resultId}
+https://s.example.com/Abc123 -> 外部短链服务 -> 302 -> https://wuxing.example.com/result/{resultId}?channel=share&campaign=result-card
 ```
+
+五行给外部短链服务的 `originUrl` 会带 `channel=share&campaign=result-card`。这样朋友从外部短链打开结果页时，前端会进入分享落地态：隐藏二次分享盒，主按钮只保留“我也测一张”，避免回流用户继续看到“再分享我的结果”的主动作。
 
 同域备选：
 

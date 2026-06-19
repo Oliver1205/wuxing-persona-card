@@ -62,7 +62,7 @@ public class ResultService {
     public ResultDetailVO create(CreateResultRequest request, String clientId, HttpServletRequest servletRequest) {
         ElementScoreResult scoreResult = elementCalculateService.calculate(request);
         StarOfficer starOfficer = starOfficerService.byMonth(request.getBirthMonth());
-        ResultText resultText = resultTextService.build(scoreResult, starOfficer);
+        ResultText resultText = resultTextService.build(scoreResult, starOfficer, request);
         UserResultEntity entity = insertWithResultIdRetry(request, scoreResult, starOfficer, resultText);
 
         ShortLinkEntity shortLink = shortLinkService.createForResult(entity.getResultId());

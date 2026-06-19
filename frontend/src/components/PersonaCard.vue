@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ResultDetail } from '../api/types';
 import ElementRatioCard from './ElementRatioCard.vue';
+import ElementMark from './ElementMark.vue';
 
 defineProps<{
   result: ResultDetail;
@@ -10,10 +11,13 @@ defineProps<{
 <template>
   <section class="persona-card">
     <div class="card-visual" :data-element="result.primaryElement">
-      <div class="symbol">{{ result.primaryElementName }}</div>
+      <div class="persona-mark-pair" aria-hidden="true">
+        <ElementMark :code="result.primaryElement" :name="result.primaryElementName" />
+        <ElementMark :code="result.secondaryElement" :name="result.secondaryElementName" compact />
+      </div>
       <div>
-        <p class="eyebrow">{{ result.starOfficerName }}</p>
-        <h2>{{ result.primaryElementName }}{{ result.secondaryElementName }}人格卡</h2>
+        <p class="eyebrow">你的五行人格身份 · {{ result.starOfficerName }}</p>
+        <h1>{{ result.primaryElementName }}{{ result.secondaryElementName }} · {{ result.starOfficerName }}</h1>
         <p class="identity-line">{{ result.keywords.slice(0, 3).join(' · ') }}</p>
       </div>
     </div>
@@ -44,78 +48,42 @@ defineProps<{
 }
 
 .card-visual {
+  position: relative;
+  overflow: hidden;
   display: grid;
-  grid-template-columns: 86px 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 16px;
   align-items: center;
-  min-height: 150px;
+  min-height: 132px;
   border-radius: 8px;
   padding: 18px;
-  background: linear-gradient(135deg, #f8f5eb, #e6f2ee);
+  border: 1px solid rgba(36, 48, 47, 0.08);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 243, 233, 0.84)),
+    linear-gradient(90deg, rgba(177, 211, 209, 0.18), transparent);
   color: #24302f;
 }
 
-.symbol {
+.persona-mark-pair {
   display: grid;
-  place-items: center;
-  width: 86px;
-  height: 86px;
-  border-radius: 50%;
-  background: #2f6f5e;
-  color: #fff;
-  font-size: 34px;
-  font-weight: 900;
+  grid-template-columns: auto auto;
+  gap: 6px;
+  align-items: end;
 }
 
-h2 {
+h1 {
   margin: 0;
-  font-size: 25px;
+  color: #202725;
+  font-family: "Songti SC", "STSong", "Noto Serif SC", var(--font-display);
+  font-size: 28px;
+  font-weight: 650;
+  line-height: 1.22;
 }
 
 .identity-line {
   margin: 8px 0 0;
   color: rgba(36, 48, 47, 0.76);
   font-weight: 800;
-}
-
-.card-visual[data-element="METAL"] {
-  background: linear-gradient(135deg, #f7f4e8, #dfe5e2);
-}
-
-.card-visual[data-element="WOOD"] {
-  background: linear-gradient(135deg, #eef6e8, #dcebd9);
-}
-
-.card-visual[data-element="WATER"] {
-  background: linear-gradient(135deg, #e9f2f8, #dce8f1);
-}
-
-.card-visual[data-element="FIRE"] {
-  background: linear-gradient(135deg, #fff1e8, #f5d9cc);
-}
-
-.card-visual[data-element="EARTH"] {
-  background: linear-gradient(135deg, #f7efe1, #eadfc7);
-}
-
-.card-visual[data-element="METAL"] .symbol {
-  background: #5c6670;
-}
-
-.card-visual[data-element="WOOD"] .symbol {
-  background: #5e8d63;
-}
-
-.card-visual[data-element="WATER"] .symbol {
-  background: #486f92;
-}
-
-.card-visual[data-element="FIRE"] .symbol {
-  background: #b66045;
-}
-
-.card-visual[data-element="EARTH"] .symbol {
-  background: #9d7a42;
 }
 
 .keywords {
@@ -130,5 +98,49 @@ h2 {
   background: #f1eadc;
   color: #6d4f29;
   font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .card-visual {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 10px;
+    min-height: 0;
+    align-items: start;
+    padding: 14px;
+  }
+
+  .persona-mark-pair {
+    justify-content: start;
+  }
+
+  .persona-mark-pair :deep(.element-mark) {
+    min-width: 32px;
+  }
+
+  .persona-mark-pair :deep(.element-mark.compact) {
+    min-width: 26px;
+  }
+
+  .persona-mark-pair :deep(.element-mark > span) {
+    font-size: 24px;
+  }
+
+  .persona-mark-pair :deep(.element-mark.compact > span) {
+    font-size: 20px;
+  }
+
+  .card-visual .eyebrow {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  h1 {
+    font-size: 22px;
+    line-height: 1.26;
+  }
+
+  .identity-line {
+    font-size: 14px;
+  }
 }
 </style>

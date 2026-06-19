@@ -98,11 +98,15 @@ const activeQuestionAnswered = computed(() => {
   return Boolean(question && form.answers[question.questionCode]);
 });
 const isLastQuestion = computed(() => activeStepIndex.value === questions.value.length);
+const questionListUnavailable = computed(() => !loading.value && questions.value.length === 0);
 const primaryActionText = computed(() => {
   if (submitting.value) {
     return matchMode.value ? '生成匹配中...' : '生成中...';
   }
   if (isBirthStep.value) {
+    if (questionListUnavailable.value) {
+      return '题目加载失败';
+    }
     return birthInfoComplete.value ? '进入第 1 题' : '选择月份后继续';
   }
   if (isLastQuestion.value) {
@@ -110,8 +114,9 @@ const primaryActionText = computed(() => {
   }
   return '下一题';
 });
+const previousActionText = computed(() => (activeQuestionIndex.value === 0 ? '基础信息' : '上一题'));
 const primaryActionDisabled = computed(() => {
-  if (submitting.value || loading.value) {
+  if (submitting.value || loading.value || questionListUnavailable.value) {
     return true;
   }
   if (isBirthStep.value) {
@@ -127,6 +132,9 @@ const stepCaption = computed(() => {
 });
 const actionSummaryText = computed(() => {
   if (isBirthStep.value) {
+    if (questionListUnavailable.value) {
+      return '题目没有加载成功，请刷新重试';
+    }
     if (!birthInfoComplete.value) {
       return '只需要选年份和月份';
     }
@@ -339,6 +347,10 @@ function goNext() {
   if (submitting.value) {
     return;
   }
+  if (isBirthStep.value && questionListUnavailable.value) {
+    error.value = error.value || '题目加载失败，请刷新重试';
+    return;
+  }
   error.value = '';
   if (isBirthStep.value) {
     if (!birthInfoComplete.value) {
@@ -392,6 +404,7 @@ function goToStep(index: number) {
         <p class="eyebrow">五行人格测试</p>
         <h1>用 5 道题找到你的主副五行</h1>
         <p class="muted">题目没有标准答案，按第一反应选择即可。无需登录和姓名，出生日期、时段可以不透露。</p>
+        <p class="element-inline-hint" aria-label="五行元素参照">金 · 木 · 水 · 火 · 土</p>
         <div class="progress-card" aria-label="答题进度">
           <div class="progress-meta">
             <span>完成 {{ completedProgressUnits }} / {{ totalProgressUnits }}</span>
@@ -421,8 +434,7 @@ function goToStep(index: number) {
       </div>
 
       <div class="flow-stage" :class="{ 'question-mode': !isBirthStep, 'birth-mode': isBirthStep }">
-        <Transition name="card-slide" mode="out-in">
-          <div v-if="isBirthStep" key="birth" class="panel stack birth-panel input-panel flow-card">
+        <div v-if="isBirthStep" key="birth" class="panel stack birth-panel input-panel flow-card">
             <div class="birth-panel-head">
               <div>
                 <p class="section-kicker">STEP 00</p>
@@ -510,8 +522,8 @@ function goToStep(index: number) {
                   <span id="birth-month-label">出生月份</span>
                   <strong>{{ form.birthMonth ? form.birthMonth + ' 月' : '请选择' }}</strong>
                 </div>
-                <p class="rail-hint">横向滑动可以看到 12 个月。</p>
-                <div class="choice-rail month-rail" role="list" aria-label="出生月份">
+                <p class="rail-hint">12 个月全部可见，直接点选。</p>
+                <div class="choice-grid month-grid" role="list" aria-label="出生月份">
                   <button
                     v-for="month in 12"
                     :key="month"
@@ -524,6 +536,17 @@ function goToStep(index: number) {
                   >
                     <strong>{{ month }} 月</strong>
                     <span>{{ isBirthMonthDisabled(month) ? '尚未到来' : monthHints[month - 1] }}</span>
+                  </button>
+                </div>
+                <div class="birth-inline-action">
+                  <button
+                    data-testid="birth-inline-primary-action"
+                    type="button"
+                    class="primary-action-button"
+                    :disabled="primaryActionDisabled"
+                    @click="goNext"
+                  >
+                    {{ primaryActionText }}
                   </button>
                 </div>
               </section>
@@ -539,8 +562,8 @@ function goToStep(index: number) {
                       <span id="birth-day-label">出生日期</span>
                       <strong>{{ form.birthDay ? form.birthDay + ' 日' : '可不透露' }}</strong>
                     </div>
-                    <p class="rail-hint">不知道或不想填，可以保持“不透露”。</p>
-                    <div class="choice-rail day-rail" role="list" aria-label="出生日期">
+                    <p class="rail-hint">日期是可选项，不知道或不想填，可以保持“不透露”。</p>
+                    <div class="choice-grid day-grid" role="list" aria-label="出生日期">
                       <button
                         type="button"
                         class="choice-chip day-chip optional"
@@ -589,39 +612,38 @@ function goToStep(index: number) {
                 </div>
               </details>
             </div>
-          </div>
+        </div>
 
-          <div v-else-if="loading" key="loading" class="panel flow-card">
-            题目加载中...
-          </div>
+        <div v-else-if="loading" key="loading" class="panel flow-card" role="status" aria-live="polite">
+          题目加载中...
+        </div>
 
-          <QuestionCard
-            v-else-if="activeQuestion"
-            :key="activeQuestion.questionCode"
-            class="panel flow-card question-panel"
-            :model-value="form.answers[activeQuestion.questionCode]"
-            :question="activeQuestion"
-            :question-index="activeQuestionIndex + 1"
-            :disabled="submitting"
-            :total-questions="questions.length"
-            @update:model-value="selectAnswer(activeQuestion.questionCode, $event)"
-          />
-        </Transition>
+        <QuestionCard
+          v-else-if="activeQuestion"
+          :key="activeQuestion.questionCode"
+          class="panel flow-card question-panel"
+          :model-value="form.answers[activeQuestion.questionCode]"
+          :question="activeQuestion"
+          :question-index="activeQuestionIndex + 1"
+          :disabled="submitting"
+          :total-questions="questions.length"
+          @update:model-value="selectAnswer(activeQuestion.questionCode, $event)"
+        />
       </div>
 
-      <p v-if="error" class="error-text">{{ error }}</p>
+      <p v-if="error" class="error-text" role="alert" aria-live="polite">{{ error }}</p>
 
-      <div class="sticky-action" :class="{ 'birth-action': isBirthStep }">
+      <div class="sticky-action" :class="{ 'birth-action': isBirthStep, 'single-action': !canGoPrevious }">
         <div class="action-summary">
           <strong>{{ stepCaption }}</strong>
-          <span>{{ actionSummaryText }}</span>
+          <span class="action-detail">{{ actionSummaryText }}</span>
           <RouterLink class="home-inline-link" to="/">返回首页</RouterLink>
-          <span v-if="submitting" class="submit-lock">正在生成，请不要关闭页面</span>
+          <span v-if="submitting" class="submit-lock" role="status" aria-live="polite">正在生成，请不要关闭页面</span>
         </div>
-        <button v-if="canGoPrevious" type="button" class="secondary nav-button" @click="goPrevious">
-          上一张
+        <button v-if="canGoPrevious" data-testid="test-previous-action" type="button" class="secondary nav-button" @click="goPrevious">
+          {{ previousActionText }}
         </button>
-        <button type="button" class="primary-action-button" :disabled="primaryActionDisabled" @click="goNext">
+        <button data-testid="test-primary-action" type="button" class="primary-action-button" :disabled="primaryActionDisabled" @click="goNext">
           {{ primaryActionText }}
         </button>
       </div>
@@ -635,12 +657,40 @@ function goToStep(index: number) {
 
 <style scoped>
 .test-page {
+  position: relative;
+  overflow-x: hidden;
   background:
-    linear-gradient(180deg, #fbf8f0 0%, #edf5f1 48%, #f7efe9 100%);
+    radial-gradient(circle at 12% 6%, rgba(255, 255, 255, 0.86), transparent 28%),
+    linear-gradient(180deg, #f8f3e9 0%, #fbf7ee 56%, #edf3ee 100%);
+}
+
+.test-page::before,
+.test-page::after {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.test-page::before {
+  height: 150px;
+  background: rgba(174, 213, 211, 0.58);
+  clip-path: ellipse(76% 48% at 16% 100%);
+}
+
+.test-page::after {
+  height: 118px;
+  background: rgba(151, 204, 205, 0.42);
+  clip-path: ellipse(70% 46% at 86% 100%);
 }
 
 .test-shell {
-  padding-bottom: 96px;
+  position: relative;
+  z-index: 1;
+  padding-bottom: 72px;
 }
 
 .test-header {
@@ -648,18 +698,43 @@ function goToStep(index: number) {
   overflow: hidden;
   display: grid;
   gap: 12px;
-  border: 1px solid rgba(36, 48, 47, 0.12);
+  border: 1px solid rgba(36, 48, 47, 0.1);
   border-radius: 8px;
   padding: 22px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(238, 247, 242, 0.82)),
-    linear-gradient(90deg, rgba(47, 111, 94, 0.08), rgba(196, 122, 80, 0.08));
-  box-shadow: 0 18px 48px rgba(31, 48, 43, 0.1);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(250, 247, 239, 0.86)),
+    linear-gradient(90deg, rgba(177, 211, 209, 0.18), rgba(199, 99, 63, 0.08));
+  box-shadow: 0 16px 42px rgba(31, 48, 43, 0.09);
+}
+
+.test-header::after {
+  content: "";
+  position: absolute;
+  right: 18px;
+  top: 18px;
+  width: 78px;
+  height: 64px;
+  border-top: 1px solid rgba(191, 137, 24, 0.58);
+  border-right: 1px solid rgba(191, 137, 24, 0.58);
+  opacity: 0.72;
 }
 
 .test-header h1 {
   max-width: 660px;
-  font-size: 44px;
+  color: #202725;
+  font-family: "Songti SC", "STSong", "Noto Serif SC", var(--font-display);
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.element-inline-hint {
+  margin: -2px 0 0;
+  color: #8a6a38;
+  font-family: "Songti SC", "STSong", "Noto Serif SC", var(--font-display);
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.2;
 }
 
 .progress-card {
@@ -678,7 +753,7 @@ function goToStep(index: number) {
 }
 
 .progress-track {
-  height: 10px;
+  height: 8px;
   overflow: hidden;
   border-radius: 999px;
   background: rgba(36, 48, 47, 0.1);
@@ -688,7 +763,7 @@ function goToStep(index: number) {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #2f6f5e, #d79b43);
+  background: linear-gradient(90deg, #123253, #2f705e, #bf8918);
   transition: width 180ms ease;
 }
 
@@ -707,7 +782,7 @@ function goToStep(index: number) {
 .step-pill {
   flex: 0 0 auto;
   min-width: 48px;
-  min-height: 40px;
+  min-height: 44px;
   border: 1px solid rgba(36, 48, 47, 0.12);
   border-radius: 999px;
   padding: 0 14px;
@@ -724,10 +799,10 @@ function goToStep(index: number) {
 }
 
 .step-pill.active {
-  border-color: #24302f;
-  background: #24302f;
+  border-color: #123253;
+  background: #123253;
   color: #fff;
-  box-shadow: 0 12px 24px rgba(36, 48, 47, 0.16);
+  box-shadow: 0 12px 24px rgba(18, 50, 83, 0.18);
 }
 
 .step-pill:disabled {
@@ -736,8 +811,8 @@ function goToStep(index: number) {
 
 .flow-stage {
   position: relative;
-  min-height: 580px;
-  overflow: hidden;
+  min-height: 0;
+  overflow: visible;
 }
 
 .flow-card {
@@ -749,24 +824,9 @@ function goToStep(index: number) {
   align-items: start;
 }
 
-.card-slide-enter-active,
-.card-slide-leave-active {
-  transition: opacity 180ms ease, transform 180ms ease;
-}
-
-.card-slide-enter-from {
-  opacity: 0;
-  transform: translateX(26px) scale(0.985);
-}
-
-.card-slide-leave-to {
-  opacity: 0;
-  transform: translateX(-26px) scale(0.985);
-}
-
 .birth-panel {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(252, 248, 240, 0.9));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(252, 249, 243, 0.9));
 }
 
 .birth-panel-head {
@@ -814,9 +874,10 @@ function goToStep(index: number) {
 
 .section-kicker {
   margin: 0 0 8px;
-  color: #9b6d32;
+  color: #bf8918;
   font-size: 12px;
   font-weight: 950;
+  letter-spacing: 0;
 }
 
 .birth-status {
@@ -897,6 +958,11 @@ function goToStep(index: number) {
   list-style: none;
 }
 
+.optional-birth-details summary > span {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .optional-birth-details summary::-webkit-details-marker {
   display: none;
 }
@@ -921,6 +987,9 @@ function goToStep(index: number) {
 
 .optional-birth-details summary strong {
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: #6a7774;
   font-size: 13px;
   text-align: right;
@@ -940,7 +1009,8 @@ function goToStep(index: number) {
   border-radius: 8px;
   padding: 16px;
   background:
-    linear-gradient(135deg, rgba(237, 247, 242, 0.96), rgba(255, 249, 238, 0.94));
+    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(234, 246, 245, 0.78)),
+    linear-gradient(90deg, rgba(191, 137, 24, 0.08), transparent);
 }
 
 .year-display {
@@ -951,9 +1021,10 @@ function goToStep(index: number) {
 }
 
 .year-display strong {
-  color: #1f3732;
+  color: #123253;
+  font-family: "Songti SC", "STSong", "Noto Serif SC", var(--font-display);
   font-size: 42px;
-  font-weight: 950;
+  font-weight: 650;
   line-height: 1;
 }
 
@@ -974,7 +1045,7 @@ function goToStep(index: number) {
   min-width: 50px;
   min-height: 44px;
   border: 1px solid rgba(36, 48, 47, 0.12);
-  background: #24302f;
+  background: #123253;
   color: #fff;
   font-size: 15px;
   font-weight: 950;
@@ -994,19 +1065,19 @@ function goToStep(index: number) {
 
 .year-range {
   width: 100%;
-  min-height: 32px;
-  height: 32px;
+  min-height: 44px;
+  height: 44px;
   border: 0;
   padding: 0;
   background: transparent;
-  accent-color: #2f6f5e;
+  accent-color: #123253;
   cursor: pointer;
 }
 
 .year-range::-webkit-slider-runnable-track {
   height: 8px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #2f6f5e, #d79b43, #b85b48);
+  background: linear-gradient(90deg, #123253, #2f705e, #bf8918);
 }
 
 .year-range::-webkit-slider-thumb {
@@ -1015,7 +1086,7 @@ function goToStep(index: number) {
   margin-top: -9px;
   border: 4px solid #fff;
   border-radius: 50%;
-  background: #24302f;
+  background: #123253;
   box-shadow: 0 8px 22px rgba(36, 48, 47, 0.25);
   appearance: none;
 }
@@ -1023,7 +1094,7 @@ function goToStep(index: number) {
 .year-range::-moz-range-track {
   height: 8px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #2f6f5e, #d79b43, #b85b48);
+  background: linear-gradient(90deg, #123253, #2f705e, #bf8918);
 }
 
 .year-range::-moz-range-thumb {
@@ -1031,7 +1102,7 @@ function goToStep(index: number) {
   height: 20px;
   border: 4px solid #fff;
   border-radius: 50%;
-  background: #24302f;
+  background: #123253;
   box-shadow: 0 8px 22px rgba(36, 48, 47, 0.25);
 }
 
@@ -1044,27 +1115,32 @@ function goToStep(index: number) {
   font-weight: 800;
 }
 
-.quick-row,
-.choice-rail {
-  display: flex;
+.quick-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
   gap: 9px;
-  overflow-x: auto;
-  padding: 2px 2px 8px;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
+  padding: 2px 0 4px;
 }
 
-.quick-row::-webkit-scrollbar,
-.choice-rail::-webkit-scrollbar {
-  display: none;
+.choice-grid {
+  display: grid;
+  gap: 9px;
+  padding: 2px 0 4px;
+}
+
+.month-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.day-grid {
+  grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
 }
 
 .quick-chip,
 .choice-chip,
 .time-chip {
   flex: 0 0 auto;
-  min-height: auto;
+  min-height: 44px;
   border: 1px solid rgba(36, 48, 47, 0.12);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.92);
@@ -1081,7 +1157,6 @@ function goToStep(index: number) {
   padding: 9px 12px;
   font-size: 13px;
   font-weight: 900;
-  scroll-snap-align: start;
 }
 
 .choice-chip {
@@ -1093,6 +1168,11 @@ function goToStep(index: number) {
   padding: 10px 8px;
   text-align: center;
   scroll-snap-align: start;
+}
+
+.choice-grid .choice-chip {
+  width: 100%;
+  min-width: 0;
 }
 
 .choice-chip strong {
@@ -1113,6 +1193,11 @@ function goToStep(index: number) {
 
 .day-chip.optional {
   width: 88px;
+}
+
+.day-grid .day-chip.optional {
+  grid-column: span 2;
+  width: 100%;
 }
 
 .quick-chip:hover,
@@ -1143,10 +1228,10 @@ function goToStep(index: number) {
 .quick-chip.active,
 .choice-chip.active,
 .time-chip.active {
-  border-color: rgba(47, 111, 94, 0.5);
-  background: linear-gradient(135deg, #24302f, #2f6f5e);
+  border-color: rgba(18, 50, 83, 0.5);
+  background: linear-gradient(135deg, #123253, #2f705e);
   color: #fff;
-  box-shadow: 0 13px 26px rgba(47, 111, 94, 0.22);
+  box-shadow: 0 13px 26px rgba(18, 50, 83, 0.18);
   transform: translateY(-1px);
 }
 
@@ -1181,6 +1266,10 @@ function goToStep(index: number) {
   font-weight: 800;
 }
 
+.birth-inline-action {
+  display: none;
+}
+
 .sticky-action {
   position: sticky;
   bottom: 14px;
@@ -1189,19 +1278,44 @@ function goToStep(index: number) {
   grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 12px;
   align-items: center;
-  border: 1px solid rgba(36, 48, 47, 0.14);
+  border: 1px solid rgba(36, 48, 47, 0.12);
   border-radius: 8px;
   padding: 12px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 14px 42px rgba(31, 48, 43, 0.14);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14px 42px rgba(31, 48, 43, 0.13);
+  backdrop-filter: blur(10px);
 }
 
 .action-summary {
-  display: grid;
-  gap: 3px;
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 3px 10px;
+  align-items: center;
+}
+
+.action-summary strong,
+.action-detail {
+  min-width: 0;
+}
+
+.action-summary strong {
+  color: #24302f;
+  white-space: nowrap;
+}
+
+.action-detail {
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .home-inline-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 8px;
   width: fit-content;
   color: #2f6f5e;
   font-size: 12px;
@@ -1223,9 +1337,44 @@ function goToStep(index: number) {
   font-weight: 900;
 }
 
+.primary-action-button:disabled {
+  border: 1px solid rgba(36, 48, 47, 0.08);
+  background: #d8e3dd;
+  color: #5f6d69;
+  opacity: 1;
+  box-shadow: none;
+}
+
 @media (max-width: 760px) {
   .test-shell {
-    padding-bottom: 218px;
+    padding-bottom: 118px;
+  }
+
+  .test-header {
+    gap: 9px;
+    padding: 18px;
+  }
+
+  .test-header::after {
+    width: 54px;
+    height: 46px;
+  }
+
+  .test-header h1 {
+    font-size: 28px;
+    line-height: 1.12;
+  }
+
+  .test-header .muted {
+    line-height: 1.62;
+  }
+
+  .element-inline-hint {
+    font-size: 14px;
+  }
+
+  .progress-card {
+    margin-top: 2px;
   }
 
   .birth-panel-head {
@@ -1244,13 +1393,21 @@ function goToStep(index: number) {
     font-size: 36px;
   }
 
+  .month-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .day-grid {
+    grid-template-columns: repeat(auto-fit, minmax(52px, 1fr));
+  }
+
   .time-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .flow-stage {
-    min-height: 610px;
-    padding-bottom: 178px;
+    min-height: 0;
+    padding-bottom: 0;
   }
 
   .flow-stage.birth-mode {
@@ -1268,33 +1425,42 @@ function goToStep(index: number) {
 
   .sticky-action {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    bottom: 10px;
-    gap: 8px;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    gap: 7px;
+    padding: 8px;
   }
 
   .sticky-action.birth-action {
-    position: static;
-    grid-template-columns: 1fr;
+    display: none;
+  }
+
+  .birth-inline-action {
+    display: grid;
     margin-top: 2px;
   }
 
-  .action-summary,
-  .primary-action-button {
+  .action-summary {
     grid-column: 1 / -1;
   }
 
   .primary-action-button {
     order: 1;
-    min-height: 50px;
-    font-size: 16px;
+    min-height: 44px;
+    font-size: 15px;
   }
 
   .action-summary {
     order: 0;
+    min-height: 26px;
+  }
+
+  .action-detail {
+    display: none;
   }
 
   .nav-button {
     order: 2;
+    min-height: 44px;
   }
 
   .sticky-action a {
@@ -1305,8 +1471,32 @@ function goToStep(index: number) {
     width: 100%;
   }
 
-  .test-header h1 {
-    font-size: 30px;
+  .sticky-action.single-action .primary-action-button {
+    grid-column: 1 / -1;
+  }
+
+}
+
+@media (max-width: 430px) {
+  .month-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .day-grid {
+    grid-template-columns: repeat(auto-fit, minmax(46px, 1fr));
+  }
+
+  .month-chip {
+    min-height: 64px;
+    padding: 8px 5px;
+  }
+
+  .choice-chip strong {
+    font-size: 15px;
+  }
+
+  .month-chip span {
+    font-size: 11px;
   }
 }
 </style>

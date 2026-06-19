@@ -4,8 +4,10 @@ set -euo pipefail
 BASE_URL="${BASE_URL:-}"
 ADMIN_TOKEN="${ADMIN_TOKEN:-}"
 CLIENT_ID="${CLIENT_ID:-wuxing-production-smoke-client}"
-CHANNEL="${CHANNEL:-production-smoke}"
-CAMPAIGN="${CAMPAIGN:-post-deploy}"
+SYNTHETIC_CHANNEL="${SYNTHETIC_CHANNEL:-${CHANNEL:-perf-test}}"
+SYNTHETIC_CAMPAIGN="${SYNTHETIC_CAMPAIGN:-${CAMPAIGN:-production-smoke}}"
+SMOKE_OBSERVE_TIMEOUT_SECONDS="${SMOKE_OBSERVE_TIMEOUT_SECONDS:-30}"
+SMOKE_OBSERVE_INTERVAL_SECONDS="${SMOKE_OBSERVE_INTERVAL_SECONDS:-2}"
 
 fail() {
   echo "ERROR: $*" >&2
@@ -39,9 +41,13 @@ body_file="$(mktemp)"
 create_response="$(mktemp)"
 headers_file="$(mktemp)"
 overview_response="$(mktemp)"
-trap 'rm -f "$body_file" "$create_response" "$headers_file" "$overview_response"' EXIT
+readiness_response="$(mktemp)"
+trap 'rm -f "$body_file" "$create_response" "$headers_file" "$overview_response" "$readiness_response"' EXIT
 
 curl -fsS "$BASE_URL/api/health" >/dev/null
+curl -fsS "$BASE_URL/api/readiness" -o "$readiness_response"
+readiness_status="$(json_get "$readiness_response" data.status)"
+[[ "$readiness_status" == "UP" ]] || fail "readiness status is not UP: ${readiness_status}"
 curl -fsS "$BASE_URL/api/questions" >/dev/null
 
 cat >"$body_file" <<'JSON'
@@ -64,8 +70,8 @@ curl -fsS \
   -H "Content-Type: application/json" \
   -H "X-Client-Id: ${CLIENT_ID}" \
   -H "X-Session-Id: ${CLIENT_ID}-session" \
-  -H "X-Channel: ${CHANNEL}" \
-  -H "X-Campaign: ${CAMPAIGN}" \
+  -H "X-Channel: ${SYNTHETIC_CHANNEL}" \
+  -H "X-Campaign: ${SYNTHETIC_CAMPAIGN}" \
   -d @"$body_file" \
   "$BASE_URL/api/results" \
   -o "$create_response"
@@ -76,23 +82,38 @@ short_code="$(json_get "$create_response" data.shortCode)"
 [[ -n "$short_code" ]] || fail "shortCode missing"
 
 redirect_code="$(curl -sS -o /dev/null -D "$headers_file" -w '%{http_code}' \
-  "$BASE_URL/s/$short_code?channel=${CHANNEL}&campaign=${CAMPAIGN}")"
+  "$BASE_URL/s/$short_code?channel=${SYNTHETIC_CHANNEL}&campaign=${SYNTHETIC_CAMPAIGN}")"
 [[ "$redirect_code" == "301" || "$redirect_code" == "302" ]] || fail "shortlink redirect failed: ${redirect_code}"
 
 location="$(awk 'tolower($1) == "location:" {print $2}' "$headers_file" | tr -d '\r' | tail -1)"
 [[ "$location" == *"/result/${result_id}"* ]] || fail "unexpected redirect location: ${location}"
-[[ "$location" == *"channel=${CHANNEL}"* ]] || fail "redirect did not preserve channel: ${location}"
+[[ "$location" == *"channel=${SYNTHETIC_CHANNEL}"* ]] || fail "redirect did not preserve channel: ${location}"
+[[ "$location" == *"campaign=${SYNTHETIC_CAMPAIGN}"* ]] || fail "redirect did not preserve campaign: ${location}"
 
-curl -fsS \
-  -H "X-Admin-Token: ${ADMIN_TOKEN}" \
-  "$BASE_URL/api/admin/overview" \
-  -o "$overview_response"
+deadline=$((SECONDS + SMOKE_OBSERVE_TIMEOUT_SECONDS))
+while true; do
+  curl -fsS \
+    -H "X-Admin-Token: ${ADMIN_TOKEN}" \
+    "$BASE_URL/api/admin/overview?includeSynthetic=true&forceRefresh=true" \
+    -o "$overview_response"
 
-result_created="$(json_get "$overview_response" data.resultCreated)"
-short_link_visits="$(json_get "$overview_response" data.shortLinkVisits)"
-[[ "$result_created" -ge 1 ]] || fail "admin overview did not record result creation"
-[[ "$short_link_visits" -ge 1 ]] || fail "admin overview did not record short link visit"
+  result_created="$(json_get "$overview_response" data.resultCreated)"
+  short_link_visits="$(json_get "$overview_response" data.shortLinkVisits)"
+  result_created="${result_created:-0}"
+  short_link_visits="${short_link_visits:-0}"
+  if [[ "$result_created" -ge 1 && "$short_link_visits" -ge 1 ]]; then
+    break
+  fi
+  if [[ "$SECONDS" -ge "$deadline" ]]; then
+    fail "admin overview did not observe smoke sample before timeout: resultCreated=${result_created}, shortLinkVisits=${short_link_visits}"
+  fi
+  sleep "$SMOKE_OBSERVE_INTERVAL_SECONDS"
+done
 
 echo "Production smoke test passed"
 echo "resultId=${result_id}"
 echo "shortCode=${short_code}"
+echo "readinessStatus=${readiness_status}"
+echo "syntheticChannel=${SYNTHETIC_CHANNEL}"
+echo "syntheticCampaign=${SYNTHETIC_CAMPAIGN}"
+echo "observeTimeoutSeconds=${SMOKE_OBSERVE_TIMEOUT_SECONDS}"

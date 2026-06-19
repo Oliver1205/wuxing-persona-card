@@ -80,7 +80,7 @@ class ResultServiceTest {
 
         when(elementCalculateService.calculate(request)).thenReturn(scoreResult);
         when(starOfficerService.byMonth(6)).thenReturn(starOfficer);
-        when(resultTextService.build(scoreResult, starOfficer)).thenReturn(resultText);
+        when(resultTextService.build(scoreResult, starOfficer, request)).thenReturn(resultText);
         when(userResultMapper.insert(any(UserResultEntity.class)))
                 .thenThrow(new DuplicateKeyException("duplicate result_id"))
                 .thenReturn(1);

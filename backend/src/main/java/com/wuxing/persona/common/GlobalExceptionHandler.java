@@ -11,6 +11,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -47,6 +48,12 @@ public class GlobalExceptionHandler {
         return ApiResponse.error(400, ex.getMessage());
     }
 
+    @ExceptionHandler(NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ApiResponse<Void> handleNoResourceFound(NoResourceFoundException ex) {
+        return ApiResponse.error(404, "not found");
+    }
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ApiResponse<Void> handleException(Exception ex) {
@@ -55,10 +62,30 @@ public class GlobalExceptionHandler {
     }
 
     private HttpStatus toHttpStatus(int code) {
-        return switch (code) {
-            case 401 -> HttpStatus.UNAUTHORIZED;
-            case 404 -> HttpStatus.NOT_FOUND;
-            default -> HttpStatus.BAD_REQUEST;
-        };
+        if (code == 401) {
+            return HttpStatus.UNAUTHORIZED;
+        }
+        if (code == 404) {
+            return HttpStatus.NOT_FOUND;
+        }
+        if (code == 403) {
+            return HttpStatus.FORBIDDEN;
+        }
+        if (code == 409) {
+            return HttpStatus.CONFLICT;
+        }
+        if (code == 429) {
+            return HttpStatus.TOO_MANY_REQUESTS;
+        }
+        if (code == 502) {
+            return HttpStatus.BAD_GATEWAY;
+        }
+        if (code == 503) {
+            return HttpStatus.SERVICE_UNAVAILABLE;
+        }
+        if (code >= 500) {
+            return HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+        return HttpStatus.BAD_REQUEST;
     }
 }

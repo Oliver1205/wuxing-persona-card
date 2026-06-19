@@ -14,21 +14,11 @@ const result = ref<ResultDetail | null>(null);
 const loading = ref(true);
 const error = ref('');
 const shareImageStatus = ref('');
-const sharedEntry = computed(() => Boolean(route.query.sc || route.query.channel === 'shared-result'));
-
-const identityTitle = computed(() => {
-  if (!result.value) {
-    return '';
-  }
-  return `${result.value.primaryElementName}${result.value.secondaryElementName} · ${result.value.starOfficerName}`;
-});
-
-const archetypeName = computed(() => {
-  if (!result.value) {
-    return '';
-  }
-  return `${result.value.primaryElementName}${result.value.secondaryElementName}型${result.value.keywords[0] ?? '探索者'}`;
-});
+const sharedEntry = computed(() => Boolean(
+  route.query.sc
+  || route.query.channel === 'shared-result'
+  || route.query.channel === 'share',
+));
 
 const personaLine = computed(() => {
   if (!result.value) {
@@ -54,6 +44,29 @@ const resonanceSignals = computed(() => {
     {
       label: '和人相处时',
       text: `${result.value.starOfficerName}让你带着${starTrait}，既有个人风格，也愿意照顾关系里的感受。`,
+    },
+  ];
+});
+
+const analysisBlocks = computed(() => {
+  if (!result.value) {
+    return [];
+  }
+  return [
+    {
+      kicker: '判定依据',
+      title: '为什么判定为这个命盘',
+      text: result.value.layoutExplanation,
+    },
+    {
+      kicker: '元素强弱',
+      title: '元素逐项解读',
+      text: result.value.strengthText,
+    },
+    {
+      kicker: '互动总览',
+      title: '元素互动与总览',
+      text: result.value.relationshipText,
     },
   ];
 });
@@ -103,8 +116,8 @@ function sharedLandingStart() {
 
 <template>
   <main class="page result-page">
-    <section class="shell stack">
-      <section v-if="loading" class="result-state-card" aria-live="polite">
+    <section class="shell stack result-shell">
+      <section v-if="loading" class="result-state-card" role="status" aria-live="polite">
         <p class="eyebrow">正在展开你的五行人格卡</p>
         <div class="loading-mark" aria-hidden="true">
           <span></span>
@@ -119,7 +132,7 @@ function sharedLandingStart() {
           <span></span>
         </div>
       </section>
-      <section v-else-if="error" class="result-state-card error-state">
+      <section v-else-if="error" class="result-state-card error-state" role="alert" aria-live="polite">
         <p class="eyebrow">这张人格卡暂时打不开</p>
         <h2>可能是链接失效，或结果还没有生成完成</h2>
         <p class="muted">{{ error }}</p>
@@ -136,33 +149,15 @@ function sharedLandingStart() {
           </div>
           <RouterLink
             class="button-link primary-cta"
-            :to="{ path: '/test', query: { channel: 'shared-result', campaign: 'result-banner' } }"
+            :to="{ path: '/test', query: { channel: 'shared-result', campaign: 'result-banner', matchCode: result.shortCode } }"
             @click="sharedLandingStart"
           >
             我也测一张
           </RouterLink>
         </section>
 
-        <div class="result-hero">
-          <p class="eyebrow">你的五行人格身份</p>
-          <h1>{{ identityTitle }}</h1>
-          <p>{{ result.keywords.join(' · ') }}</p>
-          <div class="result-identity-grid" aria-label="结果摘要">
-            <span>{{ archetypeName }}</span>
-            <span>{{ result.primaryPercent }}% {{ result.primaryElementName }}</span>
-            <span>{{ result.secondaryPercent }}% {{ result.secondaryElementName }}</span>
-          </div>
-        </div>
-
         <div class="panel">
           <PersonaCard :result="result" />
-          <div v-if="!sharedEntry" class="result-quick-actions" aria-label="结果分享快捷操作">
-            <div>
-              <strong>这张卡已经可以分享</strong>
-              <span>短码适合发起双人匹配，分享链接适合让朋友直接打开这张卡。</span>
-            </div>
-            <button type="button" @click="downloadShareImage">保存分享图</button>
-          </div>
         </div>
 
         <section class="identity-statement">
@@ -173,10 +168,10 @@ function sharedLandingStart() {
           </p>
         </section>
 
-        <section class="panel stack">
+        <section class="panel stack resonance-panel">
           <div>
             <p class="eyebrow">为什么像你</p>
-            <h2>最容易被朋友认出来的 3 个表现</h2>
+            <h2>朋友最容易认出的三个表现</h2>
           </div>
           <div class="resonance-grid">
             <article v-for="signal in resonanceSignals" :key="signal.label">
@@ -186,44 +181,50 @@ function sharedLandingStart() {
           </div>
         </section>
 
-        <div class="panel stack">
-          <h2>五行布局解释</h2>
-          <p>{{ result.layoutExplanation }}</p>
-          <h2>性格亮点</h2>
-          <p>{{ result.strengthText }}</p>
-          <h2>相处优势</h2>
-          <p>{{ result.relationshipText }}</p>
-        </div>
+        <section class="panel interpretation-panel" aria-label="命盘解释">
+          <div class="interpretation-head">
+            <p class="eyebrow">命盘解释</p>
+            <h2>这张卡为什么这样判断</h2>
+          </div>
+          <div class="interpretation-grid">
+            <article v-for="block in analysisBlocks" :key="block.kicker">
+              <span>{{ block.kicker }}</span>
+              <h3>{{ block.title }}</h3>
+              <p>{{ block.text }}</p>
+            </article>
+          </div>
+        </section>
 
         <div class="panel">
           <ElementSpectrum :scores="result.allElementScores" />
         </div>
 
         <ShareLinkBox
+          v-if="!sharedEntry"
           :result-id="result.resultId"
           :short-code="result.shortCode"
           :short-url="result.shortUrl"
+          show-save-image
           @copied="copied"
+          @save-image="downloadShareImage"
         />
 
-        <section class="result-next-step" :class="{ shared: sharedEntry }">
+        <section v-else class="panel shared-bottom-cta" aria-label="分享结果底部行动">
           <div>
-            <strong>{{ sharedEntry ? '想看看自己的五行卡？' : '分享链接已经准备好' }}</strong>
-            <span>
-              {{ sharedEntry ? '读完朋友的卡，也可以用出生年月和 5 道题生成一张自己的。' : '复制短码可以邀请朋友做双人匹配；想重测也可以从这里开始。' }}
-            </span>
+            <span>想看看你们合不合拍？</span>
+            <strong>测完自己的卡，继续和这张短码做双人匹配。</strong>
           </div>
           <RouterLink
-            v-if="sharedEntry"
-            class="button-link"
-            :to="{ path: '/test', query: { channel: 'shared-result', campaign: 'result-tail-cta' } }"
+            class="button-link primary-cta"
+            :to="{ path: '/test', query: { channel: 'shared-result', campaign: 'result-footer', matchCode: result.shortCode } }"
             @click="sharedLandingStart"
           >
-            我也测一张
+            生成我的人格卡
           </RouterLink>
-          <RouterLink v-else class="button-link secondary" to="/test" @click="retake">重新测试</RouterLink>
         </section>
-        <p v-if="shareImageStatus" class="muted">{{ shareImageStatus }}</p>
+
+        <RouterLink v-if="!sharedEntry" class="button-link secondary result-retake-link" to="/test" @click="retake">重新测试</RouterLink>
+        <p v-if="shareImageStatus" class="muted" role="status" aria-live="polite">{{ shareImageStatus }}</p>
       </template>
     </section>
   </main>
@@ -231,19 +232,32 @@ function sharedLandingStart() {
 
 <style scoped>
 .result-page {
+  position: relative;
+  overflow-x: hidden;
   background:
-    linear-gradient(180deg, #f8f5eb 0%, #edf4ef 42%, #f6f3ec 100%);
+    radial-gradient(circle at 78% 8%, rgba(198, 227, 226, 0.44), transparent 24%),
+    linear-gradient(180deg, #f8f3e9 0%, #fbf7ef 50%, #edf3ee 100%);
 }
 
-.result-hero {
-  display: grid;
-  gap: 10px;
-  border: 1px solid rgba(36, 48, 47, 0.12);
-  border-radius: 8px;
-  padding: 24px;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(236, 244, 239, 0.92)),
-    radial-gradient(circle at 80% 20%, rgba(215, 155, 67, 0.2), transparent 34%);
+.result-page::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.result-page::before {
+  height: 170px;
+  background: rgba(177, 211, 209, 0.64);
+  clip-path: ellipse(76% 47% at 78% 100%);
+}
+
+.result-shell {
+  position: relative;
+  z-index: 1;
 }
 
 .shared-entry-banner {
@@ -254,8 +268,9 @@ function sharedLandingStart() {
   border: 1px solid rgba(47, 111, 94, 0.18);
   border-radius: 8px;
   padding: 16px;
-  background: #edf7f2;
+  background: rgba(237, 247, 242, 0.9);
   color: #24302f;
+  box-shadow: 0 12px 28px rgba(31, 48, 43, 0.07);
 }
 
 .shared-entry-banner span,
@@ -282,8 +297,8 @@ function sharedLandingStart() {
   border-radius: 8px;
   padding: 28px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(237, 247, 242, 0.94)),
-    radial-gradient(circle at 88% 18%, rgba(215, 155, 67, 0.16), transparent 34%);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(250, 246, 237, 0.9)),
+    linear-gradient(90deg, rgba(177, 211, 209, 0.2), transparent);
   box-shadow: 0 12px 36px rgba(31, 48, 43, 0.08);
 }
 
@@ -308,7 +323,7 @@ function sharedLandingStart() {
   width: 12px;
   height: 12px;
   border-radius: 999px;
-  background: #2f6f5e;
+  background: #123253;
   animation: resultPulse 1.15s ease-in-out infinite;
 }
 
@@ -354,42 +369,81 @@ function sharedLandingStart() {
   color: #9d3929;
 }
 
-.result-hero h1 {
-  max-width: 720px;
-  font-size: 46px;
-}
-
-.result-hero p {
-  margin: 0;
-  color: #40514e;
-  font-size: 18px;
-  font-weight: 800;
-}
-
-.result-identity-grid {
+.result-action-strip,
+.shared-bottom-cta {
   display: grid;
-  grid-template-columns: 1.2fr repeat(2, minmax(0, 0.8fr));
-  gap: 10px;
-  margin-top: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  border-color: rgba(47, 111, 94, 0.14);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(237, 247, 242, 0.88)),
+    linear-gradient(90deg, rgba(47, 111, 94, 0.08), rgba(215, 155, 67, 0.08));
 }
 
-.result-identity-grid span {
-  min-height: 44px;
-  border: 1px solid rgba(36, 48, 47, 0.12);
-  border-radius: 8px;
-  padding: 11px 12px;
-  background: rgba(255, 255, 255, 0.72);
-  color: #253634;
+.result-action-strip span,
+.shared-bottom-cta span {
+  display: block;
+  color: #2f6f5e;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.result-action-strip strong,
+.shared-bottom-cta strong {
+  display: block;
+  margin-top: 5px;
+  color: #24302f;
+  font-size: 20px;
+  line-height: 1.35;
+}
+
+.result-action-strip p {
+  max-width: 620px;
+  margin: 6px 0 0;
+  color: #596764;
   font-size: 14px;
-  font-weight: 850;
+  font-weight: 760;
+  line-height: 1.6;
+}
+
+.result-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.result-action-buttons .primary-action,
+.shared-bottom-cta .primary-cta {
+  min-width: 144px;
+  min-height: 44px;
+  border: 1px solid rgba(47, 111, 94, 0.18);
+  border-radius: 8px;
+  background: #2f6f5e;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 950;
+  box-shadow: 0 12px 24px rgba(47, 111, 94, 0.16);
+}
+
+.result-action-buttons .compact-action {
+  min-width: 96px;
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 14px;
 }
 
 .identity-statement {
+  position: relative;
+  overflow: hidden;
   display: grid;
   gap: 10px;
   border-radius: 8px;
   padding: 24px;
-  background: #24302f;
+  background:
+    linear-gradient(135deg, #123253, #173d55),
+    #123253;
   color: #fff;
 }
 
@@ -409,37 +463,6 @@ function sharedLandingStart() {
   color: rgba(255, 255, 255, 0.78);
 }
 
-.result-quick-actions {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 12px;
-  align-items: center;
-  margin-top: 18px;
-  border-top: 1px solid rgba(36, 48, 47, 0.1);
-  padding-top: 16px;
-}
-
-.result-quick-actions div {
-  display: grid;
-  gap: 4px;
-}
-
-.result-quick-actions strong,
-.result-quick-actions span {
-  display: block;
-}
-
-.result-quick-actions strong {
-  color: #24302f;
-  font-size: 16px;
-}
-
-.result-quick-actions span {
-  color: #60716d;
-  font-size: 13px;
-  font-weight: 750;
-}
-
 .resonance-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -450,10 +473,10 @@ function sharedLandingStart() {
   display: grid;
   gap: 10px;
   min-height: 138px;
-  border: 1px solid rgba(47, 111, 94, 0.16);
+  border: 1px solid rgba(47, 112, 94, 0.14);
   border-radius: 8px;
   padding: 16px;
-  background: #f5fbf7;
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .resonance-grid span {
@@ -470,53 +493,112 @@ function sharedLandingStart() {
   line-height: 1.7;
 }
 
-.result-next-step {
+.interpretation-panel {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 14px;
-  align-items: center;
-  border: 1px solid rgba(36, 48, 47, 0.12);
+  gap: 16px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.84), rgba(250, 246, 237, 0.78)),
+    rgba(255, 255, 255, 0.78);
+}
+
+.interpretation-head {
+  display: grid;
+  gap: 4px;
+}
+
+.interpretation-head .eyebrow,
+.interpretation-head h2 {
+  margin: 0;
+}
+
+.interpretation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.interpretation-grid article {
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  border: 1px solid rgba(47, 111, 94, 0.13);
   border-radius: 8px;
-  padding: 16px;
+  padding: 15px;
   background: rgba(255, 255, 255, 0.72);
 }
 
-.result-next-step.shared {
-  border-color: rgba(47, 111, 94, 0.22);
-  background: #edf7f2;
+.interpretation-grid span {
+  color: #7b5d35;
+  font-size: 12px;
+  font-weight: 900;
 }
 
-.result-next-step div {
-  display: grid;
-  gap: 5px;
+.interpretation-grid h3 {
+  margin: 0;
+  color: #23302e;
+  font-size: 17px;
+  line-height: 1.35;
 }
 
-.result-next-step strong {
-  color: #24302f;
-  font-size: 16px;
+.interpretation-grid p {
+  margin: 0;
+  color: #40514e;
+  font-size: 14px;
+  line-height: 1.78;
 }
 
-.result-next-step span {
-  color: #60716d;
-  font-size: 13px;
-  font-weight: 750;
+.result-retake-link {
+  justify-self: center;
+  min-width: min(100%, 220px);
 }
 
 @media (max-width: 760px) {
-  .result-hero h1 {
-    font-size: 30px;
-  }
-
-  .result-identity-grid,
-  .result-quick-actions,
   .resonance-grid,
   .shared-entry-banner,
-  .result-next-step {
+  .result-action-strip,
+  .shared-bottom-cta {
     grid-template-columns: 1fr;
   }
 
   .identity-statement h2 {
     font-size: 22px;
+  }
+
+  .identity-statement {
+    padding: 20px;
+  }
+
+  .interpretation-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .resonance-grid article {
+    min-height: auto;
+    padding: 14px;
+  }
+
+  .resonance-grid p {
+    font-size: 14px;
+  }
+
+  .result-action-strip strong,
+  .shared-bottom-cta strong {
+    font-size: 18px;
+  }
+
+  .result-action-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: stretch;
+  }
+
+  .result-action-buttons .primary-action {
+    grid-column: 1 / -1;
+  }
+
+  .result-action-buttons .compact-action,
+  .shared-bottom-cta .primary-cta {
+    width: 100%;
   }
 }
 

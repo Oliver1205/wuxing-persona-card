@@ -1,10 +1,11 @@
 import type { ResultDetail } from '../api/types';
+import { elementVisualByCode } from './elementVisuals';
 
 const CARD_WIDTH = 900;
 const CARD_HEIGHT = 1200;
 const CONTENT_X = 88;
 const CONTENT_WIDTH = CARD_WIDTH - CONTENT_X * 2;
-const POSTER_RIGHT_X = 608;
+const POSTER_RIGHT_X = 604;
 
 type ElementPalette = {
   primary: string;
@@ -55,79 +56,98 @@ export function downloadResultShareCard(result: ResultDetail) {
 
 function drawBackground(ctx: CanvasRenderingContext2D) {
   const gradient = ctx.createLinearGradient(0, 0, CARD_WIDTH, CARD_HEIGHT);
-  gradient.addColorStop(0, '#f8f5eb');
-  gradient.addColorStop(0.58, '#e6f2ee');
-  gradient.addColorStop(1, '#f4eadc');
+  gradient.addColorStop(0, '#f8f3e9');
+  gradient.addColorStop(0.62, '#fbf7ee');
+  gradient.addColorStop(1, '#edf3ee');
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
 
-  ctx.fillStyle = 'rgba(215, 155, 67, 0.14)';
-  circle(ctx, 112, 112, 76);
-  ctx.fill();
-  ctx.fillStyle = 'rgba(47, 111, 94, 0.12)';
-  circle(ctx, 782, 1024, 118);
+  ctx.fillStyle = 'rgba(177, 211, 209, 0.6)';
+  ctx.beginPath();
+  ctx.moveTo(0, 1048);
+  ctx.bezierCurveTo(156, 946, 272, 1098, 412, 1014);
+  ctx.bezierCurveTo(564, 922, 700, 986, 900, 880);
+  ctx.lineTo(900, 1200);
+  ctx.lineTo(0, 1200);
+  ctx.closePath();
   ctx.fill();
 
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.82)';
-  roundRect(ctx, 48, 48, CARD_WIDTH - 96, CARD_HEIGHT - 96, 28);
+  ctx.fillStyle = 'rgba(151, 204, 205, 0.42)';
+  ctx.beginPath();
+  ctx.moveTo(0, 1096);
+  ctx.bezierCurveTo(170, 1014, 264, 1160, 442, 1078);
+  ctx.bezierCurveTo(612, 1000, 710, 1042, 900, 960);
+  ctx.lineTo(900, 1200);
+  ctx.lineTo(0, 1200);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+  roundRect(ctx, 48, 48, CARD_WIDTH - 96, CARD_HEIGHT - 96, 22);
   ctx.fill();
 }
 
 function drawTitle(ctx: CanvasRenderingContext2D, result: ResultDetail) {
-  ctx.fillStyle = '#7b5d35';
-  ctx.font = '800 26px sans-serif';
-  ctx.fillText('五行人格卡 · 传统文化元素人格测试', CONTENT_X, 126);
+  ctx.fillStyle = '#bf8918';
+  ctx.font = '800 24px sans-serif';
+  ctx.fillText('五行人格卡', CONTENT_X, 124);
 
-  ctx.fillStyle = '#24302f';
-  ctx.font = '900 58px sans-serif';
-  drawSingleLineText(ctx, `${result.primaryElementName}${result.secondaryElementName}型${result.keywords[0] ?? '人格'}`, CONTENT_X, 210, CONTENT_WIDTH);
+  ctx.fillStyle = '#202725';
+  ctx.font = '650 60px serif';
+  drawSingleLineText(ctx, `${result.primaryElementName}${result.secondaryElementName} · ${result.starOfficerName}`, CONTENT_X, 210, CONTENT_WIDTH);
 
   ctx.fillStyle = '#596764';
-  ctx.font = '700 28px sans-serif';
-  ctx.fillText(result.starOfficerName, CONTENT_X, 258);
+  ctx.font = '700 27px sans-serif';
+  drawSingleLineText(ctx, result.keywords.slice(0, 4).join(' · '), CONTENT_X, 262, CONTENT_WIDTH);
 }
 
 function drawElementBlock(ctx: CanvasRenderingContext2D, result: ResultDetail) {
   const palette = getPalette(result.primaryElement);
-  const gradient = ctx.createLinearGradient(CONTENT_X, 300, CONTENT_X + CONTENT_WIDTH, 540);
-  gradient.addColorStop(0, '#24302f');
-  gradient.addColorStop(1, palette.primary);
-  ctx.fillStyle = gradient;
-  roundRect(ctx, CONTENT_X, 300, CONTENT_WIDTH, 248, 30);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
+  roundRect(ctx, CONTENT_X, 318, CONTENT_WIDTH, 246, 22);
   ctx.fill();
+  ctx.strokeStyle = 'rgba(36, 48, 47, 0.1)';
+  ctx.lineWidth = 2;
+  roundRect(ctx, CONTENT_X, 318, CONTENT_WIDTH, 246, 22);
+  ctx.stroke();
 
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '900 104px sans-serif';
-  ctx.fillText(result.primaryElementName, 132, 438);
+  drawElementGlyph(ctx, result.primaryElement, result.primaryElementName, CONTENT_X + 64, 358, 104);
+  drawElementGlyph(ctx, result.secondaryElement, result.secondaryElementName, CONTENT_X + 202, 378, 82);
 
-  ctx.font = '800 34px sans-serif';
-  ctx.fillText(`${result.primaryPercent}% ${result.primaryElementName}`, 318, 374);
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.78)';
-  ctx.fillText(`${result.secondaryPercent}% ${result.secondaryElementName}`, 318, 430);
+  const primaryVisual = elementVisualByCode(result.primaryElement, result.primaryElementName);
+  const secondaryVisual = elementVisualByCode(result.secondaryElement, result.secondaryElementName);
+  ctx.fillStyle = '#24302f';
+  ctx.font = '800 28px sans-serif';
+  ctx.fillText(`主${result.primaryElementName}`, CONTENT_X + 332, 386);
+  ctx.fillStyle = '#596764';
+  ctx.font = '700 22px sans-serif';
+  ctx.fillText(primaryVisual.keywords.join(' / '), CONTENT_X + 332, 424);
+  ctx.fillStyle = '#24302f';
+  ctx.font = '800 28px sans-serif';
+  ctx.fillText(`辅${result.secondaryElementName}`, CONTENT_X + 332, 474);
+  ctx.fillStyle = '#596764';
+  ctx.font = '700 22px sans-serif';
+  ctx.fillText(secondaryVisual.keywords.join(' / '), CONTENT_X + 332, 512);
 
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
-  roundRect(ctx, 132, 484, 620, 18, 9);
+  ctx.fillStyle = '#fff8e8';
+  roundRect(ctx, POSTER_RIGHT_X, 340, 160, 56, 28);
   ctx.fill();
-  ctx.fillStyle = '#ffffff';
-  roundRect(ctx, 132, 484, Math.max(24, Math.round(620 * result.primaryPercent / 100)), 18, 9);
-  ctx.fill();
+  ctx.strokeStyle = 'rgba(191, 137, 24, 0.28)';
+  roundRect(ctx, POSTER_RIGHT_X, 340, 160, 56, 28);
+  ctx.stroke();
+  ctx.fillStyle = '#123253';
+  ctx.font = '800 22px sans-serif';
+  ctx.fillText('专属短码', POSTER_RIGHT_X + 34, 374);
 
   ctx.fillStyle = palette.soft;
-  roundRect(ctx, POSTER_RIGHT_X, 330, 154, 52, 26);
+  roundRect(ctx, POSTER_RIGHT_X, 418, 160, 74, 18);
   ctx.fill();
   ctx.fillStyle = palette.ink;
-  ctx.font = '800 22px sans-serif';
-  ctx.fillText('主五行', POSTER_RIGHT_X + 40, 364);
-
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.14)';
-  roundRect(ctx, POSTER_RIGHT_X, 408, 154, 82, 22);
-  ctx.fill();
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '900 28px sans-serif';
-  ctx.fillText(result.shortCode, POSTER_RIGHT_X + 26, 442);
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.76)';
+  ctx.font = '900 30px sans-serif';
+  ctx.fillText(result.shortCode, POSTER_RIGHT_X + 24, 464);
+  ctx.fillStyle = '#596764';
   ctx.font = '700 18px sans-serif';
-  ctx.fillText('专属短码', POSTER_RIGHT_X + 38, 470);
+  ctx.fillText('朋友打开也能测', POSTER_RIGHT_X + 18, 496);
 }
 
 function drawKeywords(ctx: CanvasRenderingContext2D, result: ResultDetail) {
@@ -155,10 +175,10 @@ function drawElementSpectrum(ctx: CanvasRenderingContext2D, result: ResultDetail
     .sort((first, second) => second[1] - first[1])
     .slice(0, 5);
   const maxScore = Math.max(...entries.map(([, score]) => score), 1);
-  const startY = 700;
+  const startY = 696;
 
   ctx.fillStyle = '#24302f';
-  ctx.font = '800 28px sans-serif';
+  ctx.font = '800 27px sans-serif';
   ctx.fillText('五行能量分布', CONTENT_X, startY);
 
   entries.forEach(([elementCode, score], index) => {
@@ -185,18 +205,38 @@ function drawElementSpectrum(ctx: CanvasRenderingContext2D, result: ResultDetail
 }
 
 function drawTexts(ctx: CanvasRenderingContext2D, result: ResultDetail) {
-  const startY = 956;
+  const startY = 930;
   ctx.fillStyle = '#24302f';
   ctx.font = '800 28px sans-serif';
-  ctx.fillText('性格亮点', CONTENT_X, startY);
+  ctx.fillText('为什么像你', CONTENT_X, startY);
   drawWrappedText(ctx, result.strengthText, CONTENT_X, startY + 42, CONTENT_WIDTH, 32, 2);
+}
+
+function drawElementGlyph(
+  ctx: CanvasRenderingContext2D,
+  elementCode: string,
+  name: string,
+  x: number,
+  y: number,
+  size: number,
+) {
+  const visual = elementVisualByCode(elementCode, name);
+  const centerX = x + size / 2;
+  const centerY = y + size / 2;
+  ctx.save();
+  ctx.fillStyle = visual.color;
+  ctx.font = `900 ${Math.round(size * 0.58)}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(name, centerX, centerY + Math.round(size * 0.03));
+  ctx.restore();
 }
 
 function drawFooter(ctx: CanvasRenderingContext2D, result: ResultDetail) {
   const palette = getPalette(result.primaryElement);
-  const footerY = 1060;
+  const footerY = 1034;
   const markX = CONTENT_X + CONTENT_WIDTH - 86;
-  ctx.fillStyle = '#fff7e8';
+  ctx.fillStyle = 'rgba(255, 248, 232, 0.94)';
   roundRect(ctx, CONTENT_X, footerY, CONTENT_WIDTH, 94, 20);
   ctx.fill();
 
@@ -302,12 +342,6 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: n
   ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
   ctx.lineTo(x, y + radius);
   ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
-}
-
-function circle(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number) {
-  ctx.beginPath();
-  ctx.arc(x, y, radius, 0, Math.PI * 2);
   ctx.closePath();
 }
 

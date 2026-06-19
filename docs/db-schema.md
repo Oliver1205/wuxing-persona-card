@@ -90,6 +90,11 @@ v2.1 起，增长归因字段说明：
 - `device_type`：根据 User-Agent 粗略归类为 `mobile`、`tablet`、`desktop`、`bot`、`unknown`。
 - `event_date`：事件日期，便于后续演进日聚合表。
 
+后台统计相关索引：
+
+- `result_id + event_type + channel`：支撑默认视图排除 `perf-test` 测试流量时，对结果和短链创建事件的反查。
+- `event_type + short_code + created_at + channel`：支撑短链列表批量统计 PV/UV/UIP，并兼容测试流量过滤。
+
 ## 日聚合表
 
 ### `site_daily_metric`

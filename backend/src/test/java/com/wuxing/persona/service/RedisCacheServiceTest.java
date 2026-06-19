@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,7 +38,7 @@ class RedisCacheServiceTest {
 
     @BeforeEach
     void setUp() {
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         service = new RedisCacheService(redisTemplate, new ObjectMapper());
     }
 
@@ -114,12 +115,13 @@ class RedisCacheServiceTest {
 
         service.setAdminOverview("2026-06-11:null", overview);
 
-        verify(valueOperations).set(eq("admin:overview:2026-06-11:null"), any(String.class), eq(Duration.ofSeconds(45)));
+        verify(valueOperations).set(eq("admin:overview:v0:2026-06-11:null"), any(String.class), eq(Duration.ofSeconds(45)));
     }
 
     @Test
     void getAdminOverviewShouldDeserializeCachedJson() {
-        when(valueOperations.get("admin:overview:today")).thenReturn("""
+        when(valueOperations.get("admin:overview:version")).thenReturn("3");
+        when(valueOperations.get("admin:overview:v3:today")).thenReturn("""
                 {
                   "totalPv": 12,
                   "totalUv": 8,
@@ -136,6 +138,13 @@ class RedisCacheServiceTest {
     }
 
     @Test
+    void evictAdminOverviewShouldAdvanceOverviewCacheVersion() {
+        service.evictAdminOverview();
+
+        verify(valueOperations).increment("admin:overview:version");
+    }
+
+    @Test
     void cacheFailuresShouldDegradeToMisses() {
         doThrow(new RuntimeException("redis unavailable")).when(valueOperations).get("result:R1");
         doThrow(new RuntimeException("redis unavailable")).when(redisTemplate).hasKey("shortlink:null:abc123");
@@ -146,7 +155,8 @@ class RedisCacheServiceTest {
 
     @Test
     void adminOverviewCacheFailuresShouldDegradeToMisses() {
-        doThrow(new RuntimeException("redis unavailable")).when(valueOperations).get("admin:overview:today");
+        when(valueOperations.get("admin:overview:version")).thenReturn("0");
+        doThrow(new RuntimeException("redis unavailable")).when(valueOperations).get("admin:overview:v0:today");
 
         assertNull(service.getAdminOverview("today"));
     }

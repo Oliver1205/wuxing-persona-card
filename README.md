@@ -1,398 +1,164 @@
 # 五行人格卡
 
-五行人格卡是一个传统文化元素启发下的娱乐性人格测试 H5 全栈项目。项目以“测算结果页分享”为真实业务场景，重点实现从用户测算、结果生成、短链接分享到访问统计和后台数据中台的完整闭环。
+五行人格卡是一个以传统五行元素为灵感的娱乐型人格测试 H5 全栈项目。它不是命理预测工具，而是围绕“用户完成测试、生成人格卡、分享短链、后台观察传播数据”构建的一套可演示、可联调、可部署的产品闭环。
 
 ```text
-匿名用户测算 -> 生成结果页 -> 生成分享链接 -> 朋友打开链接 -> 后台看到 PV / UV / UIP
+用户测试 -> 生成结果 -> 复制/分享短链 -> 好友打开 -> 访问事件入库 -> 后台分析 PV / UV / UIP
 ```
 
-项目不是命理预测工具，而是一个正向、娱乐化、可分享的人格解读产品原型；工程重点是短链接真实接入业务、匿名访问统计、Redis 缓存和 Docker 单机部署。
+## 项目概览
 
-## 项目状态
-
-| 项 | 说明 |
+| 项目 | 说明 |
 | --- | --- |
-| 当前版本 | `v2.6-card-question-flow` |
-| 稳定分支 | `main` |
-| 当前开发分支 | `codex/v2.6-card-question-flow` |
-| MVP 状态 | v0.1 已完成完整单人测算闭环 |
-| v0.2 状态 | 已完成短链接 Provider 适配层，可配置 `internal` / `external` 模式 |
-| v0.3 状态 | 已增强 external 真实 HTTP 联调配置，并为后台总览、短链列表、访问日志增加日期筛选 |
-| v0.4 状态 | 已完成外部短链服务级联调，后台短链列表可读取外部 PV / UV / UIP |
-| v0.5 状态 | 已接入外部短链访问记录，后台短链详情支持 `local` / `external` 来源 |
-| v0.6 状态 | 已建立严格质量门禁和 v1.0 路线图 |
-| v0.7 状态 | 已完成生产短链路由与部署预检加固 |
-| v0.8 状态 | 已完成后台日趋势、热门星官、最近结果和最近短链展示 |
-| v0.9 状态 | 已完成短码校验、Referer 隐私收敛和 external 空记录稳定性加固 |
-| v1.0 状态 | 稳定版收口，README、发布检查表、质量评分和版本记录已完成 |
-| v1.1 状态 | 已补 external 生产接入 overlay、预检脚本、联调脚本、失败测试、对接说明和隐私审计 |
-| v1.2-v1.4 状态 | 已补 CI/CD、运行态治理、后台工具、安全加固、Testcontainers 能力和分享图 |
-| v2.0 状态 | 商业级产品化基线启动，已升级首页、测试流、结果页分享体验和增长埋点 |
-| v2.1 状态 | 已落地 session、channel、campaign、device、eventDate 事件归因和后台增长漏斗 |
-| v2.2-v2.4 状态 | 已补日聚合、生产 smoke/备份/回滚/限流和结果页传播体验增强 |
-| v2.5 状态 | 已优化 H5 测试页输入体验、年轻化字体栈、年份滑杆和触控选项 |
-| v2.6 状态 | 已优化年份精确输入、卡片式逐题问答和选项顺序打散 |
-| 最新自评 | MVP 工程基线 99 / 100；八小时工作流阶段自评 97 / 100，详见 [quality-scorecard.md](docs/quality-scorecard.md) |
-| GitHub 标签 | `v0.1.0-mvp`、`v0.2.0-shortlink-adapter`、`v0.3.0-external-shortlink-and-analytics`、`v0.4.0-external-shortlink-service-integration`、`v0.5.0-external-shortlink-access-records`、`v0.6.0-quality-gates-and-roadmap`、`v0.7.0-production-routing-hardening`、`v0.8.0-admin-operational-insights`、`v0.9.0-stability-privacy-audit`、`v1.0.0-stable`、`v1.1.0-external-shortlink-production-readiness`、`v1.4.0-production-quality-suite` |
+| 产品定位 | 娱乐型人格测试、结果页分享、匿名访问统计和数据中台 |
+| 当前状态 | 主流程、短链、后台、移动端体验、前后端联调和质量门禁已完成 |
+| 技术栈 | Vue 3、Vite、TypeScript、Java 17、Spring Boot 3、MyBatis、MySQL、Redis、Docker Compose、Nginx |
+| 核心场景 | H5 测试、结果卡、短链跳转、分享图、后台总览、短链详情、增长归因 |
+| 质量策略 | 本地脚本、后端测试、前端构建、契约校验、浏览器截图校验、MySQL schema smoke、Docker Compose config |
+| 隐私边界 | 不做登录注册；访问统计只保存 hash 后的 clientId、IP、User-Agent |
 
-## 核心亮点
+## 核心能力
 
-- **真实业务短链**：每个测算结果都会生成可传播的分享链接，不是页面假字段。
-- **完整访问统计**：记录并展示 PV、UV、UIP、提交量、短链访问量。
-- **隐私克制**：不做登录注册，不收集昵称和性别，clientId、IP、User-Agent 均 hash 后入库。
-- **Redis 缓存闭环**：结果详情缓存、短链解析缓存、无效短码空值缓存均已落地。
-- **可切换短链架构**：v0.2 将短链模块升级为 Provider 适配层，默认内置实现，external 模式可接入独立短链服务。
-- **外部短链服务级联调**：v0.4 已跑通本地独立短链项目创建短链、302 跳转和外部 PV / UV / UIP 读取。
-- **外部访问明细接入**：v0.5 后台短链详情可读取外部 `access-record`，并对外部 IP / user 做 hash 后展示。
-- **后台日期分析**：v0.3 支持按日期查看总览指标、短链列表和单条短链访问日志。
-- **可部署验证**：Docker Compose 管理 MySQL、Redis、后端和 Nginx，已完成本地容器验收。
-- **严格质量门禁**：v0.6 建立统一质量脚本、编辑规范和 v1.0 路线，后续版本必须按同一套标准验收。
-- **生产路由加固**：v0.7 补充短链子域名 / 同域 rewrite 示例和部署预检脚本。
-- **后台运营可读性**：v0.8 补充日趋势、热门星官、最近结果和最近短链，让上线初期数据更好解释。
-- **稳定性与隐私审计**：v0.9 统一后台短码校验，Referer 去 query / fragment，external 空访问记录稳定返回。
-- **稳定版交付**：v1.0 收口 README、部署检查表、质量评分和版本记录，作为可演示 MVP 基线。
-- **external 生产接入准备**：v1.1 补充 external 模式 Compose overlay、环境样例、预检脚本、联调脚本、失败测试、对接说明和隐私审计报告。
-- **生产质量增强**：v1.2-v1.4 补齐 GitHub Actions、Docker smoke、external 运行态状态、后台筛选导出、安全响应头、Testcontainers 和分享图。
-- **商业级产品化基线**：v2.0 以“愿意测、感觉被看见、愿意分享、朋友继续测”为主循环，重做首页承诺、答题进度、结果身份表达、完整五行分布和分享面板。
-- **增长漏斗埋点**：新增测试开始、答题选择、提交尝试、分享面板、原生分享、保存分享图、二次测试等事件，为后续渠道、留存和传播分析预留数据口径。
-- **增长归因基础**：v2.1 将 session、channel、campaign、device、eventDate 写入事件表，分享链接自动带来源参数，后台展示增长漏斗、Top Channel 和 Top Campaign。
-- **商业增长增强**：v2.2-v2.4 新增日聚合表、手动聚合接口、生产 smoke、备份恢复、回滚脚本、Nginx 限流安全头和更适合传播的结果页/分享图。
-- **H5 输入体验增强**：v2.5 将测试页出生信息从普通下拉框升级为年份滑杆、横向触控卡片和年轻化字体栈，让大学生和年轻用户更愿意完成测试。
-- **卡片式逐题问答**：v2.6 增加年份 +1/-1 和手动输入，问答改为一题一张卡，并打散选项顺序、移除属性提示。
-- **八小时工作流加固**：围绕普通访问者、前端、架构师、后端和面试官视角，补齐移动端答题节奏、结果页状态、分享图质感、短链热路径降压、后台忙碌态和可讲述证据链。
-- **教学沉淀**：项目计划、质量评分、短链集成方案、教学手册均已文档化。
+- **用户端 H5**：首页引导、出生信息、逐题卡片式问答、结果页、分享页、匹配页和 404 状态。
+- **人格结果生成**：结合出生信息和 5 道价值题生成五行比例、主副元素、星官、关键词和正向解读文案。
+- **短链接闭环**：每个结果生成 6 位 Base62 短码，访问 `/s/{shortCode}` 后跳转到对应结果页。
+- **可切换短链实现**：默认内置短链，也可配置 external 模式对接独立短链服务；外部失败时可降级。
+- **匿名访问统计**：记录页面访问、测试提交、分享行为、短链访问等事件，支持 PV、UV、UIP 和渠道归因。
+- **后台数据中台**：总览、趋势、漏斗、热门组合、最近结果、短链列表、访问明细、CSV 导出和运行态状态。
+- **前后端联调硬化**：API DTO、错误处理、CORS、admin token、短链代理、分享来源参数和移动端 E2E 均有校验。
+- **上线辅助脚本**：部署预检、Docker smoke、external 短链 smoke、性能 smoke、备份恢复、回滚和域名绑定预检。
+
+## 界面预览
+
+| H5 首页 | 结果页 | 数据中台 |
+| --- | --- | --- |
+| ![H5 首页](docs/screenshots/showcase/iphone-se-01-home.png) | ![结果页](docs/screenshots/showcase/iphone-se-04-result.png) | ![数据中台](docs/screenshots/showcase/desktop-06-admin-overview.png) |
+
+更多截图见 [docs/screenshots/showcase](docs/screenshots/showcase)。
 
 ## 快速导航
 
-> GitHub 会根据 README 标题在页面右侧生成大纲；下方导航用于在仓库首页快速跳转到高频内容。
-
-<table>
-  <tr>
-    <td valign="top" width="25%">
-      <strong>项目概览</strong><br>
-      <a href="docs-site/index.html">项目文档站</a><br>
-      <a href="docs/project-learning-guide-v1.md">项目学习文档 v1</a><br>
-      <a href="docs/project-promotion-kit.md">项目宣传包</a><br>
-      <a href="docs/role-review-matrix.md">多角色评审矩阵</a><br>
-      <a href="docs/agent-workflow-orchestration.md">角色 Agent 编排</a><br>
-      <a href="docs/next-iteration-role-backlog.md">下一轮角色 Backlog</a><br>
-      <a href="docs/eight-hour-completion-audit.md">八小时完成度审计</a><br>
-      <a href="docs/real-user-validation-checklist.md">真实用户验收清单</a><br>
-      <a href="#项目状态">项目状态</a><br>
-      <a href="#核心亮点">核心亮点</a><br>
-      <a href="#在线地址">在线地址</a><br>
-      <a href="#技术栈">技术栈</a>
-    </td>
-    <td valign="top" width="25%">
-      <strong>架构与流程</strong><br>
-      <a href="#项目结构">项目结构</a><br>
-      <a href="#项目架构图">项目架构图</a><br>
-      <a href="#核心流程图">核心流程图</a><br>
-      <a href="#已实现功能">已实现功能</a>
-    </td>
-    <td valign="top" width="25%">
-      <strong>工程交付</strong><br>
-      <a href="#短链接接入说明">短链接接入说明</a><br>
-      <a href="#数据统计说明">数据统计说明</a><br>
-      <a href="#数据库表说明">数据库表说明</a><br>
-      <a href="#本地启动方式">本地启动方式</a><br>
-      <a href="#docker-部署方式">Docker 部署方式</a>
-    </td>
-    <td valign="top" width="25%">
-      <strong>质量与路线</strong><br>
-      <a href="docs/interview-expression-guide-v1.md">面试表达文档 v1</a><br>
-      <a href="docs/interview-learning-manual.md">面试学习手册</a><br>
-      <a href="docs/big-tech-interviewer-qa.md">大厂面试官追问</a><br>
-      <a href="docs/production-load-alert-runbook.md">生产压测与告警演练</a><br>
-      <a href="docs/production-operations-runbook.md">生产运维收口 Runbook</a><br>
-      <a href="docs/domain-launch-self-audit.md">真实域名上线自审</a><br>
-      <a href="docs/domain-launch-info-template.md">域名信息收集清单</a><br>
-      <a href="docs/domain-server-runbook.md">域名服务器 Runbook</a><br>
-      <a href="#质量门禁">质量门禁</a><br>
-      <a href="#验证结果">验证结果</a><br>
-      <a href="#开发进度记录">开发进度记录</a><br>
-      <a href="#mvp-功能边界">MVP 功能边界</a><br>
-      <a href="#后续建议">后续建议</a><br>
-      <a href="#娱乐声明与隐私说明">娱乐声明与隐私说明</a>
-    </td>
-  </tr>
-</table>
-
-## 在线地址
-
-生产地址按实际部署环境填写。当前仓库重点保留可复现的本地、Docker Compose 和云服务器单机部署能力。
-
-- 项目文档站：本地可打开 `docs-site/index.html`；启用 GitHub Pages 后可访问 `https://Oliver1205.github.io/wuxing-persona-card/docs-site/`。
-
-## 技术栈
-
-| 层 | 技术 |
+| 分类 | 入口 |
 | --- | --- |
-| 前端 | Vue 3、Vite、TypeScript、Vue Router |
-| 后端 | Java 17、Spring Boot 3、Maven、MyBatis、MySQL、Redis |
-| 部署 | Docker Compose、Nginx |
-| 测试 | JUnit 5、Spring Boot Test、MockMvc、H2 |
+| 产品与学习 | [从零学习手册](docs/wuxing-from-zero-learning-manual.md)、[项目学习文档](docs/project-learning-guide-v1.md)、[人格评判标准](docs/wuxing-persona-standard-v1.md)、[人格样稿](docs/persona-description-samples-v1.md) |
+| 接口与数据 | [API 说明](docs/api-spec.md)、[数据库说明](docs/db-schema.md)、[数据中台手册](docs/admin-data-center-guide.md)、[指标字典](docs/admin-metric-dictionary.md) |
+| 联调与上线 | [本地预览 Runbook](docs/local-preview-runbook.md)、[生产运维 Runbook](docs/production-operations-runbook.md)、[external 短链对接](docs/external-shortlink-integration-guide.md)、[真实域名上线自审](docs/domain-launch-self-audit.md) |
+| 质量与证据 | [前端 QA 记录 2026-06-19](docs/frontend-qa-record-20260619.md)、[CI 浏览器 E2E 方案](docs/ci-browser-e2e-plan.md)、[质量评分](docs/quality-scorecard.md)、[压测报告索引](docs/performance-reports/README.md) |
+| 展示材料 | [项目宣传包](docs/project-promotion-kit.md)、[项目展示 PPT 资产包](docs/artifacts/presentations/README.md)、[压测视觉简报](docs/performance-visual-brief.md) |
 
-## 项目结构
-
-```text
-.
-├── AGENTS.md
-├── .github/workflows/
-├── README.md
-├── docs/
-├── frontend/
-│   ├── package.json
-│   ├── vite.config.ts
-│   └── src/
-│       ├── api/
-│       ├── components/
-│       ├── pages/
-│       ├── router/
-│       └── utils/
-├── backend/
-│   ├── pom.xml
-│   ├── Dockerfile
-│   └── src/main/
-│       ├── java/com/wuxing/persona/
-│       └── resources/db/schema.sql
-├── deploy/
-    ├── docker-compose.yml
-    ├── docker-compose.external-mode.yml
-    ├── nginx.Dockerfile
-    ├── nginx.conf
-    ├── host-nginx-domain-tls.example.conf
-    ├── .env.example
-    └── .env.external.example
-└── scripts/
-    ├── deploy-preflight.sh
-    ├── domain-bind-preflight.sh
-    ├── docker-smoke-test.sh
-    ├── production-smoke-test.sh
-    ├── backup-mysql.sh
-    ├── restore-mysql.sh
-    ├── deploy-rollback.sh
-    ├── mobile-e2e.sh
-    ├── performance-smoke-test.sh
-    ├── production-health-check.sh
-    ├── set-production-entry.sh
-    ├── server-security-audit.sh
-    ├── external-shortlink-preflight.sh
-    ├── external-shortlink-smoke-test.sh
-    └── quality-check.sh
-```
-
-## 项目架构图
+## 系统架构
 
 ```mermaid
 flowchart LR
-  Browser["移动端浏览器"] --> Nginx["Nginx"]
+  Browser["移动端 / 桌面浏览器"] --> Nginx["Nginx"]
   Nginx --> Frontend["Vue H5 静态资源"]
   Nginx --> Api["Spring Boot API"]
   Nginx --> ShortEntry["/s/{shortCode}"]
-  Api --> MySQL["五行 MySQL"]
-  Api --> Redis["五行 Redis"]
+  Api --> MySQL["MySQL"]
+  Api --> Redis["Redis"]
   Api --> Provider["ShortLinkProvider"]
   Provider --> Internal["Internal Provider"]
   Provider --> External["External Provider"]
   External -. external mode .-> Shortlink["独立短链服务"]
 ```
 
-视觉版架构图：
-
 ![五行人格卡架构与热路径图](docs/assets/wuxing-architecture-map.svg)
 
-## 核心流程图
+## 核心流程
 
 ```mermaid
-flowchart LR
-  Home["/ 引导页"] --> Test["/test 测试页"]
-  Test --> Create["POST /api/results"]
-  Create --> Result["/result/:resultId"]
-  Result --> Copy["复制 /s/:shortCode"]
-  Copy --> Visit["GET /s/:shortCode"]
-  Visit --> Redirect["302 到结果页"]
-  Visit --> Stat["写入访问事件"]
-  Stat --> Admin["/admin 数据中台"]
+sequenceDiagram
+  participant U as 用户
+  participant H5 as Vue H5
+  participant API as Spring Boot
+  participant DB as MySQL / Redis
+  participant A as Admin
+
+  U->>H5: 完成测试
+  H5->>API: POST /api/results
+  API->>DB: 保存结果和短链
+  API-->>H5: resultId / shortCode / shortUrl
+  U->>H5: 复制或分享短链
+  U->>API: GET /s/{shortCode}
+  API->>DB: 写入短链访问事件
+  API-->>U: 302 到结果页
+  A->>API: GET /api/admin/**
+  API-->>A: 总览、趋势、短链、访问明细
 ```
 
-## 已实现功能
-
-- H5 页面：引导页、测试页、结果页、后台总览、短链访问详情、404。
-- 结果生成：出生年月、可选日期和时段、5 道价值题、五行主副比例、星官、关键词和三段正向文案。
-- 短链接：每个结果生成一个 6 位 Base62 短码，访问 `/s/{shortCode}` 后 302 跳回同一个结果页。
-- 短链适配层：默认使用内置短链，也可通过配置切换到外部短链服务创建模式，外部失败时可降级到内置实现。
-- 外部短链统计：external 模式下可从独立短链服务读取短链列表 PV / UV / UIP，并在后台显示统计来源。
-- Redis 缓存：结果详情缓存、短链解析缓存、无效短码空值缓存。
-- 访问统计：匿名 clientId、IP、User-Agent 均 hash 后入库，统计 PV、UV、UIP。
-- 数据中台：总览指标、日趋势、热门组合、热门星官、最近结果、最近短链、短链列表、单条短链访问日志，并支持日期筛选。
-- 后台运营工具：短链列表支持短码 / resultId 关键词筛选、`local` / `external` 来源筛选、CSV 导出和 external 运行态状态检查。
-- 外部访问明细：external 模式且统计开关开启时，短链详情页优先读取独立短链服务访问记录，失败时回退本地日志。
-- 隐私加固：访问事件只保存 hash 后的 clientId / IP / User-Agent，Referer 入库前会去掉 query 和 fragment。
-- 安全加固：后端统一返回基础安全响应头，后台 token 使用常量时间比较。
-- 管理保护：后台接口要求 `X-Admin-Token`。
-- 分享体验：结果页可生成 PNG 分享图，同时保留复制分享链接能力。
-
-## 短链接接入说明
-
-v0.2 将短链模块拆成门面和 Provider：
+## 目录结构
 
 ```text
-ResultService
-  -> ShortLinkService
-    -> ShortLinkProvider
-      -> InternalShortLinkProvider
-      -> ExternalShortLinkProvider
-        -> ExternalShortLinkClient
+.
+├── frontend/                 # Vue 3 H5 和后台前端
+├── backend/                  # Spring Boot API、MyBatis、schema 和测试
+├── deploy/                   # Docker Compose、Nginx、环境样例
+├── docs/                     # 产品、接口、联调、上线、性能和学习文档
+├── docs-site/                # 可直接打开的静态文档站
+├── docs/screenshots/         # Showcase 截图证据
+├── design-final/             # 最终设计参考图
+├── scripts/                  # 质量门、部署预检、smoke、E2E、性能脚本
+└── README.md
 ```
 
-默认 `internal` 模式仍然使用五行后端内置短链：
+## 本地启动
 
-- `short_link` 表保存 `shortCode -> resultId -> shortUrl`。
-- `GET /s/{shortCode}` 记录 `SHORT_LINK_VISIT`，更新短链 PV 和最近访问时间。
-- 有效短码写入 Redis：`shortlink:code:{shortCode}`。
-- 无效短码写入 Redis：`shortlink:null:{shortCode}`，降低重复无效请求对数据库的压力。
+推荐本地联调用 H2 演示库启动后端，不要求本机先准备 MySQL。Redis 不启动时缓存会降级，不影响主流程。
 
-`external` 模式会优先调用已克隆的独立短链项目 `/Users/linyuxiang/JavaBackend/01_Projects/shortlink` 的创建接口，并将返回的 `fullShortUrl` 解析成本地业务绑定。外部服务不可用时，默认降级到内置短链，避免测算主流程中断。
+后端：
 
-v0.4 已完成本地服务级联调：
-
-- 五行 `POST /api/results` 调用外部短链服务创建短链。
-- 外部短链服务访问 `/{shortCode}` 后 302 到五行结果页。
-- 五行本地继续保存 `resultId -> shortCode -> shortUrl` 业务绑定。
-- 后台短链列表可在 `SHORT_LINK_EXTERNAL_STATS_ENABLED=true` 时读取外部 PV / UV / UIP。
-- 外部统计失败时保留本地统计，`statSource` 显示为 `local`。
-
-v1.1 将 external 模式补齐为生产接入前可执行方案：
-
-- `deploy/docker-compose.external-mode.yml` 用于在默认 Compose 上叠加 external 配置。
-- `deploy/.env.external.example` 给 external 模式提供单独环境样例。
-- `scripts/external-shortlink-preflight.sh` 检查 external 配置、系统用户、domain 和可选连通性。
-- `scripts/external-shortlink-smoke-test.sh` 创建一次真实测算并验证短链 302 和后台统计来源。
-- [外部短链服务对接说明](docs/external-shortlink-integration-guide.md) 记录 API、header、统计和路由约定。
-- [外部短链接入隐私审计报告](docs/external-shortlink-privacy-audit.md) 区分五行侧脱敏能力和外部服务自身待治理风险。
-
-切换配置：
-
-```text
-SHORT_LINK_MODE=external
-SHORT_LINK_EXTERNAL_BASE_URL=http://shortlink:8003
-SHORT_LINK_EXTERNAL_GROUP_ID=wuxing_persona
-SHORT_LINK_EXTERNAL_DOMAIN=nurl.ink:8003
-SHORT_LINK_EXTERNAL_FALLBACK_TO_INTERNAL=true
-SHORT_LINK_EXTERNAL_CONNECT_TIMEOUT_MILLIS=2000
-SHORT_LINK_EXTERNAL_READ_TIMEOUT_MILLIS=3000
-SHORT_LINK_EXTERNAL_STATS_ENABLED=true
-SHORT_LINK_EXTERNAL_STATS_ENABLE_STATUS=0
+```bash
+cd backend
+SERVER_PORT=48081 \
+APP_BASE_URL=http://127.0.0.1:5175 \
+ADMIN_TOKEN=dev-token \
+mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
-
-生产路由建议使用短链子域名，例如 `s.your-domain.com/{shortCode}`。若必须同域 `/s/{shortCode}`，可在 Nginx 将 `/s/**` rewrite 到独立短链服务；五行后端的 `/s/**` 仍保留为 internal 模式和本地兼容入口。
-
-## 数据统计说明
-
-- PV：符合条件的事件总数。
-- UV：去重后的 `client_id_hash` 数量；缺少 clientId 时用 IP 和 User-Agent hash 兜底。
-- UIP：去重后的 `ip_hash` 数量。
-
-前端首次访问会生成 `wuxing_client_id` 写入 localStorage，并通过 `X-Client-Id` 传给后端。后端只保存 hash，不保存明文 IP。
-
-后台接口支持可选日期筛选，未传日期时保持全量累计：
-
-```text
-GET /api/admin/overview?startDate=2026-06-09&endDate=2026-06-09
-GET /api/admin/short-links?page=1&pageSize=20&startDate=2026-06-09&endDate=2026-06-09
-GET /api/admin/short-links/{shortCode}/visits?startDate=2026-06-09&endDate=2026-06-09
-```
-
-短链列表返回 `statSource`：
-
-- `local`：使用五行本地 `visit_event` 和 `short_link` 统计。
-- `external`：使用独立短链服务 `/api/short-link/v1/stats` 返回的 PV / UV / UIP。
-
-短链详情记录也返回 `statSource`：
-
-- `local`：展示五行本地 `visit_event` 访问记录。
-- `external`：展示独立短链服务 `/api/short-link/v1/stats/access-record` 访问记录；外部 `ip` 和 `user` 会按五行项目的 `HASH_SALT` 做 hash 后再返回。
-
-## 数据库表说明
-
-第一版表结构位于 `backend/src/main/resources/db/schema.sql`。当前脚本服务于演示初始化，不等于成熟生产迁移体系；迁移治理边界和 Flyway 拆分计划见 [数据库迁移治理计划](docs/db-migration-plan.md)。
-
-| 表 | 作用 |
-| --- | --- |
-| `user_result` | 保存一次测算结果、五行分数、星官、关键词和文案 |
-| `short_link` | 保存短码、结果映射、短链接和访问计数 |
-| `visit_event` | 保存页面访问、按钮点击、结果生成、短链访问等事件 |
-
-## 本地启动方式
 
 前端：
 
 ```bash
 cd frontend
 npm install
-npm run dev
+BACKEND_PROXY_TARGET=http://127.0.0.1:48081 npm run dev -- --host 127.0.0.1 --port 5175
 ```
 
-后端需要本地 MySQL 和 Redis，配置见 `backend/src/main/resources/application.yml`。启动：
+常用入口：
+
+| 页面 | 地址 |
+| --- | --- |
+| H5 首页 | `http://127.0.0.1:5175/` |
+| 测试页 | `http://127.0.0.1:5175/test` |
+| 后台 | `http://127.0.0.1:5175/admin` |
+| 健康检查 | `http://127.0.0.1:48081/api/health` |
+
+本地短链和代理校验：
 
 ```bash
-cd backend
-mvn spring-boot:run
+FRONTEND_URL=http://127.0.0.1:5175 \
+BACKEND_URL=http://127.0.0.1:48081 \
+ADMIN_TOKEN=dev-token \
+scripts/local-preview-smoke-test.sh
 ```
 
-健康检查：
-
-```bash
-curl http://localhost:8080/api/health
-```
-
-无 Docker 演示模式：
-
-后端使用 H2 内存库启动，不要求本机 MySQL；Redis 不启动时缓存会降级，不影响主流程。
-
-```bash
-cd backend
-APP_BASE_URL=http://127.0.0.1:4173 mvn spring-boot:run -Dspring-boot.run.profiles=local
-```
-
-前端使用生产预览：
-
-```bash
-cd frontend
-npm run build
-npm run preview -- --host 127.0.0.1 --port 4173
-```
-
-访问 `http://127.0.0.1:4173/`，本地后台 token 为 `dev-token`。
-
-如果本机 `8080` 已被占用，可把后端临时启动到其他端口，并让 Vite 代理跟随：
-
-```bash
-cd backend
-SERVER_PORT=18080 APP_BASE_URL=http://127.0.0.1:4173 mvn spring-boot:run -Dspring-boot.run.profiles=local
-
-cd frontend
-BACKEND_PROXY_TARGET=http://127.0.0.1:18080 npm run preview -- --host 127.0.0.1 --port 4173
-```
-
-## Docker 部署方式
+## Docker 部署
 
 ```bash
 cp deploy/.env.example deploy/.env
+scripts/deploy-preflight.sh deploy/.env
 docker compose --env-file deploy/.env -f deploy/docker-compose.yml up --build -d
 ```
 
-Nginx 默认暴露 `80` 端口：
+默认入口：
 
 - H5：`http://localhost/`
 - API：`http://localhost/api/**`
 - 短链：`http://localhost/s/{shortCode}`
 - 后台：`http://localhost/admin`
 
-上线前必须替换 `deploy/.env` 中的 `APP_BASE_URL`、`ADMIN_TOKEN`、`HASH_SALT` 和数据库密码。
+上线前必须替换 `APP_BASE_URL`、`ADMIN_TOKEN`、`HASH_SALT`、MySQL 密码等占位值。
 
-external 模式使用单独样例和 Compose overlay：
+external 短链模式：
 
 ```bash
 cp deploy/.env.external.example deploy/.env.external
@@ -404,465 +170,126 @@ docker compose --env-file deploy/.env.external \
   up --build -d
 ```
 
-外部短链服务启动后可加 `--probe` 做连通性探测：
+## 关键接口
 
-```bash
-scripts/external-shortlink-preflight.sh deploy/.env.external --probe
-```
+| 能力 | 接口 |
+| --- | --- |
+| 健康检查 | `GET /api/health` |
+| 题目配置 | `GET /api/questions` |
+| 创建结果 | `POST /api/results` |
+| 查询结果 | `GET /api/results/{resultId}` |
+| 访问事件 | `POST /api/events` |
+| 短链跳转 | `GET /s/{shortCode}` |
+| 后台总览 | `GET /api/admin/overview` |
+| 短链列表 | `GET /api/admin/short-links` |
+| 短链访问明细 | `GET /api/admin/short-links/{shortCode}/visits` |
+| 手动聚合 | `POST /api/admin/analytics/aggregate` |
 
-五行服务启动后执行联调脚本：
+后台接口需要 `X-Admin-Token`。完整请求体、响应字段和错误码见 [docs/api-spec.md](docs/api-spec.md)。
 
-```bash
-WUXING_BASE_URL=http://127.0.0.1:8088 \
-ADMIN_TOKEN=<your-admin-token> \
-EXPECTED_STAT_SOURCE=external \
-scripts/external-shortlink-smoke-test.sh
-```
+## 数据与隐私
 
-如果本机 Docker Hub 访问超时，可以临时通过环境变量切换基础镜像源，默认部署仍使用官方镜像：
-
-```bash
-APP_BASE_URL=http://localhost:8088 \
-NGINX_HTTP_PORT=8088 \
-BACKEND_MAVEN_IMAGE=docker.m.daocloud.io/library/maven:3.9.9-eclipse-temurin-17 \
-BACKEND_RUNTIME_IMAGE=docker.m.daocloud.io/library/eclipse-temurin:17-jre \
-FRONTEND_NODE_IMAGE=docker.m.daocloud.io/library/node:20-alpine \
-FRONTEND_NGINX_IMAGE=docker.m.daocloud.io/library/nginx:1.27-alpine \
-docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml up --build -d
-```
+- `user_result` 保存一次测算结果、五行分数、星官、关键词和文案。
+- `short_link` 保存短码、结果映射、短链接、访问计数和统计来源。
+- `visit_event` 保存访问、点击、提交、分享、短链访问等匿名事件。
+- `site_daily_metric` 和 `short_link_daily_metric` 支持历史日聚合，降低后台实时聚合压力。
+- clientId、sessionId、IP、User-Agent 入库前会 hash；Referer 会去掉 query 和 fragment。
+- 本项目结果仅用于娱乐表达，不构成现实决策建议。
 
 ## 质量门禁
 
-v0.6 开始，所有版本合并前必须执行：
+合并前推荐执行完整质量门：
 
 ```bash
-scripts/quality-check.sh
+env REQUIRE_TRACKED_QUALITY_SCRIPTS=1 scripts/quality-check.sh
 ```
 
-该脚本会检查：
+该脚本覆盖：
 
-- Git 空白差异：`git diff --check`
-- 构建产物未被 Git 跟踪
-- 用户可见源码不包含负面宿命文案
-- 后端测试：`mvn -q test`
-- 前端构建：`npm run build`
-- Compose 配置：`docker compose config`
-- external 预检和 smoke 脚本语法检查
-- Docker smoke 脚本语法检查
-- 性能 smoke 脚本语法检查
-- external Compose overlay 配置检查
+- `git diff --check`
+- 质量脚本跟踪状态检查
+- Bash 脚本语法检查
+- 构建产物未被 Git 跟踪检查
+- 用户可见文案边界扫描
+- 后端 Maven 测试
+- 前端 production build
+- 前端 API / UI / E2E 契约校验
+- 静态预览 flow 校验和浏览器截图校验
+- 新 MySQL schema smoke
+- internal / external Docker Compose config
 
-v1.0 路线和质量要求详见 [v1.0-roadmap-and-quality-gates.md](docs/v1.0-roadmap-and-quality-gates.md)。
-
-上线前部署预检：
+常用专项验证：
 
 ```bash
-scripts/deploy-preflight.sh deploy/.env
-```
-
-v1.2-v1.4 新增 GitHub Actions：
-
-```text
-.github/workflows/quality-gate.yml
-```
-
-Pull Request 和 feature 分支 push 会执行本地同款质量门禁，另有可选 Testcontainers job 使用真实 MySQL schema 验证主链路。
-
-容器启动后的主链路 smoke：
-
-```bash
-BASE_URL=http://127.0.0.1:8088 \
-ADMIN_TOKEN=<your-admin-token> \
+npm --prefix frontend run build
+mvn -q -f backend/pom.xml test
+node scripts/verify-frontend-contracts.mjs
+scripts/mobile-e2e.sh
+scripts/capture-showcase-screenshots.sh
 scripts/docker-smoke-test.sh
-```
-
-短链传播和后台缓存的轻量性能 smoke：
-
-```bash
-BASE_URL=http://127.0.0.1:8088 \
-ADMIN_TOKEN=<your-admin-token> \
-SHORTLINK_HITS=30 \
-ADMIN_HITS=2 \
-MAX_SHORTLINK_AVG_MS=120 \
-MAX_ADMIN_AVG_MS=200 \
-MAX_SHORTLINK_P95_MS=200 \
-MAX_ADMIN_P95_MS=350 \
-MAX_ASYNC_QUEUE_SIZE=0 \
-MAX_ASYNC_DROPPED_EVENTS=0 \
-MAX_ASYNC_BATCH_FAILURES=0 \
 scripts/performance-smoke-test.sh
 ```
 
-`MAX_*_AVG_MS` 和 `MAX_*_P95_MS` 为可选阈值，默认 `0` 表示只输出耗时不拦截；设置后平均耗时或 TP95 超标会让 smoke 失败。`MAX_ASYNC_QUEUE_SIZE`、`MAX_ASYNC_DROPPED_EVENTS` 和 `MAX_ASYNC_BATCH_FAILURES` 默认留空表示只观察，设置为 `0` 时要求 smoke 结束后没有队列积压、事件丢弃和批量写失败。脚本还会输出 `asyncQueueSize`、`asyncDroppedEvents`、`asyncTotalFlushedEvents`、`asyncBatchWriteFailures` 和 `asyncWorkerAlive`，用于判断低延迟是否伴随事件队列积压、丢弃或后台 writer 排水异常。
+移动端 E2E 和 showcase 截图默认只应对本地地址运行。若要对公网地址写入测试数据，需要在明确授权的测试窗口内设置 `ALLOW_PUBLIC_E2E=1`。
 
-更完整的生产压测、告警触发和恢复记录模板见 [生产压测与告警演练 Runbook](docs/production-load-alert-runbook.md)。在真实服务器、固定数据规模和固定并发模型验证前，不应宣传为已验证生产 QPS。
+## 当前交付状态
 
-真实域名绑定前的 DNS、健康接口和后台 token 预检：
+- 前端主要页面已完成统一视觉、移动端排版、结果页纯文字五行标识、分享图和后台移动端适配。
+- 前后端接口已覆盖主流程、短链、后台、错误处理、CORS 和 admin token 场景。
+- external 短链、RocketMQ 访问事件发布、生产压测和域名上线均已有设计与脚本入口。
+- 最近一次完整门禁已通过：`env REQUIRE_TRACKED_QUALITY_SCRIPTS=1 scripts/quality-check.sh`。
+- 本地 `outputs/` 下的预览和调试文件是开发产物，不作为仓库交付内容。
 
-```bash
-DOMAIN=<your-domain.com> \
-EXPECTED_IP=<server-public-ip> \
-scripts/domain-dns-readiness.sh
+## 开发日志
 
-DOMAIN=<your-domain.com> \
-EXPECTED_IP=<server-public-ip> \
-BASE_URL=https://<your-domain.com> \
-ADMIN_TOKEN=<your-admin-token> \
-scripts/domain-bind-preflight.sh
-```
-
-五小时真实域名上线安排见 [五小时真实域名上线工作流](docs/five-hour-domain-workflow.md)，上线前风险清单见 [真实域名上线前严格自审](docs/domain-launch-self-audit.md)，需要用户补齐的信息见 [真实域名上线信息收集清单](docs/domain-launch-info-template.md)，当前上线状态见 [真实域名上线实时状态](docs/domain-launch-live-status.md)，服务器执行步骤见 [真实域名服务器上线 Runbook](docs/domain-server-runbook.md)。
-
-可选 Testcontainers 集成测试：
-
-```bash
-mvn -q -f backend/pom.xml -Pcontainer-it verify
-```
-
-移动端 E2E 与多视口 showcase 截图：
-
-```bash
-cd frontend
-npm install
-npx playwright install chromium
-npm run e2e:mobile
-npm run e2e:showcase
-```
-
-也可以从仓库根目录运行 `scripts/mobile-e2e.sh` 和 `scripts/capture-showcase-screenshots.sh`；截图默认输出到 `docs/screenshots/showcase/`。
-
-`docs/ci-browser-e2e-plan.md` 已整理 GitHub Actions `browser-e2e` 接入方案。当前推送凭据缺少 `workflow` scope，暂不能直接更新 `.github/workflows/quality-gate.yml`；启用后该 job 会在 H2 后端 + Vite 前端模式下安装 Chromium、运行移动端 E2E、捕获 showcase 截图，并把运行日志和截图作为 artifact 上传。
-
-## 验证结果
-
-已通过：
-
-- `scripts/quality-check.sh`
-- `bash -n scripts/performance-smoke-test.sh`
-- `scripts/deploy-preflight.sh` 语法检查已纳入质量门禁；真实 `deploy/.env` 上线前执行
-- `scripts/deploy-preflight.sh /private/tmp/wuxing-v07.env` 正向预检通过
-- `cd backend && mvn -q test`
-- `cd frontend && npm run build`
-- `docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml config`
-- `docker compose --env-file deploy/.env.external.example -f deploy/docker-compose.yml -f deploy/docker-compose.external-mode.yml config`
-- v0.5 Docker 内部链路验收：容器内健康检查、Nginx 到 backend 网络、创建结果、短链访问、访问明细 `statSource=local`
-- v0.4 external 服务级联调：外部短链创建、外部短链 302、五行本地业务绑定、后台 `statSource=external`
-- 本地浏览器验收：`/admin` 日期筛选控件显示正常，按日期应用筛选后接口正常返回
-- Docker Compose 容器全链路验收：MySQL、Redis、backend、nginx 均启动成功，本机验证入口 `http://127.0.0.1:8088`
-- 文案边界关键词扫描无命中
-- 本地 H2 演示模式浏览器验收：首页、测试页、结果页、短链 302、后台总览、短链详情
-- Docker 版 API 验收：健康检查、题目接口、创建结果、查询结果、短链 302、后台总览、短链列表、访问日志
-- v0.8 后端测试覆盖 overview 日趋势默认返回、日期筛选当天有数据和未来日期为空
-- v0.9 后端测试覆盖 Referer 去 query / fragment、后台非法短码返回 400、external 空访问记录稳定返回空页
-- v1.0 发布检查表已补充，详见 [v1.0-release-checklist.md](docs/v1.0-release-checklist.md)
-- v1.1 后端测试覆盖 external 业务错误码、统计空数据、访问明细错误码、外部短码冲突降级和关闭降级后的明确错误
-- v1.1 新增 external 预检脚本、smoke 联调脚本、Compose overlay、环境样例、对接说明和隐私审计报告
-- v1.2-v1.4 后端测试覆盖后台短链关键词筛选、来源筛选、CSV 导出、external runtime 状态和安全响应头
-- v1.2-v1.4 前端构建覆盖后台筛选导出、external 状态面板和结果页 Canvas 分享图
-- v2.0 后端测试覆盖非法出生时段业务异常，前端构建覆盖新版首页、测试页、结果页、分享面板和五行分布组件
-- v2.0 本地浏览器验收覆盖首页首屏、测试页答题进度、创建结果、结果页分享区域和 `/s/{shortCode}` 302
-
-v0.4 外部联调样例：
-
-```text
-resultId: R20260609153410726802
-shortCode: 1cgeMu
-shortUrl: http://127.0.0.1:8003/1cgeMu
-external short link Location: http://127.0.0.1:4173/result/R20260609153410726802
-admin statSource: external
-admin pv/uv/uip: 1/1/1
-```
-
-后端测试覆盖：创建结果、查询结果、短链跳转、短链列表、访问详情、非法参数、非法事件、后台 token、无效短码、后台日期筛选、短链复用、短码冲突重试、空值缓存、短链统计计数更新、Redis key/TTL/序列化、异常降级、Provider 默认模式、Provider 配置切换、外部短链创建成功、失败降级，以及 external RestClient 的创建、统计和访问明细接口路径、请求体、查询参数、分页参数和系统用户 header。
-
-浏览器验收截图：
-
-- [结果页截图](docs/screenshots/local-result-page.png)
-- [后台总览截图](docs/screenshots/local-admin-overview.png)
-- [短链详情截图](docs/screenshots/local-shortlink-detail.png)
-- [Docker 首页截图](docs/screenshots/docker-home-page.png)
-- [Docker 结果页截图](docs/screenshots/docker-result-page.png)
-- [Docker 后台 token 门禁截图](docs/screenshots/docker-admin-token-gate.png)
-- [Docker 后台详情保护截图](docs/screenshots/docker-admin-detail-protected.png)
-
-## 开发进度记录
-
-<details open>
-<summary><strong>2026-06-11｜八小时工作流阶段加固</strong></summary>
-
-- 按产品经理、普通访问者、美术经理、前端开发、资深架构师、后端开发和大厂面试官视角推进改动。
-- 移动端问答流补默认年份生效、选项确认反馈、答题防重复提交和底部安全间距。
-- 结果页补加载 / 错误状态卡片，生成分享图升级身份层级、短码标识和五行分布。
-- 短链热路径去掉实时 distinct 聚合压力，`last_visit_at` 限频更新，并让事件写入失败不阻断主流程。
-- 后台总览增加短缓存、指标解释、加载忙碌态和短链列表批量统计。
-- 新增或更新多角色矩阵、项目宣传包、架构视觉图、截图流程、面试讲解稿和工作日志。
-
-</details>
 <details>
-<summary><strong>2026-06-11｜v2.6 卡片式问答体验优化</strong></summary>
+<summary><strong>2026-06-19｜前端交付与联调加固</strong></summary>
 
-- 新建分支：`codex/v2.6-card-question-flow`。
-- 出生年份保留高频快捷按钮，并新增 `+1` / `-1` 精确微调和手动输入框。
-- 测试页从瀑布式长表单改为“基础信息 + 5 道题”的卡片式逐步流程。
-- 顶部新增步骤条，底部统一提供“上一张 / 下一题 / 生成我的人格卡”。
-- 移除选项里的五行属性提示，并按题目稳定打散选项顺序。
-- 更新移动端 E2E 脚本路径，适配逐题问答。
-- 新增 [v2.6 卡片式问答体验优化](docs/v2.6-card-question-flow.md)。
-
-</details>
-<details>
-<summary><strong>2026-06-11｜v2.5 H5 输入体验优化</strong></summary>
-
-- 新建分支：`codex/v2.5-h5-input-experience`。
-- 选择不依赖外网的年轻化中文 UI 字体栈：`HarmonyOS Sans SC`、`MiSans`、`PingFang SC`、`Inter`、`Noto Sans SC`。
-- 测试页出生年份从超长下拉框升级为滑杆选择，并提供常用年份快捷按钮。
-- 出生月份、出生日期和出生时段改成移动端触控卡片，支持横向滑动和明确选中态。
-- 价值取向题选项升级为更清晰的选择卡片；v2.6 已移除元素属性提示，让用户专注回答问题本身。
-- 更新移动端 E2E 脚本选择器，适配新的输入控件。
-- 新增 [v2.5 H5 输入体验优化](docs/v2.5-h5-input-experience.md)。
+- 重做 H5 首页、测试页、结果页、分享页、匹配页、404 和后台关键页面的视觉与移动端排版。
+- 结果页和分享图移除弱简笔画元素，改用更稳定的文字化五行标识。
+- 补齐 CORS、API 契约、admin 移动端短链卡片、分享降级、短链来源参数和错误状态校验。
+- 新增 `verify-frontend-contracts.mjs`、`verify-wuxing-browser.mjs`、`verify-eight-hour-artifacts.sh` 等严格校验脚本。
+- 更新 `docs/frontend-qa-record-20260619.md`、showcase 截图、性能报告和上线 runbook。
 
 </details>
 
 <details>
-<summary><strong>2026-06-11｜v2.2-v2.4 商业增长与生产体验增强</strong></summary>
+<summary><strong>2026-06-11｜v2.0-v2.6 产品化与 H5 体验升级</strong></summary>
 
-- 新建分支：`codex/v2.2-v2.4-commercial-growth-suite`。
-- v2.2 新增 `site_daily_metric` 和 `short_link_daily_metric`，用于站点和短链日聚合。
-- 新增 `POST /api/admin/analytics/aggregate`，支持管理员手动聚合已闭合日期，禁止聚合当天。
-- 后台日趋势展示 `metricSource` 和 `aggregatedThroughDate`，历史日期优先读聚合表，缺失或当天回退实时事件。
-- v2.3 新增 `production-smoke-test.sh`、`backup-mysql.sh`、`restore-mysql.sh`、`deploy-rollback.sh` 和 `mobile-e2e.sh`。
-- Nginx 增加 `/api/**`、`/api/events`、`/s/**` 分区限流、基础安全响应头和请求体限制。
-- v2.4 增强首页首屏、结果页身份摘要、一句话人格感、分享模块和 Canvas 分享图布局。
-- 新增 [v2.2-v2.4 商业增长与生产体验增强](docs/v2.2-v2.4-commercial-growth-suite.md)。
+- v2.0 将项目目标从“功能可用”升级为“愿意测、感觉被看见、愿意分享、朋友继续测”的传播闭环。
+- v2.1 增加 session、channel、campaign、device、eventDate 等增长归因字段。
+- v2.2-v2.4 增加日聚合、生产 smoke、备份恢复、回滚、限流、安全头和分享体验增强。
+- v2.5 优化出生信息输入，使用年份滑杆、快捷年份和移动端触控卡片。
+- v2.6 将问答改为逐题卡片式流程，支持年份微调、手动输入和选项稳定打散。
 
 </details>
 
 <details>
-<summary><strong>2026-06-11｜v2.1 增长分析基础</strong></summary>
+<summary><strong>2026-06-09 至 2026-06-10｜v0.1-v1.4 工程基线</strong></summary>
 
-- 新建分支：`codex/v2.1-growth-analytics-foundation`。
-- 前端新增 sessionId，使用 `sessionStorage` 区分单次访问会话。
-- 前端识别 `channel`、`campaign`、`utm_source`、`utm_campaign`、`sc` 等来源参数，并通过请求 header 传给后端。
-- 分享链接自动追加 `channel=share&campaign=result-card`，短链跳转会把来源继续带到结果页。
-- 后端 `visit_event` 新增 `session_id_hash`、`channel`、`campaign`、`device_type`、`event_date` 字段。
-- 后端继续 hash sessionId，不保存明文 session 标识。
-- 后台总览新增增长漏斗、Top Channel 和 Top Campaign。
-- 短链访问详情新增 Channel、Campaign 和设备类型。
-- 后端测试覆盖事件归因、漏斗指标、渠道排行、短链来源跳转和访问明细来源字段。
-- 验证通过：后端测试、前端构建、Docker Compose config、后台增长漏斗浏览器验收。
+- v0.1 完成 H5、结果生成、内置短链、访问统计、Redis 和 Docker Compose MVP。
+- v0.2-v0.5 完成短链 Provider 适配层、external 短链创建、统计读取和访问明细接入。
+- v0.6-v1.0 建立质量门、稳定版 README、发布检查表、开发规范和教学手册。
+- v1.1 完成 external 生产级接入样例、预检脚本、联调脚本和隐私审计。
+- v1.2-v1.4 增加 GitHub Actions、Docker smoke、后台筛选导出、安全响应头、Testcontainers 和分享图。
 
 </details>
 
 <details>
-<summary><strong>2026-06-11｜v2.0 商业级产品化基线</strong></summary>
+<summary><strong>2026-06-08｜项目初始化</strong></summary>
 
-- 新建分支：`codex/v2-commercial-product-system`。
-- 采用产品经理、架构师、前端体验、后端工程、增长分析和质量治理多角色协作方式，重新定义 v2.0 主目标。
-- 产品目标从“功能可用”升级为“用户愿意测、结果有身份感、愿意分享、朋友继续测”的传播闭环。
-- 首页升级为商业化首屏：明确 90 秒、5 道题、结果可分享，并增加人格卡样例。
-- 测试页升级为轻测评体验：增加答题进度、完成度反馈、出生信息隐私说明和移动端 sticky CTA。
-- 答题选项隐藏五行元素标签，降低用户按结果倒推选择的自我引导。
-- 结果页升级为分享优先：新增人格身份标题、完整五行分布、保存分享图、重新测试和“我也要测”入口。
-- 分享面板支持原生分享，并对分享面板、原生分享、保存分享图等增长事件补充埋点。
-- 修复 Vite 开发代理 `/s` 误拦截 `/src/**` 的白屏问题，改为只代理 `^/s/`。
-- 后端补强非法出生时段校验，将错误收敛为明确业务异常，并补充单元测试。
-- 新增 [v2.0 商业级产品化方案](docs/v2.0-commercial-product-system.md)，沉淀产品漏斗、前端体验、后端架构和运维路线。
-- 验证通过：后端测试、前端构建、Compose config、本地 H2 + Vite 浏览器主流程和短链 302。
+- 初始化 `frontend/`、`backend/`、`docs/`、`deploy/` 和 `scripts/`。
+- 明确第一版只做单人测算、结果页、短链接、访问统计和数据中台。
+- 评估独立短链系统，确定 v0.1 先内置短链，后续再服务化接入 external 模式。
 
 </details>
 
-<details>
-<summary><strong>2026-06-10｜v1.2-v1.4 生产质量增强包</strong></summary>
+## 功能边界
 
-- 新建分支：`feature/v1.2-v1.4-production-quality-suite`。
-- 新增 GitHub Actions 质量门禁：`quality` 与 `container-integration` 两个 job。
-- 新增 `scripts/docker-smoke-test.sh`，用于容器启动后的主链路 smoke 验证。
-- 后台新增 external 短链运行态状态接口和状态面板。
-- 后台短链列表新增关键词筛选、来源筛选和 CSV 导出。
-- 后端新增安全响应头和后台 token 常量时间比较。
-- 新增 Testcontainers MySQL 集成测试 profile：`mvn -q -f backend/pom.xml -Pcontainer-it verify`。
-- 结果页新增 Canvas PNG 分享图生成能力。
-- 新增 [v1.2-v1.4 生产质量增强包](docs/v1.2-v1.4-production-quality-suite.md)。
-- 验证通过：后端测试、前端构建和统一质量门禁。
+已完成范围：单人测试、结果页、分享短链、访问统计、后台数据中台、本地联调和单机部署。
 
-</details>
+暂不内置：登录注册、用户历史、社区评论、点赞关注、付费、AI 深度解读、复杂排盘、多模板卡片编辑器、复杂权限系统和 BI 大屏。若要加入这些能力，应作为独立产品迭代设计。
 
-<details>
-<summary><strong>2026-06-10｜v1.1 外部短链生产级接入增强</strong></summary>
+## 许可与声明
 
-- 新建分支：`feature/v1.1-external-shortlink-production-readiness`。
-- 新增 `deploy/docker-compose.external-mode.yml`，用于 external 模式 Compose overlay。
-- 新增 `deploy/.env.external.example`，单独记录 external 模式环境变量。
-- 新增 `scripts/external-shortlink-preflight.sh`，部署前检查 external 关键配置并支持可选连通性探测。
-- 新增 `scripts/external-shortlink-smoke-test.sh`，用于创建结果、验证短链 302 和后台 `statSource`。
-- 新增 [v1.1 外部短链生产级接入增强](docs/v1.1-external-shortlink-production-readiness.md)、[外部短链服务对接说明](docs/external-shortlink-integration-guide.md)、[外部短链接入隐私审计报告](docs/external-shortlink-privacy-audit.md)。
-- 补充 external 失败场景测试：业务错误码、空数据、访问明细错误码、外部短码冲突降级和关闭降级后的明确错误。
-- 验证通过：统一质量门禁。
-
-</details>
-
-<details open>
-<summary><strong>2026-06-09｜v1.0 稳定版收口</strong></summary>
-
-- 新建分支：`feature/v1.0-stable-release`。
-- README 更新为稳定版项目主页，展示 v1.0 状态、版本标签、质量门禁和开发进度。
-- 新增 [v1.0 稳定版发布检查表](docs/v1.0-release-checklist.md)。
-- 同步项目计划、质量评分、教学手册和 v1.0 路线图。
-- 验证通过：统一质量门禁。
-
-</details>
-
-<details>
-<summary><strong>2026-06-09｜v0.9 稳定性与隐私审计</strong></summary>
-
-- 新建分支：`feature/v0.9-stability-privacy-audit`。
-- 后台短链访问明细接口复用 Base62 短码校验，非法短码直接返回 400。
-- `visit_event.referer` 入库前去掉 query 和 fragment，减少分享参数、临时 token 等敏感信息留存。
-- external `access-record` 响应 `records=null` 时稳定返回空列表，不误触发本地回退。
-- 新增 [v0.9 稳定性与隐私审计文档](docs/v0.9-stability-privacy-audit.md)。
-- 验证通过：后端测试、前端构建和统一质量门禁。
-
-</details>
-
-<details>
-<summary><strong>2026-06-09｜v0.8 后台运营可读性增强</strong></summary>
-
-- 新建分支：`feature/v0.8-admin-operational-insights`。
-- 后端 `/api/admin/overview` 新增 `dailyTrends`，默认返回最近 7 天，筛选范围最多展示 14 天。
-- 日趋势展示 PV、结果生成、短链生成和短链访问。
-- 前端 `/admin` 新增日趋势、热门星官、最近结果、最近短链展示。
-- 保留原有 PV / UV / UIP、短链列表、访问明细和 `local` / `external` 统计来源展示。
-- 新增 [v0.8 后台运营可读性增强文档](docs/v0.8-admin-operational-insights.md)。
-- 验证通过：后端集成测试、前端构建和统一质量门禁。
-
-</details>
-
-<details>
-<summary><strong>2026-06-09｜v0.7 生产路由与部署加固</strong></summary>
-
-- 新建分支：`feature/v0.7-production-routing-hardening`。
-- 新增 `deploy/nginx.shortlink-routing.example.conf`，提供短链子域名和同域 `/s/**` rewrite 两种生产路由策略。
-- 新增 `scripts/deploy-preflight.sh`，上线前检查 `.env` 必填项、占位值、弱密码占位和 external 模式配置完整性。
-- 更新 [部署说明](docs/deploy.md) 和 [v0.7 生产路由与部署加固文档](docs/v0.7-production-routing-hardening.md)。
-- 验证通过：`scripts/quality-check.sh`、临时 `.env` 部署预检。
-
-</details>
-
-<details>
-<summary><strong>2026-06-09｜v0.6 质量门禁与 v1.0 路线规划</strong></summary>
-
-- 新建分支：`feature/v0.6-quality-gates-and-roadmap`。
-- 新增 `.editorconfig`，统一换行、缩进、编码和尾随空白处理。
-- 新增 `scripts/quality-check.sh`，把后端测试、前端构建、Compose config、构建产物检查和文案边界扫描收束为统一门禁。
-- 新增 [v1.0 路线图与质量门禁](docs/v1.0-roadmap-and-quality-gates.md)。
-- 更新 README、开发规范、项目计划和质量评分，明确 v0.6-v1.0 的版本节奏。
-
-</details>
-
-<details>
-<summary><strong>2026-06-09｜v0.5 外部短链访问明细接入</strong></summary>
-
-- 新建分支：`feature/v0.5-external-access-records`。
-- 接入独立短链服务 `/api/short-link/v1/stats/access-record`。
-- 后台短链详情优先读取 external 访问记录，失败、internal 模式或 domain 不匹配时回退本地 `visit_event`。
-- 外部 `ip` 和 `user` 字段按五行项目 `HASH_SALT` 做 hash 后映射到后台访问详情。
-- 短链访问详情新增 `statSource`，前端表格显示 `local` / `external` 来源。
-- 新增 [v0.5 外部短链访问明细接入文档](docs/v0.5-external-shortlink-access-records.md)。
-- 验证通过：`mvn test`、前端构建。
-
-</details>
-
-<details>
-<summary><strong>2026-06-09｜v0.4 外部短链服务级联调与统计适配</strong></summary>
-
-- 新建分支：`feature/v0.4-external-shortlink-service-integration`。
-- 启动并验证本地独立短链项目 `/Users/linyuxiang/JavaBackend/01_Projects/shortlink` 的 `aggregation` 服务。
-- 五行 external 模式跑通 `POST /api/results -> 外部短链创建 -> 保存本地业务绑定`。
-- 访问外部短链 `/{shortCode}` 可 302 到五行结果页。
-- 新增外部短链统计适配，后台短链列表可读取外部 PV / UV / UIP。
-- 后台短链列表新增 `statSource`，区分 `local` 和 `external` 统计来源。
-- 补齐 `SHORT_LINK_EXTERNAL_STATS_ENABLED`、`SHORT_LINK_EXTERNAL_STATS_ENABLE_STATUS` 配置和 Compose 透传。
-- 新增 [v0.4 外部短链服务级联调与统计适配文档](docs/v0.4-external-shortlink-service-integration.md)。
-- 验证通过：外部服务级联调、`mvn test`、前端构建、Compose 配置校验。
-- Git 提交：`feat: integrate external shortlink service stats`。
-- Git 标签：`v0.4.0-external-shortlink-service-integration`。
-
-</details>
-
-<details>
-<summary><strong>2026-06-09｜v0.3 external 短链联调准备与后台日期统计</strong></summary>
-
-- 新建分支：`feature/v0.3-external-shortlink-and-analytics`。
-- 对齐外部短链项目 `project/aggregation` 的创建接口、系统用户 header 和响应结构。
-- external 创建请求补充 `domain` 字段，新增外部短链域名、连接超时、读取超时配置。
-- 保留 `fallback-to-internal=true` 默认策略，外部服务不可用时不打断测算主流程。
-- 后台总览、短链列表、短链访问详情增加 `startDate/endDate` 日期筛选。
-- 前端 `/admin` 和短链详情页增加日期筛选控件，并透传到后台接口。
-- 新增 [v0.3 外部短链联调准备与后台日期统计文档](docs/v0.3-external-shortlink-and-analytics.md)。
-- 验证通过：`mvn test`、前端构建、Compose 配置校验、后台日期筛选浏览器验收。
-- Git 提交：`feat: prepare external shortlink integration and date analytics`。
-- Git 标签：`v0.3.0-external-shortlink-and-analytics`。
-
-</details>
-
-<details>
-<summary><strong>2026-06-09｜v0.2 短链接适配层</strong></summary>
-
-- 新建分支：`feature/v0.2-shortlink-integration`。
-- 新增 `ShortLinkProvider` 统一接口。
-- 将 v0.1 内置短链逻辑迁移为 `InternalShortLinkProvider`。
-- 新增 `ExternalShortLinkProvider` 和 `ExternalShortLinkClient`，预留外部短链服务创建链路。
-- 支持 `SHORT_LINK_MODE=internal|external` 配置切换。
-- 支持外部短链创建失败后按配置降级到内置短链。
-- 新增 [v0.2 短链适配层设计文档](docs/v0.2-shortlink-adapter-design.md)。
-- 更新 README、部署文档、短链集成评估、教学手册和质量评分。
-- 验证通过：`mvn test`、前端构建、Compose 配置校验、Docker 入口健康检查、创建结果和短链 302。
-- Git 提交：`19ab737 feat: add short link provider adapter`。
-- Git 标签：`v0.2.0-shortlink-adapter`。
-
-</details>
-
-<details>
-<summary><strong>2026-06-09｜v0.1 MVP 完整闭环</strong></summary>
-
-- 完成前端 H5：引导页、测试页、结果页、后台总览、短链详情和 404。
-- 完成后端主流程：题目配置、五行计算、星官生成、模板文案、结果保存和查询。
-- 完成内置短链接：Base62 短码生成、短链绑定、短链解析、302 跳转。
-- 完成统计能力：匿名 clientId、访问事件、PV、UV、UIP、后台总览和短链访问日志。
-- 完成 Redis 能力：结果缓存、短链解析缓存、无效短码空值缓存。
-- 完成 Docker Compose 初版：MySQL、Redis、backend、nginx。
-- 完成质量机制：开发规范、项目计划、自评机制、教学手册。
-- 验证通过：后端测试、前端构建、Compose 配置、Docker 容器全链路、浏览器截图验收。
-- Git 提交：`c2dea88 feat: complete wuxing persona card MVP`。
-- Git 标签：`v0.1.0-mvp`。
-
-</details>
-
-<details>
-<summary><strong>2026-06-08｜项目初始化与短链系统评估</strong></summary>
-
-- 阅读并整理项目开发指令，明确第一版只做单人测算闭环。
-- 初始化 monorepo 结构：`frontend/`、`backend/`、`docs/`、`deploy/`。
-- 建立开发规范、8-10 小时开发计划和质量评分机制。
-- 克隆并评估外部短链项目 `/Users/linyuxiang/JavaBackend/01_Projects/shortlink`。
-- 输出 [短链接系统评估与五行人格卡集成方案](docs/shortlink-integration-assessment.md)。
-- 明确 v0.1 先用内置短链，后续再服务化接入外部短链项目。
-
-</details>
-
-## MVP 功能边界
-
-第一版只做单人测算、结果页、短链接、访问统计和数据中台。
-
-第一版不做朋友匹配、登录注册、用户历史记录、社区、评论、点赞、关注、付费、AI 深度解读、复杂排盘、多套卡片模板、复杂图片编辑器、复杂后台权限系统和复杂 BI 大屏。
-
-## 后续建议
-
-1. v2.5 优先引入 Flyway 或 Liquibase，治理线上 schema 演进。
-2. 使用具备 `workflow` scope 的凭据启用 GitHub Actions `browser-e2e`，再将关键 showcase 截图纳入正式作品集归档。
-3. 生产域名上线后完成 HTTPS、HSTS、备份恢复演练和线上 smoke 常态化。
-4. 再评估商业化功能，例如运营活动页、多套卡片和轻量报告增强；登录、付费、AI 深度解读和朋友匹配必须单独立项。
-
-## 娱乐声明与隐私说明
-
-本项目所有结果均为传统文化元素启发下的娱乐性人格解读，不构成现实决策建议。MVP 不做登录注册，不收集昵称和性别；出生日期与出生时段可选。访问统计只保存 hash 后的匿名标识，不保存明文 IP。
+本项目用于学习、演示和娱乐型产品原型表达。人格解读文案不构成医学、法律、投资、职业或现实决策建议。生产部署前请根据实际域名、隐私政策、数据保留周期和安全要求补齐合规说明。

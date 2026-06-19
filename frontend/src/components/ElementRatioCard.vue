@@ -1,11 +1,5 @@
 <script setup lang="ts">
-const elementColors: Record<string, string> = {
-  METAL: '#5c6670',
-  WOOD: '#5e8d63',
-  WATER: '#486f92',
-  FIRE: '#b66045',
-  EARTH: '#9d7a42',
-};
+import { elementVisualByCode } from '../utils/elementVisuals';
 
 const props = defineProps<{
   primaryName: string;
@@ -19,7 +13,7 @@ const props = defineProps<{
 function barStyle(element: string, percent: number) {
   return {
     width: `${percent}%`,
-    backgroundColor: elementColors[element] ?? '#2f6f5e',
+    backgroundColor: elementVisualByCode(element).color,
   };
 }
 </script>

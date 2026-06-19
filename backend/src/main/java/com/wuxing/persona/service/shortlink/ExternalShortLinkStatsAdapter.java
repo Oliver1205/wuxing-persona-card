@@ -34,12 +34,28 @@ public class ExternalShortLinkStatsAdapter {
     }
 
     public Optional<ExternalShortLinkStatsSnapshot> fetchStats(ShortLinkEntity shortLink, AdminDateRange range) {
+        return fetchStats(shortLink, range, false);
+    }
+
+    public Optional<ExternalShortLinkStatsSnapshot> fetchStatsStrict(ShortLinkEntity shortLink, AdminDateRange range) {
+        return fetchStats(shortLink, range, true);
+    }
+
+    private Optional<ExternalShortLinkStatsSnapshot> fetchStats(ShortLinkEntity shortLink,
+                                                               AdminDateRange range,
+                                                               boolean strict) {
         AppProperties.ExternalShortLinkProperties external = appProperties.getShortLink().getExternal();
         if (!isExternalStatsEnabled(external)) {
+            if (strict) {
+                throw new BusinessException(502, "external short link stats unavailable: disabled");
+            }
             return Optional.empty();
         }
         String fullShortUrl = toExternalFullShortUrl(shortLink.getShortUrl(), external.getDomain());
         if (fullShortUrl == null) {
+            if (strict) {
+                throw new BusinessException(502, "external short link stats unavailable: domain mismatch");
+            }
             return Optional.empty();
         }
         try {
@@ -58,6 +74,9 @@ public class ExternalShortLinkStatsAdapter {
             return Optional.of(snapshot);
         } catch (BusinessException ex) {
             log.warn("External short link stats unavailable, fallback to local stats, shortCode={}", shortLink.getShortCode());
+            if (strict) {
+                throw new BusinessException(502, "external short link stats unavailable");
+            }
             return Optional.empty();
         }
     }

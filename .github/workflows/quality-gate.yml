@@ -19,6 +19,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verify quality gate scripts are committed
+        run: |
+          git ls-files --error-unmatch \
+            scripts/verify-frontend-contracts.mjs \
+            scripts/verify-wuxing-preview.mjs \
+            scripts/verify-wuxing-preview-flow.mjs \
+            scripts/verify-wuxing-browser.mjs \
+            scripts/mysql-schema-smoke-test.sh \
+            scripts/verify-eight-hour-artifacts.sh \
+            scripts/frontend-live-gate.sh \
+            scripts/performance-limit-test.sh \
+            scripts/local-preview-smoke-test.sh
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -56,3 +69,96 @@ jobs:
 
       - name: Run optional Testcontainers checks
         run: mvn -q -f backend/pom.xml -Pcontainer-it verify
+
+  browser-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+
+      - name: Install Playwright Chromium
+        run: npm --prefix frontend exec -- playwright install --with-deps chromium
+
+      - name: Start backend in local H2 mode
+        env:
+          SERVER_PORT: '48081'
+          APP_BASE_URL: http://127.0.0.1:5175
+          ADMIN_TOKEN: dev-token
+        run: |
+          nohup mvn -q -f backend/pom.xml spring-boot:run -Dspring-boot.run.profiles=local > backend-e2e.log 2>&1 &
+
+      - name: Wait for backend
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:48081/api/health >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat backend-e2e.log
+          exit 1
+
+      - name: Start frontend
+        env:
+          BACKEND_PROXY_TARGET: http://127.0.0.1:48081
+        run: |
+          nohup npm --prefix frontend run dev -- --host 127.0.0.1 --port 5175 --strictPort > frontend-e2e.log 2>&1 &
+
+      - name: Wait for frontend
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:5175/ >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat frontend-e2e.log
+          exit 1
+
+      - name: Run mobile E2E
+        env:
+          E2E_BASE_URL: http://127.0.0.1:5175
+          E2E_ADMIN_TOKEN: dev-token
+        run: scripts/mobile-e2e.sh
+
+      - name: Capture showcase screenshots
+        env:
+          E2E_BASE_URL: http://127.0.0.1:5175
+          E2E_ADMIN_TOKEN: dev-token
+          SHOWCASE_SCREENSHOT_DIR: docs/screenshots/showcase
+        run: scripts/capture-showcase-screenshots.sh
+
+      - name: Verify showcase artifacts
+        run: scripts/verify-eight-hour-artifacts.sh
+
+      - name: Upload E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-e2e-artifacts
+          path: |
+            backend-e2e.log
+            frontend-e2e.log
+            frontend/test-results/
+            frontend/playwright-report/
+            docs/screenshots/showcase/
+          if-no-files-found: ignore

@@ -5,7 +5,7 @@
 五行人格卡是一个以“测算结果页分享”为真实业务场景的 Java 全栈项目。你面试时不要只说“我做了一个人格测试页面”，而要说清楚：
 
 ```text
-匿名用户测算 -> 结果生成 -> 分享链接 -> 朋友访问 -> 访问事件 -> 后台数据中台
+匿名用户测算 -> 结果生成 -> 分享动作 -> 短链回流 -> 访问事件 -> 后台数据中台
 ```
 
 这个项目适合后端面试的原因是：它有真实业务闭环、短链系统、Redis 缓存、MySQL 统计查询、匿名隐私设计、Docker Compose 部署和可解释的性能取舍。
@@ -65,6 +65,31 @@ sequenceDiagram
 - 创建结果是强业务链路，结果和短链要尽量一起成功。
 - external 短链失败时可以降级 internal，保证用户仍能拿到可访问结果。
 - 一次提交会放大成多次 DB 写，所以要控制事务边界和外部调用风险。
+
+### 结果判定与文案链路
+
+这一段是回答“为什么判成主火次土”的核心，不要只说“后端算了一个分数”。当前模型是“文化背景 + 自我选择”的轻量人格模型，不是完整八字排盘。
+
+```mermaid
+flowchart LR
+  Birth["出生信息"] --> Terms["WuxingCalendarTerms<br>干支/纳音/节令取象"]
+  Answers["5 题选择"] --> Score["ElementCalculateService<br>五行加权"]
+  Terms --> Score
+  Score --> Text["ResultTextService<br>依据/元素/互动三段式文案"]
+  Text --> Result["结果页人格卡"]
+```
+
+算法入口：
+
+| 模块 | 做什么 | 面试表达 |
+| --- | --- | --- |
+| `WuxingCalendarTerms` | 年份用干支纪年和纳音取象，月份用节令/月令取主辅气，日期/时段只做轻量修饰 | “我没有用简单年份数字硬映射，而是把传统名词转成可解释的人格底色。” |
+| `ElementCalculateService` | 五行先各给基础分，再叠加年份、月份、日期、时段和 5 题选择 | “基础分避免出现缺某一行的负面暗示，答题权重保证用户当下选择更重要。” |
+| `ResultTextService` | 输出判定依据、元素逐项解释、元素互动与总览 | “结果页先解释为什么，再讲每个元素代表什么，最后把相生/制衡转成正向人格语言。” |
+
+可以这样讲一个样例：
+
+> 例如 2005 年 12 月、5 题里火向最多、土向补强，系统会先说 2005 年是乙酉年，纳音泉中水；12 月近大雪冬至，子水当令、寒土收束；然后说明 5 题火向最多，所以最终形成主火、次土。文案不会说某个元素缺失，而是说主火代表活力斗志，次土带来稳重执行，水作为点睛让表达多了洞察和弹性。
 
 ### 结果读取链路
 
@@ -180,7 +205,7 @@ erDiagram
 3. Redis 承担读热点：结果和短链映射都适合缓存。
 4. Nginx 先挡一层：`/api/**`、`/api/events`、`/s/**` 可以有不同限流策略。
 5. Admin overview 可以接受 45 秒级短缓存，避免运营刷新反复触发 live 聚合查询。
-6. 统计表补齐 `created_at`、`status + created_at`、`event_type + created_at + short_code` 等索引，让后台日期筛选、短链列表和日聚合更容易走索引。
+6. 统计表补齐 `created_at`、`status + created_at`、`result_id + event_type + channel`、`event_type + short_code + created_at + channel` 等索引，让后台日期筛选、测试流量过滤、短链列表和日聚合更容易走索引。
 7. 后台短链列表要避免 N+1 查询：一页短链先批量拉结果信息，再按短码集合一次聚合 PV/UV/UIP。
 8. 单机阶段不急着上 MQ、分库分表、ES：先把热点查询、缓存和降级做好。
 
@@ -194,11 +219,15 @@ erDiagram
 
 Admin overview 的回答可以这样补充：
 
-> 后台总览不是用户核心链路，不需要秒级强实时。我给相同日期范围的 overview 加了 45 秒 Redis 短缓存，命中时直接返回，未命中再查事件表和聚合表；Redis 异常时退回 live 计算。这个取舍能减少运营刷新对主库的重复压力，同时不改变事件明细的真实性。
+> 后台总览不是用户核心链路，不需要秒级强实时。我给相同日期范围的 overview 加了 45 秒 Redis 短缓存，命中时直接返回，未命中再查事件表和聚合表；Redis 异常时退回 live 计算。手动日聚合成功后会递增 overview 缓存版本，让下一次读取直接走新口径，不用等旧缓存自然过期。这个取舍能减少运营刷新对主库的重复压力，同时不改变事件明细的真实性。
+
+测试流量隔离的回答可以这样补充：
+
+> 压测会真实创建结果和分享链接，如果混进运营看板，完成率和回流强度会失真。第一阶段我用 `visit_event.channel=perf-test` 做默认视图隔离，并提供“包含测试流量”和“口径差异”面板用于复盘压测影响。这个方案改动小、能快速保护运营判断，但不是强隔离；下一阶段会把 `source_channel` 和 `synthetic` 下沉到 `user_result`、`short_link`，并把日聚合拆成真实口径和全量口径。
 
 数据库索引可以这样补充：
 
-> 我没有只靠 Redis 掩盖慢查询。对于后台总览和聚合任务，`visit_event` 补了按时间范围、时间 + client/ip 去重、事件类型 + 时间 + 短码的组合索引；`short_link` 补了 `status + created_at` 索引。这样即使缓存失效，常见日期筛选和短链列表也更容易落在可控查询路径上。
+> 我没有只靠 Redis 掩盖慢查询。对于后台总览和聚合任务，`visit_event` 补了按时间范围、时间 + client/ip 去重、`result_id + event_type + channel`、`event_type + short_code + created_at + channel` 等组合索引；`short_link` 补了 `status + created_at` 索引。这样即使缓存失效，默认排除压测流量和短链列表批量统计也更容易落在可控查询路径上。
 
 后台短链列表可以这样补充：
 
@@ -245,6 +274,8 @@ MAX_ASYNC_BATCH_FAILURES=0 scripts/performance-smoke-test.sh
 - 上线前必须替换 `ADMIN_TOKEN`、`HASH_SALT`、数据库密码和 `APP_BASE_URL`。
 - 真实域名上线时，`APP_BASE_URL` 决定新生成分享链接的域名；如果仍是 localhost 或 IP，用户分享出去的链接会错。
 - 性能 smoke 不是压测报告，而是回归检查：它会创建一个真实结果，连续访问短链，并重复读取后台总览，用输出的 `shortlinkAvgMs`、`shortlinkP95Ms`、`adminAvgMs` 和 `adminP95Ms` 观察热点链路是否明显退化；设置 `MAX_*_AVG_MS` / `MAX_*_P95_MS` 后也可以把它变成低延迟阈值门。它还会读取访问事件 runtime，输出 `asyncQueueSize`、`asyncTotalFlushedEvents`、`asyncLastFlushAt`、`asyncDroppedEvents`、`asyncBatchWriteFailures` 和 `asyncWorkerAlive`；把 `MAX_ASYNC_QUEUE_SIZE=0`、`MAX_ASYNC_DROPPED_EVENTS=0`、`MAX_ASYNC_BATCH_FAILURES=0` 打开后，可以防止“接口很快，但事件都堆着、丢了或后台批量写失败”的假象。
+- `scripts/performance-limit-test.sh` 是更完整的阶梯压测记录工具：它会先读 `/api/readiness`，确认核心表 `core_schema` 可用，再把 `RUN_ID` 写进 effective campaign，默认用 `perf-test` 隔离压测流量，并把环境卡片、CSV、summary 和报告一起沉淀。正式沉淀的本地报告建议加 `STRICT_RUNTIME_OBSERVATION=1`，这样 runtime 不可观测时会停止而不是误写“没有风险”。当前本地代码回归报告显示：mixed 1-32 阶梯最高 P95 `104ms`，admin 1-64 最高 P95 `216ms`，result 1-64 最高 P95 `112ms`，shortlink 1-64 最高 P95 `185ms`，错误率、事件丢弃和批量写失败均为 `0`；这些数字只能证明本地小阶梯回归，没有资格直接换算成生产 QPS。
+- 三类验证要分开讲：`/api/readiness` 是核心表依赖前置检查，`performance-smoke-test.sh` 是小样本回归门，`performance-limit-test.sh` 才是阶梯探测报告；即使三者都通过，也只能证明方法链路完整，不能跳到“已验证生产 QPS”。
 - 生产压测和告警演练的完整记录模板见 `docs/production-load-alert-runbook.md`；面试中可以讲演练方案和 smoke 证据，但没有真实报告前不要说已经验证生产 QPS。
 
 ### 真实域名上线链路
@@ -387,27 +418,30 @@ flowchart LR
 
 这一阶段要避免把状态塞进单个后端进程，否则多实例扩容会失效。
 
-### 再下一阶段：外部化异步削峰
+### 已落地的下一阶段：可选 RocketMQ Shadow 削峰
 
-当前项目已经完成单机内存队列 + 后台批量写库，适合单机作品阶段。如果短链传播峰值继续放大，下一步可以把访问事件从进程内队列演进为 MQ 或日志管道：
+当前项目已经完成单机内存队列 + 后台批量写库，适合单机作品阶段；同时也把访问事件投递抽象成了可插拔通道。默认 `local` 模式继续走本地有界队列，`rocketmq` 模式可以把清洗后的访问事件发布到 MQ，但在 consumer 落库、幂等、DLQ 没补齐前，系统仍然 shadow 写本地队列，保证数据中台口径不丢。
 
 ```mermaid
-sequenceDiagram
-  participant B as Browser
-  participant API as Backend
-  participant Q as Message Queue
-  participant W as Event Worker
-  participant DB as MySQL
-
-  B->>API: GET /s/{shortCode}
-  API->>API: Redis/MySQL resolve
-  API->>Q: publish SHORT_LINK_VISIT
-  API-->>B: 302 result page
-  W->>Q: consume events
-  W->>DB: batch insert visit_event
+flowchart LR
+  B["Browser 打开 /s/{shortCode}"] --> API["Backend 解析短码并 302"]
+  API --> Local["local 模式: 本地有界队列"]
+  Local --> DB["后台批量写 visit_event"]
+  API -. "rocketmq shadow: 旁路发布一份" .-> MQ["RocketMQ topic"]
+  MQ -. "未来接管: consumer + eventId + DLQ" .-> Future["幂等消费并落库"]
 ```
 
-好处是跳转链路更短，坏处是统计会出现秒级延迟，还要处理消息重复、消费失败、积压告警和幂等写入。面试时要主动说出这个代价，显得更真实。
+好处是跳转链路可以继续缩短，并能把突发访问事件转移到 MQ；坏处是统计会出现秒级延迟，还要处理消息重复、消费失败、积压告警和幂等写入。面试时要主动说出当前边界：现在已经有 `VisitEventRocketMqPublisher` 扩展点、shadow 模式和运行态指标，但还没有生产级 RocketMQ producer/consumer。
+
+#### 三种模式怎么讲
+
+| 模式 | 当前用途 | 数据中台口径 |
+| --- | --- | --- |
+| `local` | 默认生产安全模式，本地队列削峰后批量落库 | `visit_event` 本地落库 |
+| `rocketmq + consumerEnabled=false` | 旁路观察 MQ 发布成功率和失败回退 | MQ 发布一份，同时 shadow 写本地 |
+| `rocketmq + consumerEnabled=true` | 未来 MQ 主消费模式 | 只有 consumer persistence ready 后才允许 MQ 接管落库 |
+
+这一层设计的核心不是“我已经完整接了 RocketMQ”，而是“我把统计事件主链路抽象出来，先允许低风险 shadow 验证，再逐步补 consumer、幂等和补偿”。
 
 ### 最后阶段：数据分层与治理
 
@@ -446,17 +480,19 @@ sequenceDiagram
 | 移动端问答体验 | `frontend/src/pages/TestPage.vue` | `npm --prefix frontend run build` | 测试页从长表单变成逐题卡片流，默认出生年份也算有效选择，选中答案后由用户手动进入下一题，降低误触焦虑。 |
 | 输入契约守门 | `frontend/src/pages/TestPage.vue`、`backend/src/main/java/com/wuxing/persona/service/ElementCalculateService.java` | `mvn -q -f backend/pom.xml -Dtest=ElementCalculateServiceTest,MvpFlowIntegrationTest test` | 前端会按年份和月份动态收窄日期选择，例如 2 月不显示 31 日；但最终安全边界在后端，服务层会拒绝未来月份、未来日期和不存在的日历日期。 |
 | 双人短码匹配 | `frontend/src/pages/GuidePage.vue`、`frontend/src/pages/TestPage.vue`、`frontend/src/pages/MatchPage.vue`、`backend/src/main/java/com/wuxing/persona/service/MatchService.java` | `mvn -q -f backend/pom.xml -Dtest=MvpFlowIntegrationTest test && npm --prefix frontend run build` | 首页只从纯短码触发匹配邀请，剪贴板自动检测失败时有手动短码兜底，测完后调用 `/api/matches` 并进入可刷新访问的 `/match/{partnerShortCode}/{currentShortCode}`。 |
-| 结果页分享闭环 | `frontend/src/pages/ResultPage.vue` | `E2E_BASE_URL=http://127.0.0.1:5174 E2E_ADMIN_TOKEN=dev-token scripts/mobile-e2e.sh` | 结果页不只展示文案，还承担保存分享图、复制分享链接、系统分享、朋友回流和二次测试入口。 |
+| 结果页分享闭环 | `frontend/src/pages/ResultPage.vue` | `E2E_BASE_URL=http://127.0.0.1:5175 E2E_ADMIN_TOKEN=dev-token scripts/mobile-e2e.sh` | 结果页不只展示文案，还承担保存分享图、复制分享链接、系统分享、朋友回流和二次测试入口。 |
 | 创建结果链路 | `backend/src/main/java/com/wuxing/persona/service/ResultService.java` | `mvn -q -f backend/pom.xml -Dtest=MvpFlowIntegrationTest test` | 创建结果是强业务链路，结果、短链和关键事件要一起形成可恢复的业务证据。 |
 | 短链门面和适配 | `backend/src/main/java/com/wuxing/persona/service/ShortLinkService.java` | `mvn -q -f backend/pom.xml -Dtest=ExternalShortLinkProviderTest,InternalShortLinkProviderTest test` | Provider 让结果生成不用关心短链来自 internal 还是 external，外部失败时可以降级。 |
 | external 一致性边界 | `backend/src/main/java/com/wuxing/persona/service/shortlink/ExternalShortLinkProvider.java`、`docs/external-shortlink-integration-guide.md` | `mvn -q -f backend/pom.xml -Dtest=ExternalShortLinkProviderTest test` | external 短码冲突可降级，但外部已创建、本地绑定失败必须明确暴露，生产化再补撤销接口或补偿任务。 |
 | 短链热路径 | `backend/src/main/java/com/wuxing/persona/service/shortlink/InternalShortLinkProvider.java` | `mvn -q -f backend/pom.xml -Dtest=InternalShortLinkProviderTest test` | `/s/{shortCode}` 是传播峰值入口，Redis 命中时直接拿 resultId 做 302，不同步做统计聚合。 |
 | 异步访问事件 | `backend/src/main/java/com/wuxing/persona/service/VisitEventService.java` | `mvn -q -f backend/pom.xml -Dtest=VisitEventServiceTest test` | 访问事件是统计事实来源，但不该卡住用户跳转，所以进入可配置的有界队列并后台批量写库。 |
 | 后台统计和缓存 | `backend/src/main/java/com/wuxing/persona/service/AdminStatService.java`、`backend/src/main/java/com/wuxing/persona/service/RedisCacheService.java` | `mvn -q -f backend/pom.xml -Dtest=MvpFlowIntegrationTest test` | 后台 overview 可以接受 45 秒短缓存，短链列表也要说明统计来自实时事件、日聚合表还是外部短链服务。 |
+| 压测批次追踪 | `scripts/performance-limit-test.sh`、`docs/performance-reports/README.md` | `RUN_ID=study-check OUT_DIR=/private/tmp/wuxing-study-check WORKLOAD=health STEPS=1 REQUESTS_PER_STAGE=4 scripts/performance-limit-test.sh` | 压测流量用 `channel=perf-test` 默认隔离，用 `RUN_ID` 和 effective campaign 追踪批次，后台 Campaign 能和报告对上。 |
 | 后台管理保护 | `backend/src/main/java/com/wuxing/persona/controller/AdminController.java`、`backend/src/test/java/com/wuxing/persona/MvpFlowIntegrationTest.java` | `mvn -q -f backend/pom.xml -Dtest=MvpFlowIntegrationTest#shouldRejectAllAdminEndpointsWithoutToken test` | 当前不是 RBAC 权限系统，但所有后台敏感入口都要求 `X-Admin-Token`，并用参数化集成测试覆盖未授权返回 401。 |
+| 核心表就绪检查 | `backend/src/main/java/com/wuxing/persona/controller/HealthController.java`、`docs/api-spec.md` | `curl http://127.0.0.1:48081/api/readiness` | `/api/readiness` 的 scope 是 `core_schema`，用于确认结果、短链、访问事件和日聚合核心表可用；它不是 Redis、RocketMQ 和所有写路径的全量健康承诺。 |
 | 可观测证据 | `scripts/performance-smoke-test.sh`、`backend/src/main/java/com/wuxing/persona/vo/VisitEventRuntimeVO.java` | `BASE_URL=http://127.0.0.1:48081 ADMIN_TOKEN=dev-token scripts/performance-smoke-test.sh` | 性能 smoke 看 avg / P95，也看 async queue、flushed events、dropped events 和 batch failures，避免只看快不看后台排水。 |
 | 真实域名上线 | `docs/domain-launch-self-audit.md`、`docs/domain-launch-info-template.md`、`docs/domain-server-runbook.md`、`scripts/domain-bind-preflight.sh` | `DOMAIN=<domain> BASE_URL=https://<domain> scripts/domain-bind-preflight.sh` | 域名上线不是只改 DNS，还要确认 APP_BASE_URL、HTTPS、Nginx 路由、后台 token、production smoke 和 performance smoke；前置准备完成后要停下来等真实域名、DNS、SSH 和证书信息。 |
-| 视觉与作品集证据 | `scripts/capture-showcase-screenshots.sh`、`docs/screenshots/showcase/`、`docs-site/showcase.html` | `E2E_BASE_URL=http://127.0.0.1:5174 E2E_ADMIN_TOKEN=dev-token scripts/capture-showcase-screenshots.sh` | 项目展示不只靠文字，已经有 iPhone SE、安卓宽屏和桌面后台三类可复现截图。 |
+| 视觉与作品集证据 | `scripts/capture-showcase-screenshots.sh`、`docs/screenshots/showcase/`、`docs-site/showcase.html` | `E2E_BASE_URL=http://127.0.0.1:5175 E2E_ADMIN_TOKEN=dev-token scripts/capture-showcase-screenshots.sh` | 项目展示不只靠文字，已经有 iPhone SE、安卓宽屏和桌面后台三类可复现截图。 |
 | 短码并发冲突 | `backend/src/main/java/com/wuxing/persona/service/shortlink/InternalShortLinkProvider.java`、`backend/src/main/java/com/wuxing/persona/mapper/ShortLinkMapper.java` | `mvn -q -f backend/pom.xml -Dtest=InternalShortLinkProviderTest test` | 当前短码生成依赖 `uk_short_code` 唯一键兜底，插入冲突时重试，避免 `count + insert` 的并发竞态。 |
 | 数据库迁移治理 | `backend/src/main/resources/db/schema.sql`、`backend/src/main/resources/application.yml`、`docs/db-migration-plan.md` | `docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml config` | 当前是初始化脚本和演示环境 DDL，不是成熟迁移体系；迁移治理计划说明了 Flyway 版本拆分、上线步骤和回滚边界。 |
 | 异步事件丢失语义 | `backend/src/main/java/com/wuxing/persona/service/VisitEventService.java`、`scripts/performance-smoke-test.sh`、`docs/production-load-alert-runbook.md` | `mvn -q -f backend/pom.xml -Dtest=VisitEventServiceTest test` | 异步队列优先保护跳转低延迟，队列满或进程重启可能丢低价值事件；单测覆盖队列满时的丢弃计数，performance smoke 可用 `MAX_ASYNC_DROPPED_EVENTS=0` 把无丢弃变成门禁。 |
@@ -490,7 +526,7 @@ sequenceDiagram
 | 追问 | 不慌的回答 |
 | --- | --- |
 | 你这是不是玩具项目？ | 我用人格测试做轻产品入口，但工程闭环是真实的：短链、访问事件、后台统计、缓存、部署和质量门禁都有落地。 |
-| 为什么不用 MQ？ | 当前单机阶段先优化热路径、索引、缓存和降级，避免过早复杂化；MQ 是流量继续放大后的下一步。 |
+| 为什么不让 MQ 直接接管？ | 当前已经有可选 RocketMQ shadow/fallback，但还没有把 consumer 落库、eventId 幂等、DLQ、失败重放和重聚合补成完整闭环；所以主路径先由本地队列保证数据中台稳定，MQ 接管要等这些安全边界齐全。 |
 | 统计会不会拖慢跳转？ | 跳转链路只做短码解析、事件入队和低频展示字段更新，不同步做 distinct 聚合，后台统计走独立查询路径。 |
 | 为什么双人匹配不建表？ | 第一版匹配是由两个已存在短码实时计算，先保证流程闭环和刷新可访问；只有当要做历史记录、关系复访或排行榜时，持久化匹配表才有明确收益。 |
 | 剪贴板自动检测会不会失败？ | 会，浏览器经常要求用户手势或权限授权；所以代码先做非阻塞自动尝试，失败时不影响首页，并提供手动检测/输入短码入口保证流程可达。 |

@@ -58,9 +58,12 @@ public class AdminController {
                                                  @RequestParam(required = false)
                                                  @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
                                                  @RequestParam(required = false)
-                                                 @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+                                                 @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+                                                 @RequestParam(defaultValue = "false") boolean includeSynthetic,
+                                                 @RequestParam(defaultValue = "false") boolean forceRefresh) {
         checkToken(token);
-        return ApiResponse.success(adminStatService.overview(AdminDateRange.of(startDate, endDate)));
+        return ApiResponse.success(adminStatService.overview(AdminDateRange.of(startDate, endDate),
+                includeSynthetic, forceRefresh));
     }
 
     @GetMapping("/short-links")
@@ -69,26 +72,28 @@ public class AdminController {
                                                                @RequestParam(defaultValue = "20") long pageSize,
                                                                @RequestParam(required = false) String keyword,
                                                                @RequestParam(required = false) String statSource,
+                                                               @RequestParam(defaultValue = "false") boolean includeSynthetic,
                                                                @RequestParam(required = false)
                                                                @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
                                                                @RequestParam(required = false)
                                                                @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         checkToken(token);
         return ApiResponse.success(adminStatService.listShortLinks(page, pageSize, AdminDateRange.of(startDate, endDate),
-                keyword, statSource));
+                keyword, statSource, includeSynthetic));
     }
 
     @GetMapping("/short-links/export")
     public ResponseEntity<String> exportShortLinks(@RequestHeader(value = "X-Admin-Token", required = false) String token,
                                                    @RequestParam(required = false) String keyword,
                                                    @RequestParam(required = false) String statSource,
+                                                   @RequestParam(defaultValue = "false") boolean includeSynthetic,
                                                    @RequestParam(required = false)
                                                    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
                                                    @RequestParam(required = false)
                                                    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         checkToken(token);
         AdminShortLinkExportVO export = adminStatService.exportShortLinks(AdminDateRange.of(startDate, endDate),
-                keyword, statSource);
+                keyword, statSource, includeSynthetic);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + export.getFilename() + "\"")
                 .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
@@ -103,10 +108,12 @@ public class AdminController {
                                                         @RequestParam(required = false)
                                                         @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
                                                         @RequestParam(required = false)
-                                                        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+                                                        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+                                                        @RequestParam(required = false) String statSource,
+                                                        @RequestParam(defaultValue = "false") boolean includeSynthetic) {
         checkToken(token);
         return ApiResponse.success(adminStatService.listShortLinkVisits(shortCode, page, pageSize,
-                AdminDateRange.of(startDate, endDate)));
+                AdminDateRange.of(startDate, endDate), includeSynthetic, statSource));
     }
 
     @GetMapping("/external-shortlink/status")

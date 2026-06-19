@@ -39,9 +39,11 @@ public class AdminStatService {
 
     private static final int DEFAULT_TREND_DAYS = 7;
     private static final int MAX_TREND_DAYS = 14;
+    private static final int SOURCE_FILTER_SCAN_PAGE_SIZE = 100;
     private static final int SOURCE_FILTER_SCAN_LIMIT = 500;
     private static final int EXPORT_LIMIT = 500;
     private static final int TOP_ATTRIBUTION_LIMIT = 5;
+    private static final String SYNTHETIC_CHANNEL = "perf-test";
 
     private final UserResultMapper userResultMapper;
     private final ShortLinkMapper shortLinkMapper;
@@ -68,45 +70,52 @@ public class AdminStatService {
     }
 
     public AdminOverviewVO overview(AdminDateRange range) {
-        String rangeKey = overviewRangeKey(range);
-        AdminOverviewVO cached = redisCacheService.getAdminOverview(rangeKey);
-        if (cached != null) {
-            return cached;
+        return overview(range, false);
+    }
+
+    public AdminOverviewVO overview(AdminDateRange range, boolean includeSynthetic) {
+        return overview(range, includeSynthetic, false);
+    }
+
+    public AdminOverviewVO overview(AdminDateRange range, boolean includeSynthetic, boolean forceRefresh) {
+        String excludedChannel = includeSynthetic ? null : SYNTHETIC_CHANNEL;
+        String rangeKey = overviewRangeKey(range, excludedChannel);
+        if (!forceRefresh) {
+            AdminOverviewVO cached = redisCacheService.getAdminOverview(rangeKey);
+            if (cached != null) {
+                return cached;
+            }
         }
         AdminOverviewVO overview = new AdminOverviewVO();
-        long startClicks = visitEventMapper.countByEventTypeBetween(EventType.START_TEST_CLICK.name(),
-                range.getStartAt(), range.getEndExclusive());
-        long resultCreated = userResultMapper.countAllBetween(range.getStartAt(), range.getEndExclusive());
-        overview.setTotalPv(visitEventMapper.countAllBetween(range.getStartAt(), range.getEndExclusive()));
-        overview.setTotalUv(visitEventMapper.countDistinctClientBetween(range.getStartAt(), range.getEndExclusive()));
-        overview.setTotalUip(visitEventMapper.countDistinctIpBetween(range.getStartAt(), range.getEndExclusive()));
-        overview.setHomeViews(visitEventMapper.countByEventTypeBetween(EventType.PAGE_VIEW_HOME.name(),
-                range.getStartAt(), range.getEndExclusive()));
+        overview.setSyntheticTrafficExcluded(excludedChannel != null);
+        overview.setSyntheticIsolationLevel(excludedChannel == null ? "all_traffic" : "event_channel");
+        overview.setSyntheticIsolationNote(excludedChannel == null
+                ? "当前包含测试流量，适合复盘压测和巡检，不适合直接判断真实用户增长。"
+                : "当前按 visit_event.channel=perf-test 从统计查询中排除测试流量，尚不是 user_result/short_link 实体层强隔离。");
+        long startClicks = countEvent(EventType.START_TEST_CLICK, range, excludedChannel);
+        long resultCreated = countResults(range, excludedChannel);
+        overview.setTotalPv(countEvents(range, excludedChannel));
+        overview.setTotalUv(countDistinctClient(range, excludedChannel));
+        overview.setTotalUip(countDistinctIp(range, excludedChannel));
+        overview.setHomeViews(countEvent(EventType.PAGE_VIEW_HOME, range, excludedChannel));
         overview.setStartClicks(startClicks);
-        overview.setTestSubmits(visitEventMapper.countByEventTypeBetween(EventType.TEST_SUBMIT.name(),
-                range.getStartAt(), range.getEndExclusive()));
+        overview.setTestSubmits(countEvent(EventType.TEST_SUBMIT, range, excludedChannel));
         overview.setResultCreated(resultCreated);
-        overview.setShortLinkCreated(shortLinkMapper.countAllBetween(range.getStartAt(), range.getEndExclusive()));
-        overview.setShortLinkVisits(visitEventMapper.countByEventTypeBetween(EventType.SHORT_LINK_VISIT.name(),
-                range.getStartAt(), range.getEndExclusive()));
+        overview.setShortLinkCreated(countShortLinks(range, excludedChannel));
+        overview.setShortLinkVisits(countEvent(EventType.SHORT_LINK_VISIT, range, excludedChannel));
         overview.setCompletionRate(startClicks == 0 ? 0 : Math.round(resultCreated * 10000.0 / startClicks) / 100.0);
-        DailyTrendResult dailyTrendResult = buildDailyTrends(range);
+        DailyTrendResult dailyTrendResult = buildDailyTrends(range, excludedChannel);
         overview.setDailyTrends(dailyTrendResult.records());
         overview.setMetricSource(dailyTrendResult.metricSource());
         overview.setAggregatedThroughDate(dailyTrendResult.aggregatedThroughDate());
-        overview.setFunnelSteps(buildFunnelSteps(range));
-        overview.setTopChannels(toNameCounts(visitEventMapper.listTopChannelsBetween(TOP_ATTRIBUTION_LIMIT,
-                range.getStartAt(), range.getEndExclusive())));
-        overview.setTopCampaigns(toNameCounts(visitEventMapper.listTopCampaignsBetween(TOP_ATTRIBUTION_LIMIT,
-                range.getStartAt(), range.getEndExclusive())));
-        overview.setPopularElementCombos(toElementCombos(userResultMapper.listPopularElementCombosBetween(5,
-                range.getStartAt(), range.getEndExclusive())));
-        overview.setPopularStarOfficers(toStarOfficers(userResultMapper.listPopularStarOfficersBetween(5,
-                range.getStartAt(), range.getEndExclusive())));
-        overview.setRecentResults(toRecentResults(userResultMapper.listRecentBetween(5,
-                range.getStartAt(), range.getEndExclusive())));
-        overview.setRecentShortLinks(toShortLinkItems(shortLinkMapper.listPageBetween(0, 5,
-                range.getStartAt(), range.getEndExclusive()), range));
+        overview.setFunnelSteps(buildFunnelSteps(range, excludedChannel));
+        overview.setTopChannels(toNameCounts(listTopChannels(range, excludedChannel)));
+        overview.setTopCampaigns(toNameCounts(listTopCampaigns(range, excludedChannel)));
+        overview.setPopularElementCombos(toElementCombos(listPopularElementCombos(range, excludedChannel)));
+        overview.setPopularStarOfficers(toStarOfficers(listPopularStarOfficers(range, excludedChannel)));
+        overview.setRecentResults(toRecentResults(listRecentResults(range, excludedChannel)));
+        overview.setRecentShortLinks(toShortLinkItems(listRecentShortLinks(range, 0, 5, null, excludedChannel),
+                range, excludedChannel));
         redisCacheService.setAdminOverview(rangeKey, overview);
         return overview;
     }
@@ -120,27 +129,44 @@ public class AdminStatService {
                                                       AdminDateRange range,
                                                       String keyword,
                                                       String statSource) {
+        return listShortLinks(page, pageSize, range, keyword, statSource, false);
+    }
+
+    public PageVO<ShortLinkListItemVO> listShortLinks(long page,
+                                                      long pageSize,
+                                                      AdminDateRange range,
+                                                      String keyword,
+                                                      String statSource,
+                                                      boolean includeSynthetic) {
         long normalizedPage = Math.max(1, page);
         long normalizedPageSize = Math.min(100, Math.max(1, pageSize));
         String normalizedKeyword = normalizeKeyword(keyword);
         String normalizedSource = normalizeStatSource(statSource);
+        String excludedChannel = includeSynthetic ? null : SYNTHETIC_CHANNEL;
         if (normalizedSource != null) {
             return listShortLinksByComputedSource(normalizedPage, normalizedPageSize, range,
-                    normalizedKeyword, normalizedSource);
+                    normalizedKeyword, normalizedSource, excludedChannel);
         }
         long offset = (normalizedPage - 1) * normalizedPageSize;
         return new PageVO<>(
                 normalizedPage,
                 normalizedPageSize,
-                shortLinkMapper.countAllBetweenFiltered(range.getStartAt(), range.getEndExclusive(),
-                        normalizedKeyword),
-                toShortLinkItems(shortLinkMapper.listPageBetweenFiltered(offset, normalizedPageSize,
-                        range.getStartAt(), range.getEndExclusive(), normalizedKeyword), range)
+                countShortLinksFiltered(range, normalizedKeyword, excludedChannel),
+                toShortLinkItems(listRecentShortLinks(range, offset, normalizedPageSize, normalizedKeyword, excludedChannel),
+                        range, excludedChannel)
         );
     }
 
     public AdminShortLinkExportVO exportShortLinks(AdminDateRange range, String keyword, String statSource) {
-        PageVO<ShortLinkListItemVO> page = listShortLinks(1, EXPORT_LIMIT, range, keyword, statSource);
+        return exportShortLinks(range, keyword, statSource, false);
+    }
+
+    public AdminShortLinkExportVO exportShortLinks(AdminDateRange range,
+                                                   String keyword,
+                                                   String statSource,
+                                                   boolean includeSynthetic) {
+        PageVO<ShortLinkListItemVO> page = listShortLinks(1, EXPORT_LIMIT, range, keyword, statSource,
+                includeSynthetic);
         StringBuilder csv = new StringBuilder("\uFEFF");
         csv.append("shortCode,resultId,shortUrl,elementCombo,starOfficerName,pv,uv,uip,statSource,metricSource,createdAt,lastVisitAt\n");
         for (ShortLinkListItemVO item : page.getRecords()) {
@@ -162,27 +188,73 @@ public class AdminStatService {
     }
 
     public PageVO<ShortLinkVisitVO> listShortLinkVisits(String shortCode, long page, long pageSize, AdminDateRange range) {
+        return listShortLinkVisits(shortCode, page, pageSize, range, false);
+    }
+
+    public PageVO<ShortLinkVisitVO> listShortLinkVisits(String shortCode,
+                                                        long page,
+                                                        long pageSize,
+                                                        AdminDateRange range,
+                                                        boolean includeSynthetic) {
+        return listShortLinkVisits(shortCode, page, pageSize, range, includeSynthetic, null);
+    }
+
+    public PageVO<ShortLinkVisitVO> listShortLinkVisits(String shortCode,
+                                                        long page,
+                                                        long pageSize,
+                                                        AdminDateRange range,
+                                                        boolean includeSynthetic,
+                                                        String statSource) {
         ShortLinkCodeUtils.validate(shortCode);
         long normalizedPage = Math.max(1, page);
         long normalizedPageSize = Math.min(100, Math.max(1, pageSize));
         long offset = (normalizedPage - 1) * normalizedPageSize;
+        String excludedChannel = includeSynthetic ? null : SYNTHETIC_CHANNEL;
+        String normalizedSource = normalizeStatSource(statSource);
         ShortLinkEntity shortLink = shortLinkMapper.selectByShortCode(shortCode);
-        if (shortLink != null) {
+        boolean shouldReadExternal = shortLink != null
+                && ("external".equals(normalizedSource) || (normalizedSource == null && excludedChannel == null));
+        if (shouldReadExternal) {
             java.util.Optional<PageVO<ShortLinkVisitVO>> externalRecords =
                     externalShortLinkStatsAdapter.fetchAccessRecords(shortLink, normalizedPage, normalizedPageSize, range);
             if (externalRecords.isPresent()) {
                 return externalRecords.get();
             }
+            if ("external".equals(normalizedSource)) {
+                return new PageVO<>(normalizedPage, normalizedPageSize, 0, java.util.List.of());
+            }
         }
-        List<ShortLinkVisitVO> records = visitEventMapper.listByShortCodeBetween(shortCode,
-                        range.getStartAt(), range.getEndExclusive(), offset, normalizedPageSize).stream()
+        List<ShortLinkVisitVO> records = listLocalShortLinkVisits(shortCode, range, offset, normalizedPageSize,
+                        excludedChannel).stream()
                 .map(this::toVisit)
                 .toList();
-        return new PageVO<>(normalizedPage, normalizedPageSize, visitEventMapper.countByShortCodeBetween(shortCode,
-                range.getStartAt(), range.getEndExclusive()), records);
+        return new PageVO<>(normalizedPage, normalizedPageSize, countLocalShortLinkVisits(shortCode, range,
+                excludedChannel), records);
     }
 
-    private DailyTrendResult buildDailyTrends(AdminDateRange range) {
+    private List<VisitEventEntity> listLocalShortLinkVisits(String shortCode,
+                                                            AdminDateRange range,
+                                                            long offset,
+                                                            long pageSize,
+                                                            String excludedChannel) {
+        if (excludedChannel == null) {
+            return visitEventMapper.listByShortCodeBetween(shortCode,
+                    range.getStartAt(), range.getEndExclusive(), offset, pageSize);
+        }
+        return visitEventMapper.listByShortCodeBetweenExcludingChannel(shortCode,
+                range.getStartAt(), range.getEndExclusive(), offset, pageSize, excludedChannel);
+    }
+
+    private long countLocalShortLinkVisits(String shortCode, AdminDateRange range, String excludedChannel) {
+        if (excludedChannel == null) {
+            return visitEventMapper.countByShortCodeBetween(shortCode,
+                    range.getStartAt(), range.getEndExclusive());
+        }
+        return visitEventMapper.countByShortCodeBetweenExcludingChannel(shortCode,
+                range.getStartAt(), range.getEndExclusive(), excludedChannel);
+    }
+
+    private DailyTrendResult buildDailyTrends(AdminDateRange range, String excludedChannel) {
         LocalDate today = LocalDate.now();
         LocalDate endDate = range.getEndDate() == null ? today : range.getEndDate();
         LocalDate startDate = range.getStartDate() == null
@@ -203,7 +275,9 @@ public class AdminStatService {
         LocalDate cursor = startDate;
         while (!cursor.isAfter(endDate)) {
             DailyMetricVO metric = new DailyMetricVO();
-            SiteDailyMetricEntity aggregated = cursor.isBefore(today) ? siteDailyMetricMapper.selectByMetricDate(cursor) : null;
+            SiteDailyMetricEntity aggregated = excludedChannel == null && cursor.isBefore(today)
+                    ? siteDailyMetricMapper.selectByMetricDate(cursor)
+                    : null;
             if (aggregated != null) {
                 metric.setDate(aggregated.getMetricDate().toString());
                 metric.setPv(aggregated.getPv());
@@ -213,14 +287,12 @@ public class AdminStatService {
                 usedAggregate = true;
                 aggregatedThrough = aggregated.getMetricDate();
             } else {
-                LocalDateTime dayStart = cursor.atStartOfDay();
-                LocalDateTime dayEnd = cursor.plusDays(1).atStartOfDay();
                 metric.setDate(cursor.toString());
-                metric.setPv(visitEventMapper.countAllBetween(dayStart, dayEnd));
-                metric.setResultCreated(userResultMapper.countAllBetween(dayStart, dayEnd));
-                metric.setShortLinkCreated(shortLinkMapper.countAllBetween(dayStart, dayEnd));
-                metric.setShortLinkVisits(visitEventMapper.countByEventTypeBetween(EventType.SHORT_LINK_VISIT.name(),
-                        dayStart, dayEnd));
+                AdminDateRange dayRange = AdminDateRange.of(cursor, cursor);
+                metric.setPv(countEvents(dayRange, excludedChannel));
+                metric.setResultCreated(countResults(dayRange, excludedChannel));
+                metric.setShortLinkCreated(countShortLinks(dayRange, excludedChannel));
+                metric.setShortLinkVisits(countEvent(EventType.SHORT_LINK_VISIT, dayRange, excludedChannel));
                 usedLive = true;
             }
             trends.add(metric);
@@ -230,7 +302,7 @@ public class AdminStatService {
         return new DailyTrendResult(trends, source, aggregatedThrough == null ? null : aggregatedThrough.toString());
     }
 
-    private List<FunnelStepVO> buildFunnelSteps(AdminDateRange range) {
+    private List<FunnelStepVO> buildFunnelSteps(AdminDateRange range, String excludedChannel) {
         List<FunnelDefinition> definitions = List.of(
                 new FunnelDefinition(EventType.PAGE_VIEW_HOME, "首页访问"),
                 new FunnelDefinition(EventType.START_TEST_CLICK, "开始测试"),
@@ -238,16 +310,17 @@ public class AdminStatService {
                 new FunnelDefinition(EventType.TEST_SUBMIT_ATTEMPT, "提交尝试"),
                 new FunnelDefinition(EventType.TEST_SUBMIT, "提交成功"),
                 new FunnelDefinition(EventType.RESULT_VIEW, "查看结果"),
-                new FunnelDefinition(EventType.SHARE_PANEL_VIEW, "打开分享"),
+                new FunnelDefinition(EventType.SHARE_PANEL_VIEW, "分享区曝光"),
                 new FunnelDefinition(EventType.SHORT_LINK_COPY, "复制短链"),
+                new FunnelDefinition(EventType.SAVE_SHARE_IMAGE_SUCCESS, "保存分享图"),
+                new FunnelDefinition(EventType.NATIVE_SHARE_SUCCESS, "系统分享"),
                 new FunnelDefinition(EventType.SHORT_LINK_VISIT, "短链回流"),
                 new FunnelDefinition(EventType.SHARED_RESULT_CTA_CLICK, "回流再测")
         );
         List<FunnelStepVO> steps = new ArrayList<>();
         long previous = -1;
         for (FunnelDefinition definition : definitions) {
-            long count = visitEventMapper.countByEventTypeBetween(definition.eventType().name(),
-                    range.getStartAt(), range.getEndExclusive());
+            long count = countEvent(definition.eventType(), range, excludedChannel);
             double conversion = previous < 0 ? 100 : rate(count, previous);
             steps.add(new FunnelStepVO(definition.eventType().name(), definition.label(), count, conversion));
             previous = count;
@@ -259,18 +332,43 @@ public class AdminStatService {
                                                                        long pageSize,
                                                                        AdminDateRange range,
                                                                        String keyword,
-                                                                       String source) {
-        List<ShortLinkListItemVO> filtered = toShortLinkItems(shortLinkMapper.listPageBetweenFiltered(0,
-                        SOURCE_FILTER_SCAN_LIMIT, range.getStartAt(), range.getEndExclusive(), keyword), range)
-                .stream()
-                .filter(item -> source.equals(item.getStatSource()))
-                .toList();
-        long offset = (page - 1) * pageSize;
-        List<ShortLinkListItemVO> pageRecords = filtered.stream()
-                .skip(offset)
-                .limit(pageSize)
-                .toList();
-        return new PageVO<>(page, pageSize, filtered.size(), pageRecords);
+                                                                       String source,
+                                                                       String excludedChannel) {
+        long databaseOffset = 0;
+        long scanned = 0;
+        long filteredOffset = (page - 1) * pageSize;
+        long filteredTotal = 0;
+        List<ShortLinkListItemVO> pageRecords = new ArrayList<>((int) pageSize);
+        while (true) {
+            long remainingScanBudget = SOURCE_FILTER_SCAN_LIMIT + 1L - scanned;
+            if (remainingScanBudget <= 0) {
+                throwSourceFilterScanLimitExceeded();
+            }
+            long scanPageSize = Math.min(SOURCE_FILTER_SCAN_PAGE_SIZE, remainingScanBudget);
+            List<ShortLinkEntity> rows = listRecentShortLinks(range, databaseOffset,
+                    scanPageSize, keyword, excludedChannel);
+            if (rows.isEmpty()) {
+                break;
+            }
+            scanned += rows.size();
+            if (scanned > SOURCE_FILTER_SCAN_LIMIT) {
+                throwSourceFilterScanLimitExceeded();
+            }
+            for (ShortLinkListItemVO item : toShortLinkItems(rows, range, excludedChannel, true)) {
+                if (!source.equals(item.getStatSource())) {
+                    continue;
+                }
+                if (filteredTotal >= filteredOffset && pageRecords.size() < pageSize) {
+                    pageRecords.add(item);
+                }
+                filteredTotal++;
+            }
+            databaseOffset += rows.size();
+            if (rows.size() < scanPageSize) {
+                break;
+            }
+        }
+        return new PageVO<>(page, pageSize, filteredTotal, pageRecords);
     }
 
     private List<NameCountVO> toElementCombos(List<Map<String, Object>> rows) {
@@ -308,7 +406,16 @@ public class AdminStatService {
                 .toList();
     }
 
-    private List<ShortLinkListItemVO> toShortLinkItems(List<ShortLinkEntity> rows, AdminDateRange range) {
+    private List<ShortLinkListItemVO> toShortLinkItems(List<ShortLinkEntity> rows,
+                                                       AdminDateRange range,
+                                                       String excludedChannel) {
+        return toShortLinkItems(rows, range, excludedChannel, false);
+    }
+
+    private List<ShortLinkListItemVO> toShortLinkItems(List<ShortLinkEntity> rows,
+                                                       AdminDateRange range,
+                                                       String excludedChannel,
+                                                       boolean strictExternalStats) {
         if (rows.isEmpty()) {
             return Collections.emptyList();
         }
@@ -318,8 +425,9 @@ public class AdminStatService {
                         .toList())
                 .stream()
                 .collect(Collectors.toMap(UserResultEntity::getResultId, Function.identity()));
-        Map<String, ShortLinkStats> localStatsByCode = loadLocalShortLinkStats(rows, range);
-        String localMetricSource = shouldUseDailyShortLinkMetrics(range) ? "daily_metric" : "live_event";
+        LocalShortLinkStatsResult localStatsResult = loadLocalShortLinkStats(rows, range, excludedChannel);
+        Map<String, ShortLinkStats> localStatsByCode = localStatsResult.statsByCode();
+        String localMetricSource = localStatsResult.metricSource();
         return rows.stream()
                 .map(row -> {
                     UserResultEntity result = resultsById.get(row.getResultId());
@@ -330,7 +438,9 @@ public class AdminStatService {
                     String statSource = "local";
                     String metricSource = localMetricSource;
                     java.util.Optional<ExternalShortLinkStatsSnapshot> externalStats =
-                            externalShortLinkStatsAdapter.fetchStats(row, range);
+                            strictExternalStats
+                                    ? externalShortLinkStatsAdapter.fetchStatsStrict(row, range)
+                                    : externalShortLinkStatsAdapter.fetchStats(row, range);
                     if (externalStats.isPresent()) {
                         ExternalShortLinkStatsSnapshot snapshot = externalStats.get();
                         pv = snapshot.getPv();
@@ -357,20 +467,40 @@ public class AdminStatService {
                 .toList();
     }
 
-    private Map<String, ShortLinkStats> loadLocalShortLinkStats(List<ShortLinkEntity> rows, AdminDateRange range) {
+    private void throwSourceFilterScanLimitExceeded() {
+        throw new BusinessException("statSource filter scans at most " + SOURCE_FILTER_SCAN_LIMIT
+                + " short links; narrow date range or keyword before filtering by source");
+    }
+
+    private LocalShortLinkStatsResult loadLocalShortLinkStats(List<ShortLinkEntity> rows,
+                                                              AdminDateRange range,
+                                                              String excludedChannel) {
         List<String> shortCodes = rows.stream()
                 .map(ShortLinkEntity::getShortCode)
                 .distinct()
                 .toList();
-        List<Map<String, Object>> statRows = shouldUseDailyShortLinkMetrics(range)
+        boolean useDailyMetric = excludedChannel == null && hasCompleteDailyMetrics(range);
+        List<Map<String, Object>> statRows = useDailyMetric
                 ? shortLinkDailyMetricMapper.listStatsBetweenDates(shortCodes, range.getStartDate(), range.getEndDate())
-                : visitEventMapper.listShortLinkStatsBetween(shortCodes, range.getStartAt(), range.getEndExclusive());
-        return statRows.stream()
+                : listShortLinkStatsBetween(shortCodes, range, excludedChannel);
+        String metricSource = useDailyMetric ? "daily_metric" : "live_event";
+        Map<String, ShortLinkStats> statsByCode = statRows.stream()
                 .collect(Collectors.toMap(row -> value(row, "shortCode", "short_code").toString(), this::toShortLinkStats));
+        return new LocalShortLinkStatsResult(statsByCode, metricSource);
     }
 
-    private boolean shouldUseDailyShortLinkMetrics(AdminDateRange range) {
-        return range.getEndDate() != null && range.getEndDate().isBefore(LocalDate.now());
+    private boolean hasCompleteDailyMetrics(AdminDateRange range) {
+        if (range.getStartDate() == null || range.getEndDate() == null || !range.getEndDate().isBefore(LocalDate.now())) {
+            return false;
+        }
+        LocalDate cursor = range.getStartDate();
+        while (!cursor.isAfter(range.getEndDate())) {
+            if (siteDailyMetricMapper.selectByMetricDate(cursor) == null) {
+                return false;
+            }
+            cursor = cursor.plusDays(1);
+        }
+        return true;
     }
 
     private ShortLinkStats toShortLinkStats(Map<String, Object> row) {
@@ -429,8 +559,125 @@ public class AdminStatService {
         return value;
     }
 
-    private String overviewRangeKey(AdminDateRange range) {
-        return String.valueOf(range.getStartAt()) + ':' + range.getEndExclusive();
+    private long countEvents(AdminDateRange range, String excludedChannel) {
+        if (excludedChannel == null) {
+            return visitEventMapper.countAllBetween(range.getStartAt(), range.getEndExclusive());
+        }
+        return visitEventMapper.countAllBetweenExcludingChannel(range.getStartAt(), range.getEndExclusive(), excludedChannel);
+    }
+
+    private long countDistinctClient(AdminDateRange range, String excludedChannel) {
+        if (excludedChannel == null) {
+            return visitEventMapper.countDistinctClientBetween(range.getStartAt(), range.getEndExclusive());
+        }
+        return visitEventMapper.countDistinctClientBetweenExcludingChannel(range.getStartAt(), range.getEndExclusive(),
+                excludedChannel);
+    }
+
+    private long countDistinctIp(AdminDateRange range, String excludedChannel) {
+        if (excludedChannel == null) {
+            return visitEventMapper.countDistinctIpBetween(range.getStartAt(), range.getEndExclusive());
+        }
+        return visitEventMapper.countDistinctIpBetweenExcludingChannel(range.getStartAt(), range.getEndExclusive(),
+                excludedChannel);
+    }
+
+    private long countEvent(EventType eventType, AdminDateRange range, String excludedChannel) {
+        if (excludedChannel == null) {
+            return visitEventMapper.countByEventTypeBetween(eventType.name(), range.getStartAt(), range.getEndExclusive());
+        }
+        return visitEventMapper.countByEventTypeBetweenExcludingChannel(eventType.name(), range.getStartAt(),
+                range.getEndExclusive(), excludedChannel);
+    }
+
+    private long countResults(AdminDateRange range, String excludedChannel) {
+        if (excludedChannel == null) {
+            return userResultMapper.countAllBetween(range.getStartAt(), range.getEndExclusive());
+        }
+        return userResultMapper.countAllBetweenExcludingChannel(range.getStartAt(), range.getEndExclusive(),
+                excludedChannel);
+    }
+
+    private long countShortLinks(AdminDateRange range, String excludedChannel) {
+        return countShortLinksFiltered(range, null, excludedChannel);
+    }
+
+    private long countShortLinksFiltered(AdminDateRange range, String keyword, String excludedChannel) {
+        if (excludedChannel == null) {
+            return shortLinkMapper.countAllBetweenFiltered(range.getStartAt(), range.getEndExclusive(), keyword);
+        }
+        return shortLinkMapper.countAllBetweenFilteredExcludingChannel(range.getStartAt(), range.getEndExclusive(),
+                keyword, excludedChannel);
+    }
+
+    private List<Map<String, Object>> listTopChannels(AdminDateRange range, String excludedChannel) {
+        if (excludedChannel == null) {
+            return visitEventMapper.listTopChannelsBetween(TOP_ATTRIBUTION_LIMIT, range.getStartAt(),
+                    range.getEndExclusive());
+        }
+        return visitEventMapper.listTopChannelsBetweenExcludingChannel(TOP_ATTRIBUTION_LIMIT, range.getStartAt(),
+                range.getEndExclusive(), excludedChannel);
+    }
+
+    private List<Map<String, Object>> listTopCampaigns(AdminDateRange range, String excludedChannel) {
+        if (excludedChannel == null) {
+            return visitEventMapper.listTopCampaignsBetween(TOP_ATTRIBUTION_LIMIT, range.getStartAt(),
+                    range.getEndExclusive());
+        }
+        return visitEventMapper.listTopCampaignsBetweenExcludingChannel(TOP_ATTRIBUTION_LIMIT, range.getStartAt(),
+                range.getEndExclusive(), excludedChannel);
+    }
+
+    private List<Map<String, Object>> listPopularElementCombos(AdminDateRange range, String excludedChannel) {
+        if (excludedChannel == null) {
+            return userResultMapper.listPopularElementCombosBetween(5, range.getStartAt(), range.getEndExclusive());
+        }
+        return userResultMapper.listPopularElementCombosBetweenExcludingChannel(5, range.getStartAt(),
+                range.getEndExclusive(), excludedChannel);
+    }
+
+    private List<Map<String, Object>> listPopularStarOfficers(AdminDateRange range, String excludedChannel) {
+        if (excludedChannel == null) {
+            return userResultMapper.listPopularStarOfficersBetween(5, range.getStartAt(), range.getEndExclusive());
+        }
+        return userResultMapper.listPopularStarOfficersBetweenExcludingChannel(5, range.getStartAt(),
+                range.getEndExclusive(), excludedChannel);
+    }
+
+    private List<UserResultEntity> listRecentResults(AdminDateRange range, String excludedChannel) {
+        if (excludedChannel == null) {
+            return userResultMapper.listRecentBetween(5, range.getStartAt(), range.getEndExclusive());
+        }
+        return userResultMapper.listRecentBetweenExcludingChannel(5, range.getStartAt(), range.getEndExclusive(),
+                excludedChannel);
+    }
+
+    private List<ShortLinkEntity> listRecentShortLinks(AdminDateRange range,
+                                                       long offset,
+                                                       long limit,
+                                                       String keyword,
+                                                       String excludedChannel) {
+        if (excludedChannel == null) {
+            return shortLinkMapper.listPageBetweenFiltered(offset, limit, range.getStartAt(), range.getEndExclusive(),
+                    keyword);
+        }
+        return shortLinkMapper.listPageBetweenFilteredExcludingChannel(offset, limit, range.getStartAt(),
+                range.getEndExclusive(), keyword, excludedChannel);
+    }
+
+    private List<Map<String, Object>> listShortLinkStatsBetween(List<String> shortCodes,
+                                                                AdminDateRange range,
+                                                                String excludedChannel) {
+        if (excludedChannel == null) {
+            return visitEventMapper.listShortLinkStatsBetween(shortCodes, range.getStartAt(), range.getEndExclusive());
+        }
+        return visitEventMapper.listShortLinkStatsBetweenExcludingChannel(shortCodes, range.getStartAt(),
+                range.getEndExclusive(), excludedChannel);
+    }
+
+    private String overviewRangeKey(AdminDateRange range, String excludedChannel) {
+        return String.valueOf(range.getStartAt()) + ':' + range.getEndExclusive() + ":excluded="
+                + (excludedChannel == null ? "none" : excludedChannel);
     }
 
     private String csv(String value) {
@@ -464,5 +711,8 @@ public class AdminStatService {
 
     private record ShortLinkStats(long pv, long uv, long uip) {
         private static final ShortLinkStats ZERO = new ShortLinkStats(0, 0, 0);
+    }
+
+    private record LocalShortLinkStatsResult(Map<String, ShortLinkStats> statsByCode, String metricSource) {
     }
 }

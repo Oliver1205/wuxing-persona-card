@@ -26,6 +26,8 @@ import org.springframework.dao.DuplicateKeyException;
 @ExtendWith(MockitoExtension.class)
 class ExternalShortLinkProviderTest {
 
+    private static final String SHARE_LANDING_QUERY = "?channel=share&campaign=result-card";
+
     @Mock
     private ShortLinkMapper shortLinkMapper;
 
@@ -65,7 +67,7 @@ class ExternalShortLinkProviderTest {
         when(shortLinkMapper.countByShortCode("Abc123")).thenReturn(0L);
         ExternalShortLinkCreateResponse response = new ExternalShortLinkCreateResponse();
         response.setGid("wuxing_persona");
-        response.setOriginUrl("https://wuxing.example.com/result/R1");
+        response.setOriginUrl("https://wuxing.example.com/result/R1" + SHARE_LANDING_QUERY);
         response.setFullShortUrl("https://s.example.com/Abc123");
         when(externalShortLinkClient.create(any(ExternalShortLinkCreateRequest.class))).thenReturn(response);
 
@@ -76,7 +78,8 @@ class ExternalShortLinkProviderTest {
         verify(externalShortLinkClient).create(requestCaptor.capture());
         ExternalShortLinkCreateRequest externalRequest = requestCaptor.getValue();
         assertEquals("s.example.com", externalRequest.getDomain());
-        assertEquals("https://wuxing.example.com/result/R1", externalRequest.getOriginUrl());
+        assertEquals("https://wuxing.example.com/result/R1" + SHARE_LANDING_QUERY,
+                externalRequest.getOriginUrl());
         assertEquals("wuxing_persona", externalRequest.getGid());
         assertEquals(0, externalRequest.getCreatedType());
         assertEquals(0, externalRequest.getValidDateType());
@@ -86,7 +89,7 @@ class ExternalShortLinkProviderTest {
         ShortLinkEntity inserted = entityCaptor.getValue();
         assertEquals("R1", inserted.getResultId());
         assertEquals("Abc123", inserted.getShortCode());
-        assertEquals("/result/R1", inserted.getOriginalPath());
+        assertEquals("/result/R1" + SHARE_LANDING_QUERY, inserted.getOriginalPath());
         assertEquals("https://s.example.com/Abc123", inserted.getShortUrl());
         assertEquals("Abc123", result.getShortCode());
         verify(redisCacheService).setShortLinkResultId("Abc123", "R1");
@@ -178,6 +181,7 @@ class ExternalShortLinkProviderTest {
 
         BusinessException exception = assertThrows(BusinessException.class, () -> provider.createForResult("R3"));
 
+        assertEquals(502, exception.getCode());
         assertEquals("external short link service unavailable", exception.getMessage());
         verify(internalShortLinkProvider, never()).createForResult("R3");
     }
@@ -193,6 +197,7 @@ class ExternalShortLinkProviderTest {
 
         BusinessException exception = assertThrows(BusinessException.class, () -> provider.createForResult("R3"));
 
+        assertEquals(400, exception.getCode());
         assertEquals("external shortCode already exists in local binding", exception.getMessage());
         verify(shortLinkMapper, never()).insert(any(ShortLinkEntity.class));
         verify(redisCacheService, never()).setShortLinkResultId(any(), any());
