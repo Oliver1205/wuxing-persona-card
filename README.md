@@ -110,11 +110,11 @@ SHORT_LINK_EXTERNAL_STATS_CACHE_TTL_SECONDS=60
 
 | 分类 | 入口 |
 | --- | --- |
-| 产品与学习 | [从零学习手册](docs/wuxing-from-zero-learning-manual.md)、[项目学习文档](docs/project-learning-guide-v1.md)、[人格评判标准](docs/wuxing-persona-standard-v1.md)、[人格样稿](docs/persona-description-samples-v1.md) |
+| 产品与学习 | [从零学习手册](docs/wuxing-from-zero-learning-manual.md)、[源码阅读手册 2026-06-21](docs/wuxing-source-reading-manual-20260621.md)、[项目学习文档](docs/project-learning-guide-v1.md)、[人格评判标准](docs/wuxing-persona-standard-v1.md)、[人格样稿](docs/persona-description-samples-v1.md) |
 | 短链专题 | [短链适配层设计](docs/v0.2-shortlink-adapter-design.md)、[external 短链联调](docs/v0.4-external-shortlink-service-integration.md)、[external 访问明细](docs/v0.5-external-shortlink-access-records.md)、[external 生产接入](docs/v1.1-external-shortlink-production-readiness.md) |
 | 接口与数据 | [API 说明](docs/api-spec.md)、[数据库说明](docs/db-schema.md)、[数据中台手册](docs/admin-data-center-guide.md)、[指标字典](docs/admin-metric-dictionary.md) |
 | 联调与上线 | [本地预览 Runbook](docs/local-preview-runbook.md)、[生产运维 Runbook](docs/production-operations-runbook.md)、[external 短链对接](docs/external-shortlink-integration-guide.md)、[短链隐私审计](docs/external-shortlink-privacy-audit.md)、[真实域名上线自审](docs/domain-launch-self-audit.md) |
-| 质量与证据 | [前端 QA 记录 2026-06-19](docs/frontend-qa-record-20260619.md)、[CI 浏览器 E2E 方案](docs/ci-browser-e2e-plan.md)、[质量评分](docs/quality-scorecard.md)、[压测报告索引](docs/performance-reports/README.md) |
+| 质量与证据 | [短链压测报告 2026-06-21](docs/shortlink-performance-report-20260621.md)、[压测报告索引](docs/performance-reports/README.md)、[前端 QA 记录 2026-06-19](docs/frontend-qa-record-20260619.md)、[CI 浏览器 E2E 方案](docs/ci-browser-e2e-plan.md)、[质量评分](docs/quality-scorecard.md) |
 | 展示材料 | [项目宣传包](docs/project-promotion-kit.md)、[项目展示 PPT 资产包](docs/artifacts/presentations/README.md)、[压测视觉简报](docs/performance-visual-brief.md) |
 
 ## 系统架构

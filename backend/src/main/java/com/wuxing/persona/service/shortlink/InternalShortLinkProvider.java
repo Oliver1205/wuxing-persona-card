@@ -10,6 +10,8 @@ import com.wuxing.persona.service.VisitEventService;
 import jakarta.servlet.http.HttpServletRequest;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
@@ -25,6 +27,7 @@ public class InternalShortLinkProvider implements ShortLinkProvider {
     private final RedisCacheService redisCacheService;
     private final VisitEventService visitEventService;
     private final AppProperties appProperties;
+    private final ConcurrentMap<String, Long> lastVisitTouchMillis = new ConcurrentHashMap<>();
 
     public InternalShortLinkProvider(ShortLinkMapper shortLinkMapper,
                                      RedisCacheService redisCacheService,
@@ -114,13 +117,34 @@ public class InternalShortLinkProvider implements ShortLinkProvider {
     }
 
     private void touchLastVisitAtIfStale(String shortCode) {
-        LocalDateTime now = LocalDateTime.now();
+        long nowMillis = System.currentTimeMillis();
         int intervalSeconds = appProperties.getShortLink().getLastVisitTouchIntervalSeconds();
+        if (!shouldTouchLastVisitAt(shortCode, nowMillis, intervalSeconds)) {
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
         try {
             shortLinkMapper.touchLastVisitAtIfStale(shortCode, now, now.minusSeconds(intervalSeconds));
         } catch (RuntimeException ex) {
+            lastVisitTouchMillis.remove(shortCode, nowMillis);
             log.warn("Short link last visit touch failed, shortCode={}, error={}: {}",
                     shortCode, ex.getClass().getSimpleName(), ex.getMessage());
         }
+    }
+
+    private boolean shouldTouchLastVisitAt(String shortCode, long nowMillis, int intervalSeconds) {
+        if (intervalSeconds <= 0) {
+            return true;
+        }
+        long intervalMillis = intervalSeconds * 1000L;
+        boolean[] shouldTouch = {false};
+        lastVisitTouchMillis.compute(shortCode, (key, previousMillis) -> {
+            if (previousMillis == null || nowMillis - previousMillis >= intervalMillis) {
+                shouldTouch[0] = true;
+                return nowMillis;
+            }
+            return previousMillis;
+        });
+        return shouldTouch[0];
     }
 }

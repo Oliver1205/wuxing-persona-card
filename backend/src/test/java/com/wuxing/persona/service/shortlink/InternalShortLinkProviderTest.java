@@ -151,6 +151,21 @@ class InternalShortLinkProviderTest {
     }
 
     @Test
+    void resolveAndRecordShouldThrottleLastVisitTouchOnHotShortCode() {
+        when(redisCacheService.isNullShortLink("abc123")).thenReturn(false);
+        when(redisCacheService.getShortLinkResultId("abc123")).thenReturn("R3");
+
+        String firstResultId = provider.resolveAndRecord("abc123", "client-a", request);
+        String secondResultId = provider.resolveAndRecord("abc123", "client-b", request);
+
+        assertEquals("R3", firstResultId);
+        assertEquals("R3", secondResultId);
+        verify(visitEventService, times(2)).recordAsync(eq(EventType.SHORT_LINK_VISIT),
+                eq("/s/abc123"), eq("R3"), eq("abc123"), anyString(), eq(request));
+        verify(shortLinkMapper, times(1)).touchLastVisitAtIfStale(eq("abc123"), any(), any());
+    }
+
+    @Test
     void resolveAndRecordShouldUseConfiguredLastVisitTouchInterval() {
         AppProperties appProperties = new AppProperties();
         appProperties.setBaseUrl("https://example.com/");

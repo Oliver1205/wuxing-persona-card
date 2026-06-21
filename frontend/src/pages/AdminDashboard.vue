@@ -172,6 +172,39 @@ const sourceMix = computed(() => {
     externalPercent: Math.round((external * 1000) / total) / 10,
   };
 });
+const shortLinkEvidenceCards = computed(() => {
+  const records = shortLinks.value?.records ?? [];
+  const pagePv = records.reduce((sum, item) => sum + item.pv, 0);
+  const created = overview.value?.shortLinkCreated ?? 0;
+  const visits = overview.value?.shortLinkVisits ?? 0;
+  const sourceFilterLabel = statSource.value === 'external'
+    ? '只看外部'
+    : statSource.value === 'local'
+      ? '只看本地'
+      : '本地 + 外部';
+  return [
+    {
+      label: '短链总量',
+      value: String(shortLinks.value?.total ?? 0),
+      note: '当前筛选范围',
+    },
+    {
+      label: '回流访问',
+      value: String(visits),
+      note: `平均 ${perShortLinkLabel(averagePerItem(visits, created))}`,
+    },
+    {
+      label: '当前页 PV',
+      value: String(pagePv),
+      note: `${shortLinkStartIndex.value}-${shortLinkEndIndex.value} 条明细`,
+    },
+    {
+      label: '统计口径',
+      value: overview.value ? metricSourceLabel(overview.value.metricSource) : '待加载',
+      note: sourceFilterLabel,
+    },
+  ];
+});
 const shareActionTypes = ['SHORT_LINK_COPY', 'SAVE_SHARE_IMAGE_SUCCESS', 'NATIVE_SHARE_SUCCESS'];
 
 const evidenceIndex = computed<EvidenceItem[]>(() => {
@@ -1933,12 +1966,20 @@ async function resetAdminHorizontalScroll() {
               </button>
             </div>
           </div>
+          <div class="shortlink-evidence-strip" aria-label="短链跳转证据摘要">
+            <article v-for="item in shortLinkEvidenceCards" :key="item.label">
+              <span>{{ item.label }}</span>
+              <strong>{{ item.value }}</strong>
+              <small>{{ item.note }}</small>
+            </article>
+          </div>
           <div v-if="shortLinks?.records.length" class="shortlink-records">
             <div class="table-wrap shortlink-table-wrap">
               <table>
                 <thead>
                   <tr>
                     <th>短码</th>
+                    <th>短链</th>
                     <th>结果</th>
                     <th>组合</th>
                     <th>星官</th>
@@ -1953,6 +1994,11 @@ async function resetAdminHorizontalScroll() {
                 <tbody>
                   <tr v-for="item in shortLinks?.records" :key="item.shortCode">
                     <td>{{ item.shortCode }}</td>
+                    <td>
+                      <a class="shortlink-url" :href="item.shortUrl" target="_blank" rel="noopener noreferrer">
+                        打开
+                      </a>
+                    </td>
                     <td>{{ item.resultId }}</td>
                     <td>{{ item.elementCombo }}</td>
                     <td>{{ item.starOfficerName }}</td>
@@ -1993,6 +2039,14 @@ async function resetAdminHorizontalScroll() {
                   <span><strong>{{ item.uip }}</strong><small>UIP</small></span>
                 </div>
                 <dl class="shortlink-mobile-meta">
+                  <div>
+                    <dt>短链</dt>
+                    <dd>
+                      <a class="shortlink-url" :href="item.shortUrl" target="_blank" rel="noopener noreferrer">
+                        {{ item.shortUrl }}
+                      </a>
+                    </dd>
+                  </div>
                   <div>
                     <dt>命盘</dt>
                     <dd>{{ item.elementCombo || '未记录' }} · {{ item.starOfficerName || '未记录' }}</dd>
@@ -3032,6 +3086,51 @@ async function resetAdminHorizontalScroll() {
   align-items: end;
 }
 
+.shortlink-evidence-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.shortlink-evidence-strip article {
+  min-width: 0;
+  border: 1px solid rgba(36, 48, 47, 0.08);
+  border-radius: 8px;
+  padding: 13px 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(250, 252, 249, 0.82)),
+    #fff;
+}
+
+.shortlink-evidence-strip span,
+.shortlink-evidence-strip strong,
+.shortlink-evidence-strip small {
+  display: block;
+}
+
+.shortlink-evidence-strip span {
+  color: #687572;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.shortlink-evidence-strip strong {
+  overflow-wrap: anywhere;
+  margin-top: 6px;
+  color: #24302f;
+  font-size: 22px;
+  font-weight: 950;
+  line-height: 1.12;
+}
+
+.shortlink-evidence-strip small {
+  margin-top: 7px;
+  color: #6a7774;
+  font-size: 12px;
+  font-weight: 820;
+  line-height: 1.35;
+}
+
 .pager-tools,
 .pager-footer,
 .pager-footer > div {
@@ -3225,6 +3324,20 @@ th {
   background: rgba(47, 111, 94, 0.08);
 }
 
+.shortlink-url {
+  color: #2f6f5e;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.shortlink-url:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .shortlink-code {
   color: #24302f;
   font-size: 16px;
@@ -3321,6 +3434,10 @@ th {
   .pager-tools,
   .pager-footer > div {
     justify-content: flex-start;
+  }
+
+  .shortlink-evidence-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .quick-range-bar,
@@ -3718,8 +3835,13 @@ th {
   .focus-grid,
   .evidence-nav,
   .impact-items,
+  .shortlink-evidence-strip,
   .stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .shortlink-evidence-strip {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>

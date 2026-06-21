@@ -2,7 +2,7 @@
 
 ## 一句话结论
 
-当前报告证明的是“本地单机阶梯压测方法已经建立”，不是生产 QPS 结论。现有混合业务压测在配置并发阶梯 `512`、`256` 个请求样本下未触发边界，配置并发阶梯 `768` 时触发 P95 延迟边界；后续生产结论必须在 `Nginx + Spring Boot + MySQL + Redis` 的真实链路上重新压测。
+当前报告证明的是“本地单机阶梯压测方法已经建立”，不是生产 QPS 结论。2026-06-21 新增短链跳转专项报告：`/s/{shortCode}` 在本机 1-64 并发阶梯下全部返回 302，最高阶 P95 `179ms`，错误率 `0.00%`，访问事件队列无丢弃；后续生产结论必须在 `Nginx + Spring Boot + MySQL + Redis` 的真实链路上重新压测。
 
 需要面试、PPT 或复盘讲解时，先看 [`../performance-visual-brief.md`](../performance-visual-brief.md)。报告索引保留原始证据，视觉简报负责把证据讲成一条清楚的性能故事线。
 
@@ -10,6 +10,8 @@
 
 | Run | Workload | 并发范围 | 最后一阶 P95 | 错误率 | 停止原因 | 报告 |
 | --- | --- | ---: | ---: | ---: | --- | --- |
+| `20260621-shortlink-redirect-optimized` | shortlink | 1-64 | 179ms | 0.00% | completed all stages | [report](20260621-shortlink-redirect-optimized/report.md) |
+| `20260621-mixed-after-shortlink-optimization` | mixed | 1-32 | 104ms | 0.00% | completed all stages | [report](20260621-mixed-after-shortlink-optimization/report.md) |
 | `20260614-010218` | legacy mixed | 1-16 | 54ms | 0.00% | completed all stages | [report](20260614-010218/report.md) |
 | `20260614-010616` | legacy mixed | 32-128 | 273ms | 0.00% | completed all stages | [report](20260614-010616/report.md) |
 | `20260614-010708` | legacy mixed | 192-512 | 406ms | 0.00% | completed all stages | [report](20260614-010708/report.md) |
@@ -38,6 +40,12 @@
 `workflow-result-current-sanity` 是当前代码状态下的结果读取单路径回归。它用于单独观察结果页读取、结果缓存和访问事件入队在本机小阶梯下的表现；因为目标仍是本机 `local-h2`，不能外推为公网结果页容量。
 
 `workflow-shortlink-current-sanity` 是当前代码状态下的短链热路径单路径回归。它用于观察 `/s/{code}` 302、`Location` 响应、访问事件入队和本地短链查询在本机小阶梯下的表现；因为目标仍是本机 `local-h2`，不能外推为公网短链容量。
+
+`20260621-shortlink-redirect-optimized` 是本轮短链热路径优化后的正式本地回归，重点验证 `/s/{code}` 302、`Location`、`last_visit_at` 限频后的跳转稳定性和访问事件 runtime。它仍然是本机 `local-h2` 证据，不等同公网容量。
+
+`20260621-mixed-after-shortlink-optimization` 是同一轮优化后的 mixed 回归，用于确认短链优化没有拖累结果读取、后台 overview 和 health；最高阶最慢接口是 admin，适合作为下一轮后台查询优化的线索。
+
+本轮另有一份 `20260621-shortlink-redirect-optimized/preflight-failed.json`，记录了修复前 local H2 内存库丢表导致 readiness 拒跑的真实前置失败。它不是通过报告，但保留为质量门拦截风险的证据。
 
 ## 阈值版 smoke 记录
 

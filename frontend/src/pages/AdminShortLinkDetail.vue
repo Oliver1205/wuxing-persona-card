@@ -29,6 +29,28 @@ const visitEndIndex = computed(() => {
   const total = visits.value?.total ?? 0;
   return Math.min(total, visitPage.value * visitPageSize.value);
 });
+const detailSummaryCards = computed(() => [
+  {
+    label: '短链入口',
+    value: String(route.params.shortCode),
+    note: '/s/{code} 302 跳转',
+  },
+  {
+    label: '访问记录',
+    value: visits.value ? String(visits.value.total) : '待加载',
+    note: includeSynthetic.value ? '包含测试流量' : '排除 perf-test',
+  },
+  {
+    label: '当前分页',
+    value: visits.value ? `${visitPage.value}/${visitTotalPages.value}` : '-',
+    note: visits.value ? `${visitStartIndex.value}-${visitEndIndex.value} 条` : '加载后显示',
+  },
+  {
+    label: '明细来源',
+    value: statSource ? statSourceContextLabel(statSource) : '全部来源',
+    note: startDate.value || endDate.value ? `${startDate.value || '起始不限'} 至 ${endDate.value || '今日'}` : '全部日期',
+  },
+]);
 const returnQuery = computed(() => {
   const query: Record<string, string> = {};
   if (startDate.value) {
@@ -175,10 +197,17 @@ function numberQuery(value: unknown, fallback: number) {
       <div class="detail-hero">
         <div>
           <p class="eyebrow">短链排查</p>
-          <h2>短链访问详情</h2>
-          <p class="muted">按访问记录核对渠道、活动、设备和匿名技术指纹。</p>
+          <h1>短链访问详情</h1>
+          <p class="muted">围绕 /s/{code} 跳转，核对渠道、活动、设备和匿名技术指纹。</p>
         </div>
         <RouterLink class="button-link secondary compact-return" :to="{ path: '/admin', query: returnQuery }">返回后台</RouterLink>
+      </div>
+      <div class="detail-summary-grid" aria-label="短链访问摘要">
+        <article v-for="item in detailSummaryCards" :key="item.label">
+          <span>{{ item.label }}</span>
+          <strong>{{ item.value }}</strong>
+          <small>{{ item.note }}</small>
+        </article>
       </div>
       <div class="scope-line" aria-label="当前查询口径">
         <span class="short-code-token">短码 {{ route.params.shortCode }}</span>
@@ -363,9 +392,10 @@ function numberQuery(value: unknown, fallback: number) {
   padding-bottom: 18px;
 }
 
-.detail-hero h2 {
+.detail-hero h1 {
   margin-bottom: 8px;
   font-size: 30px;
+  line-height: 1.12;
 }
 
 .detail-hero p {
@@ -376,6 +406,51 @@ function numberQuery(value: unknown, fallback: number) {
   flex: 0 0 auto;
   min-height: 44px;
   padding: 0 14px;
+}
+
+.detail-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.detail-summary-grid article {
+  min-width: 0;
+  border: 1px solid rgba(36, 48, 47, 0.08);
+  border-radius: 8px;
+  padding: 13px 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(250, 252, 249, 0.78)),
+    #fff;
+}
+
+.detail-summary-grid span,
+.detail-summary-grid strong,
+.detail-summary-grid small {
+  display: block;
+}
+
+.detail-summary-grid span {
+  color: #687572;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.detail-summary-grid strong {
+  overflow-wrap: anywhere;
+  margin-top: 6px;
+  color: #24302f;
+  font-size: 21px;
+  font-weight: 950;
+  line-height: 1.14;
+}
+
+.detail-summary-grid small {
+  margin-top: 7px;
+  color: #6a7774;
+  font-size: 12px;
+  font-weight: 820;
+  line-height: 1.35;
 }
 
 .scope-line {
@@ -576,12 +651,16 @@ function numberQuery(value: unknown, fallback: number) {
     display: grid;
   }
 
-  .detail-hero h2 {
+  .detail-hero h1 {
     font-size: 24px;
   }
 
   .compact-return {
     width: 100%;
+  }
+
+  .detail-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .detail-filter-bar {
@@ -619,6 +698,12 @@ function numberQuery(value: unknown, fallback: number) {
   .visit-card-list {
     display: grid;
     gap: 10px;
+  }
+}
+
+@media (max-width: 430px) {
+  .detail-summary-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

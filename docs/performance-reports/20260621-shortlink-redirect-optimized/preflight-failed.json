@@ -1,0 +1,27 @@
+{
+  "status": "preflight_failed",
+  "phase": "readiness",
+  "reason": "Readiness check failed before load test: HTTP Error 503: ",
+  "runId": "20260621-shortlink-redirect-optimized",
+  "baseUrl": "http://127.0.0.1:48082",
+  "workload": "shortlink",
+  "deploymentProfile": "local-h2",
+  "gitSha": "cfebc1e",
+  "gitState": "dirty",
+  "isLoopback": true,
+  "allowPublicLoadTest": false,
+  "allowRocketMqShadowLoadTest": false,
+  "strictRuntimeObservation": true,
+  "steps": [
+    1,
+    2,
+    4,
+    8,
+    16,
+    32,
+    64
+  ],
+  "requestsPerStage": 128,
+  "stageCooldownSeconds": 0.0,
+  "createdAt": "2026-06-21T09:30:08"
+}

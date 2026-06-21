@@ -1,0 +1,683 @@
+{
+  "runId": "20260621-mixed-after-shortlink-optimization",
+  "baseUrl": "http://127.0.0.1:48082",
+  "environment": {
+    "gitSha": "cfebc1e",
+    "gitState": "dirty",
+    "javaVersion": "openjdk version 17.0.19 2026-04-21",
+    "pythonVersion": "Python 3.9.6",
+    "hostName": "linyuxiangdeMacBook-Air.local",
+    "deploymentProfile": "local-h2"
+  },
+  "startedAt": "2026-06-21T11:32:04",
+  "finishedAt": "2026-06-21T11:32:06",
+  "health": {
+    "code": 0,
+    "message": "success",
+    "data": {
+      "status": "UP",
+      "time": "2026-06-21T11:32:04.835077+08:00",
+      "service": "wuxing-persona-backend"
+    }
+  },
+  "readiness": {
+    "code": 0,
+    "message": "success",
+    "data": {
+      "status": "UP",
+      "scope": "core_schema",
+      "service": "wuxing-persona-backend",
+      "time": "2026-06-21T11:32:04.836502+08:00",
+      "coreTables": {
+        "user_result": "ok",
+        "short_link": "ok",
+        "visit_event": "ok",
+        "site_daily_metric": "ok",
+        "short_link_daily_metric": "ok"
+      }
+    }
+  },
+  "questionsCount": 5,
+  "resultId": "R20260621113204840525814",
+  "shortCode": "V27RLM",
+  "workload": "mixed",
+  "syntheticChannel": "perf-test",
+  "syntheticCampaign": "performance-limit-test",
+  "effectiveSyntheticCampaign": "performance-limit-test:20260621-mixed-after-shortlink-optimizati",
+  "allowPublicLoadTest": false,
+  "allowRocketMqShadowLoadTest": false,
+  "preflightRuntime": {
+    "queueSize": 0,
+    "queueCapacity": 2048,
+    "drainLimit": 64,
+    "droppedAsyncEvents": 0,
+    "totalFlushedEvents": 896,
+    "lastFlushAt": "2026-06-21T11:31:43.969553",
+    "lastBatchSize": 1,
+    "batchWriteFailures": 0,
+    "workerAlive": true,
+    "asyncMode": "local",
+    "rocketMqAvailable": false,
+    "rocketMqFallbackToLocal": true,
+    "rocketMqTopic": "wuxing-visit-event",
+    "rocketMqPublishedEvents": 0,
+    "rocketMqPublishFailures": 0,
+    "rocketMqFallbackEvents": 0,
+    "rocketMqShadowLocalEvents": 0,
+    "rocketMqConsumerEnabled": false,
+    "rocketMqConsumerPersistenceReady": false,
+    "healthStatus": "ok",
+    "healthMessage": "访问事件异步写入正常。"
+  },
+  "steps": [
+    1,
+    4,
+    8,
+    16,
+    32
+  ],
+  "requestsPerStage": 120,
+  "stopP95Ms": 1200,
+  "stopErrorRate": 0.05,
+  "stopOnRuntimeDanger": true,
+  "strictRuntimeObservation": true,
+  "maxQueueUsagePercent": 90.0,
+  "maxDroppedAsyncEvents": 0,
+  "maxBatchWriteFailures": 0,
+  "stageCooldownSeconds": 0.0,
+  "stopReason": "completed all stages",
+  "analysis": [
+    "本轮完成所有阶段，最高 P95 为 104ms，最高错误率为 0.00%。",
+    "最高并发阶段最慢接口类型是 `admin`，P95 为 113ms，错误数 0。",
+    "访问事件运行态未观察到丢弃或批量写失败，最高队列水位 0.00%。",
+    "这是混合或业务链路验证，可用于观察短链、结果读取、后台查询和健康接口的相对瓶颈。",
+    "目标是本机 loopback，结论只能作为本地回归和脚本格式证据；公网容量需要在备案/授权后用真实 Nginx、MySQL、Redis 链路重测。"
+  ],
+  "stages": [
+    {
+      "concurrency": 1,
+      "requests": 120,
+      "ok": 120,
+      "errors": 0,
+      "errorRate": 0.0,
+      "totalMs": 597,
+      "rps": 201.01,
+      "avgMs": 4.01,
+      "p50Ms": 3,
+      "p95Ms": 10,
+      "p99Ms": 17,
+      "runtimeBefore": {
+        "queueSize": 0,
+        "queueCapacity": 2048,
+        "drainLimit": 64,
+        "droppedAsyncEvents": 0,
+        "totalFlushedEvents": 896,
+        "lastFlushAt": "2026-06-21T11:31:43.969553",
+        "lastBatchSize": 1,
+        "batchWriteFailures": 0,
+        "workerAlive": true,
+        "asyncMode": "local",
+        "rocketMqAvailable": false,
+        "rocketMqFallbackToLocal": true,
+        "rocketMqTopic": "wuxing-visit-event",
+        "rocketMqPublishedEvents": 0,
+        "rocketMqPublishFailures": 0,
+        "rocketMqFallbackEvents": 0,
+        "rocketMqShadowLocalEvents": 0,
+        "rocketMqConsumerEnabled": false,
+        "rocketMqConsumerPersistenceReady": false,
+        "healthStatus": "ok",
+        "healthMessage": "访问事件异步写入正常。"
+      },
+      "runtimeAfter": {
+        "queueSize": 0,
+        "queueCapacity": 2048,
+        "drainLimit": 64,
+        "droppedAsyncEvents": 0,
+        "totalFlushedEvents": 992,
+        "lastFlushAt": "2026-06-21T11:32:05.431645",
+        "lastBatchSize": 1,
+        "batchWriteFailures": 0,
+        "workerAlive": true,
+        "asyncMode": "local",
+        "rocketMqAvailable": false,
+        "rocketMqFallbackToLocal": true,
+        "rocketMqTopic": "wuxing-visit-event",
+        "rocketMqPublishedEvents": 0,
+        "rocketMqPublishFailures": 0,
+        "rocketMqFallbackEvents": 0,
+        "rocketMqShadowLocalEvents": 0,
+        "rocketMqConsumerEnabled": false,
+        "rocketMqConsumerPersistenceReady": false,
+        "healthStatus": "ok",
+        "healthMessage": "访问事件异步写入正常。"
+      },
+      "runtimeDelta": {
+        "totalFlushedEvents": 96,
+        "droppedAsyncEvents": 0,
+        "batchWriteFailures": 0,
+        "rocketMqPublishedEvents": 0,
+        "rocketMqFallbackEvents": 0,
+        "rocketMqShadowLocalEvents": 0
+      },
+      "byKind": {
+        "admin": {
+          "requests": 12,
+          "ok": 12,
+          "errors": 0,
+          "avgMs": 10.42,
+          "p50Ms": 9,
+          "p95Ms": 20,
+          "p99Ms": 20,
+          "statusCounts": {
+            "200": 12
+          }
+        },
+        "health": {
+          "requests": 12,
+          "ok": 12,
+          "errors": 0,
+          "avgMs": 0.25,
+          "p50Ms": 0,
+          "p95Ms": 2,
+          "p99Ms": 2,
+          "statusCounts": {
+            "200": 12
+          }
+        },
+        "result": {
+          "requests": 24,
+          "ok": 24,
+          "errors": 0,
+          "avgMs": 2.5,
+          "p50Ms": 2,
+          "p95Ms": 4,
+          "p99Ms": 5,
+          "statusCounts": {
+            "200": 24
+          }
+        },
+        "shortlink": {
+          "requests": 72,
+          "ok": 72,
+          "errors": 0,
+          "avgMs": 4.07,
+          "p50Ms": 3,
+          "p95Ms": 10,
+          "p99Ms": 17,
+          "statusCounts": {
+            "302": 72
+          }
+        }
+      }
+    },
+    {
+      "concurrency": 4,
+      "requests": 120,
+      "ok": 120,
+      "errors": 0,
+      "errorRate": 0.0,
+      "totalMs": 296,
+      "rps": 405.41,
+      "avgMs": 8.76,
+      "p50Ms": 9,
+      "p95Ms": 15,
+      "p99Ms": 18,
+      "runtimeBefore": {
+        "queueSize": 0,
+        "queueCapacity": 2048,
+        "drainLimit": 64,
+        "droppedAsyncEvents": 0,
+        "totalFlushedEvents": 992,
+        "lastFlushAt": "2026-06-21T11:32:05.431645",
+        "lastBatchSize": 1,
+        "batchWriteFailures": 0,
+        "workerAlive": true,
+        "asyncMode": "local",
+        "rocketMqAvailable": false,
+        "rocketMqFallbackToLocal": true,
+        "rocketMqTopic": "wuxing-visit-event",
+        "rocketMqPublishedEvents": 0,
+        "rocketMqPublishFailures": 0,
+        "rocketMqFallbackEvents": 0,
+        "rocketMqShadowLocalEvents": 0,
+        "rocketMqConsumerEnabled": false,
+        "rocketMqConsumerPersistenceReady": false,
+        "healthStatus": "ok",
+        "healthMessage": "访问事件异步写入正常。"
+      },
+      "runtimeAfter": {
+        "queueSize": 0,
+        "queueCapacity": 2048,
+        "drainLimit": 64,
+        "droppedAsyncEvents": 0,
+        "totalFlushedEvents": 1088,
+        "lastFlushAt": "2026-06-21T11:32:05.741944",
+        "lastBatchSize": 1,
+        "batchWriteFailures": 0,
+        "workerAlive": true,
+        "asyncMode": "local",
+        "rocketMqAvailable": false,
+        "rocketMqFallbackToLocal": true,
+        "rocketMqTopic": "wuxing-visit-event",
+        "rocketMqPublishedEvents": 0,
+        "rocketMqPublishFailures": 0,
+        "rocketMqFallbackEvents": 0,
+        "rocketMqShadowLocalEvents": 0,
+        "rocketMqConsumerEnabled": false,
+        "rocketMqConsumerPersistenceReady": false,
+        "healthStatus": "ok",
+        "healthMessage": "访问事件异步写入正常。"
+      },
+      "runtimeDelta": {
+        "totalFlushedEvents": 96,
+        "droppedAsyncEvents": 0,
+        "batchWriteFailures": 0,
+        "rocketMqPublishedEvents": 0,
+        "rocketMqFallbackEvents": 0,
+        "rocketMqShadowLocalEvents": 0
+      },
+      "byKind": {
+        "admin": {
+          "requests": 12,
+          "ok": 12,
+          "errors": 0,
+          "avgMs": 14.5,
+          "p50Ms": 15,
+          "p95Ms": 21,
+          "p99Ms": 21,
+          "statusCounts": {
+            "200": 12
+          }
+        },
+        "health": {
+          "requests": 12,
+          "ok": 12,
+          "errors": 0,
+          "avgMs": 0.08,
+          "p50Ms": 0,
+          "p95Ms": 1,
+          "p99Ms": 1,
+          "statusCounts": {
+            "200": 12
+          }
+        },
+        "result": {
+          "requests": 24,
+          "ok": 24,
+          "errors": 0,
+          "avgMs": 7.17,
+          "p50Ms": 6,
+          "p95Ms": 12,
+          "p99Ms": 12,
+          "statusCounts": {
+            "200": 24
+          }
+        },
+        "shortlink": {
+          "requests": 72,
+          "ok": 72,
+          "errors": 0,
+          "avgMs": 9.78,
+          "p50Ms": 10,
+          "p95Ms": 14,
+          "p99Ms": 14,
+          "statusCounts": {
+            "302": 72
+          }
+        }
+      }
+    },
+    {
+      "concurrency": 8,
+      "requests": 120,
+      "ok": 120,
+      "errors": 0,
+      "errorRate": 0.0,
+      "totalMs": 268,
+      "rps": 447.76,
+      "avgMs": 16.15,
+      "p50Ms": 16,
+      "p95Ms": 27,
+      "p99Ms": 37,
+      "runtimeBefore": {
+        "queueSize": 0,
+        "queueCapacity": 2048,
+        "drainLimit": 64,
+        "droppedAsyncEvents": 0,
+        "totalFlushedEvents": 1088,
+        "lastFlushAt": "2026-06-21T11:32:05.741944",
+        "lastBatchSize": 1,
+        "batchWriteFailures": 0,
+        "workerAlive": true,
+        "asyncMode": "local",
+        "rocketMqAvailable": false,
+        "rocketMqFallbackToLocal": true,
+        "rocketMqTopic": "wuxing-visit-event",
+        "rocketMqPublishedEvents": 0,
+        "rocketMqPublishFailures": 0,
+        "rocketMqFallbackEvents": 0,
+        "rocketMqShadowLocalEvents": 0,
+        "rocketMqConsumerEnabled": false,
+        "rocketMqConsumerPersistenceReady": false,
+        "healthStatus": "ok",
+        "healthMessage": "访问事件异步写入正常。"
+      },
+      "runtimeAfter": {
+        "queueSize": 0,
+        "queueCapacity": 2048,
+        "drainLimit": 64,
+        "droppedAsyncEvents": 0,
+        "totalFlushedEvents": 1184,
+        "lastFlushAt": "2026-06-21T11:32:06.010925",
+        "lastBatchSize": 1,
+        "batchWriteFailures": 0,
+        "workerAlive": true,
+        "asyncMode": "local",
+        "rocketMqAvailable": false,
+        "rocketMqFallbackToLocal": true,
+        "rocketMqTopic": "wuxing-visit-event",
+        "rocketMqPublishedEvents": 0,
+        "rocketMqPublishFailures": 0,
+        "rocketMqFallbackEvents": 0,
+        "rocketMqShadowLocalEvents": 0,
+        "rocketMqConsumerEnabled": false,
+        "rocketMqConsumerPersistenceReady": false,
+        "healthStatus": "ok",
+        "healthMessage": "访问事件异步写入正常。"
+      },
+      "runtimeDelta": {
+        "totalFlushedEvents": 96,
+        "droppedAsyncEvents": 0,
+        "batchWriteFailures": 0,
+        "rocketMqPublishedEvents": 0,
+        "rocketMqFallbackEvents": 0,
+        "rocketMqShadowLocalEvents": 0
+      },
+      "byKind": {
+        "admin": {
+          "requests": 12,
+          "ok": 12,
+          "errors": 0,
+          "avgMs": 26.67,
+          "p50Ms": 25,
+          "p95Ms": 38,
+          "p99Ms": 38,
+          "statusCounts": {
+            "200": 12
+          }
+        },
+        "health": {
+          "requests": 12,
+          "ok": 12,
+          "errors": 0,
+          "avgMs": 0.33,
+          "p50Ms": 0,
+          "p95Ms": 1,
+          "p99Ms": 1,
+          "statusCounts": {
+            "200": 12
+          }
+        },
+        "result": {
+          "requests": 24,
+          "ok": 24,
+          "errors": 0,
+          "avgMs": 12.5,
+          "p50Ms": 12,
+          "p95Ms": 15,
+          "p99Ms": 15,
+          "statusCounts": {
+            "200": 24
+          }
+        },
+        "shortlink": {
+          "requests": 72,
+          "ok": 72,
+          "errors": 0,
+          "avgMs": 18.25,
+          "p50Ms": 18,
+          "p95Ms": 25,
+          "p99Ms": 31,
+          "statusCounts": {
+            "302": 72
+          }
+        }
+      }
+    },
+    {
+      "concurrency": 16,
+      "requests": 120,
+      "ok": 120,
+      "errors": 0,
+      "errorRate": 0.0,
+      "totalMs": 249,
+      "rps": 481.93,
+      "avgMs": 29.82,
+      "p50Ms": 32,
+      "p95Ms": 53,
+      "p99Ms": 59,
+      "runtimeBefore": {
+        "queueSize": 0,
+        "queueCapacity": 2048,
+        "drainLimit": 64,
+        "droppedAsyncEvents": 0,
+        "totalFlushedEvents": 1184,
+        "lastFlushAt": "2026-06-21T11:32:06.010925",
+        "lastBatchSize": 1,
+        "batchWriteFailures": 0,
+        "workerAlive": true,
+        "asyncMode": "local",
+        "rocketMqAvailable": false,
+        "rocketMqFallbackToLocal": true,
+        "rocketMqTopic": "wuxing-visit-event",
+        "rocketMqPublishedEvents": 0,
+        "rocketMqPublishFailures": 0,
+        "rocketMqFallbackEvents": 0,
+        "rocketMqShadowLocalEvents": 0,
+        "rocketMqConsumerEnabled": false,
+        "rocketMqConsumerPersistenceReady": false,
+        "healthStatus": "ok",
+        "healthMessage": "访问事件异步写入正常。"
+      },
+      "runtimeAfter": {
+        "queueSize": 0,
+        "queueCapacity": 2048,
+        "drainLimit": 64,
+        "droppedAsyncEvents": 0,
+        "totalFlushedEvents": 1280,
+        "lastFlushAt": "2026-06-21T11:32:06.262798",
+        "lastBatchSize": 1,
+        "batchWriteFailures": 0,
+        "workerAlive": true,
+        "asyncMode": "local",
+        "rocketMqAvailable": false,
+        "rocketMqFallbackToLocal": true,
+        "rocketMqTopic": "wuxing-visit-event",
+        "rocketMqPublishedEvents": 0,
+        "rocketMqPublishFailures": 0,
+        "rocketMqFallbackEvents": 0,
+        "rocketMqShadowLocalEvents": 0,
+        "rocketMqConsumerEnabled": false,
+        "rocketMqConsumerPersistenceReady": false,
+        "healthStatus": "ok",
+        "healthMessage": "访问事件异步写入正常。"
+      },
+      "runtimeDelta": {
+        "totalFlushedEvents": 96,
+        "droppedAsyncEvents": 0,
+        "batchWriteFailures": 0,
+        "rocketMqPublishedEvents": 0,
+        "rocketMqFallbackEvents": 0,
+        "rocketMqShadowLocalEvents": 0
+      },
+      "byKind": {
+        "admin": {
+          "requests": 12,
+          "ok": 12,
+          "errors": 0,
+          "avgMs": 46.83,
+          "p50Ms": 50,
+          "p95Ms": 64,
+          "p99Ms": 64,
+          "statusCounts": {
+            "200": 12
+          }
+        },
+        "health": {
+          "requests": 12,
+          "ok": 12,
+          "errors": 0,
+          "avgMs": 0.17,
+          "p50Ms": 0,
+          "p95Ms": 1,
+          "p99Ms": 1,
+          "statusCounts": {
+            "200": 12
+          }
+        },
+        "result": {
+          "requests": 24,
+          "ok": 24,
+          "errors": 0,
+          "avgMs": 22.67,
+          "p50Ms": 22,
+          "p95Ms": 30,
+          "p99Ms": 41,
+          "statusCounts": {
+            "200": 24
+          }
+        },
+        "shortlink": {
+          "requests": 72,
+          "ok": 72,
+          "errors": 0,
+          "avgMs": 34.32,
+          "p50Ms": 35,
+          "p95Ms": 46,
+          "p99Ms": 57,
+          "statusCounts": {
+            "302": 72
+          }
+        }
+      }
+    },
+    {
+      "concurrency": 32,
+      "requests": 120,
+      "ok": 120,
+      "errors": 0,
+      "errorRate": 0.0,
+      "totalMs": 257,
+      "rps": 466.93,
+      "avgMs": 59.55,
+      "p50Ms": 60,
+      "p95Ms": 104,
+      "p99Ms": 112,
+      "runtimeBefore": {
+        "queueSize": 0,
+        "queueCapacity": 2048,
+        "drainLimit": 64,
+        "droppedAsyncEvents": 0,
+        "totalFlushedEvents": 1280,
+        "lastFlushAt": "2026-06-21T11:32:06.262798",
+        "lastBatchSize": 1,
+        "batchWriteFailures": 0,
+        "workerAlive": true,
+        "asyncMode": "local",
+        "rocketMqAvailable": false,
+        "rocketMqFallbackToLocal": true,
+        "rocketMqTopic": "wuxing-visit-event",
+        "rocketMqPublishedEvents": 0,
+        "rocketMqPublishFailures": 0,
+        "rocketMqFallbackEvents": 0,
+        "rocketMqShadowLocalEvents": 0,
+        "rocketMqConsumerEnabled": false,
+        "rocketMqConsumerPersistenceReady": false,
+        "healthStatus": "ok",
+        "healthMessage": "访问事件异步写入正常。"
+      },
+      "runtimeAfter": {
+        "queueSize": 0,
+        "queueCapacity": 2048,
+        "drainLimit": 64,
+        "droppedAsyncEvents": 0,
+        "totalFlushedEvents": 1376,
+        "lastFlushAt": "2026-06-21T11:32:06.523433",
+        "lastBatchSize": 1,
+        "batchWriteFailures": 0,
+        "workerAlive": true,
+        "asyncMode": "local",
+        "rocketMqAvailable": false,
+        "rocketMqFallbackToLocal": true,
+        "rocketMqTopic": "wuxing-visit-event",
+        "rocketMqPublishedEvents": 0,
+        "rocketMqPublishFailures": 0,
+        "rocketMqFallbackEvents": 0,
+        "rocketMqShadowLocalEvents": 0,
+        "rocketMqConsumerEnabled": false,
+        "rocketMqConsumerPersistenceReady": false,
+        "healthStatus": "ok",
+        "healthMessage": "访问事件异步写入正常。"
+      },
+      "runtimeDelta": {
+        "totalFlushedEvents": 96,
+        "droppedAsyncEvents": 0,
+        "batchWriteFailures": 0,
+        "rocketMqPublishedEvents": 0,
+        "rocketMqFallbackEvents": 0,
+        "rocketMqShadowLocalEvents": 0
+      },
+      "byKind": {
+        "admin": {
+          "requests": 12,
+          "ok": 12,
+          "errors": 0,
+          "avgMs": 90.75,
+          "p50Ms": 99,
+          "p95Ms": 113,
+          "p99Ms": 113,
+          "statusCounts": {
+            "200": 12
+          }
+        },
+        "health": {
+          "requests": 12,
+          "ok": 12,
+          "errors": 0,
+          "avgMs": 0.83,
+          "p50Ms": 0,
+          "p95Ms": 3,
+          "p99Ms": 3,
+          "statusCounts": {
+            "200": 12
+          }
+        },
+        "result": {
+          "requests": 24,
+          "ok": 24,
+          "errors": 0,
+          "avgMs": 47.29,
+          "p50Ms": 52,
+          "p95Ms": 55,
+          "p99Ms": 86,
+          "statusCounts": {
+            "200": 24
+          }
+        },
+        "shortlink": {
+          "requests": 72,
+          "ok": 72,
+          "errors": 0,
+          "avgMs": 68.22,
+          "p50Ms": 75,
+          "p95Ms": 90,
+          "p99Ms": 105,
+          "statusCounts": {
+            "302": 72
+          }
+        }
+      }
+    }
+  ]
+}
