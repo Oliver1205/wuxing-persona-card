@@ -5,6 +5,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="${ENV_FILE:-$ROOT_DIR/deploy/.env}"
 BASE_URL="${BASE_URL:-}"
 SHORT_LINK_EXTERNAL_DOMAIN_VALUE="${SHORT_LINK_EXTERNAL_DOMAIN_VALUE:-}"
+ICP_RECORD_NO="${ICP_RECORD_NO:-}"
+ICP_LINK="${ICP_LINK:-https://beian.miit.gov.cn/}"
 NGINX_HTTP_PORT_VALUE="${NGINX_HTTP_PORT_VALUE:-127.0.0.1:8088}"
 APPLY_COMPOSE="${APPLY_COMPOSE:-false}"
 COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/deploy/docker-compose.yml}"
@@ -65,6 +67,10 @@ cp "$ENV_FILE" "$backup_file"
 set_env_value APP_BASE_URL "$BASE_URL"
 set_env_value SHORT_LINK_EXTERNAL_DOMAIN "$domain_value"
 set_env_value NGINX_HTTP_PORT "$NGINX_HTTP_PORT_VALUE"
+if [[ -n "$ICP_RECORD_NO" ]]; then
+  set_env_value VITE_ICP_RECORD_NO "$ICP_RECORD_NO"
+  set_env_value VITE_ICP_LINK "$ICP_LINK"
+fi
 
 "$ROOT_DIR/scripts/deploy-preflight.sh" "$ENV_FILE"
 
@@ -74,9 +80,12 @@ echo "backupFile=$backup_file"
 echo "appBaseUrl=$BASE_URL"
 echo "shortLinkExternalDomain=$domain_value"
 echo "nginxHttpPort=$NGINX_HTTP_PORT_VALUE"
+if [[ -n "$ICP_RECORD_NO" ]]; then
+  echo "icpRecordConfigured=true"
+fi
 
 if [[ "$APPLY_COMPOSE" == "true" ]]; then
   require_command docker
-  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --force-recreate backend nginx
+  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up --build -d --force-recreate backend nginx
   docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps
 fi

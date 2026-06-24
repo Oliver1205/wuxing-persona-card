@@ -1001,6 +1001,7 @@ async function fetchComparisonOverview() {
 function shortLinkFilter() {
   return {
     ...dateFilter(),
+    includeSynthetic: includeSynthetic.value || undefined,
     keyword: keyword.value.trim() || undefined,
     statSource: statSource.value || undefined,
   };
@@ -3325,6 +3326,10 @@ th {
 }
 
 .shortlink-url {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 44px;
   color: #2f6f5e;
   font-size: 12px;
   font-weight: 900;

@@ -249,6 +249,12 @@ async function captureMobileAdminOverview(page, viewport) {
   await expect(page.getByTestId('admin-mobile-report-toggle')).toBeVisible();
   await expectLocalizedDatePlaceholders(page, `${viewport.name} mobile admin empty dates`);
   await expectMinimumTouchTargets(page, `${viewport.name} mobile admin initial`);
+  const includeSyntheticToggle = page.getByLabel(/包含测试流量/);
+  if (!(await includeSyntheticToggle.isChecked())) {
+    await includeSyntheticToggle.check();
+    await page.getByRole('button', { name: '应用筛选' }).click();
+    await expect(page.locator('.scope-status').getByText('包含 perf-test 测试流量')).toBeVisible();
+  }
   await expect(page.locator('#shortlink-section')).toBeHidden();
   await page.getByTestId('admin-mobile-report-toggle').click();
   await expect(page.getByTestId('admin-mobile-report-group-core')).toBeVisible();

@@ -70,12 +70,12 @@ const rows = computed(() => {
 }
 
 .spectrum-head p {
-  color: #697674;
+  color: var(--color-muted);
 }
 
 .spectrum-head h2 {
-  color: #202725;
-  font-family: "Songti SC", "STSong", "Noto Serif SC", var(--font-display);
+  color: var(--color-ink);
+  font-family: var(--font-serif);
   font-weight: 650;
 }
 
@@ -89,17 +89,17 @@ const rows = computed(() => {
   grid-template-columns: auto minmax(0, 1fr);
   gap: 7px;
   align-items: center;
-  border: 1px solid color-mix(in srgb, var(--element-color), transparent 82%);
+  border: 1px solid color-mix(in srgb, var(--element-color), transparent 80%);
   border-radius: 8px;
   padding: 9px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.76), var(--element-soft));
+  background: linear-gradient(135deg, rgba(255, 252, 245, 0.78), var(--element-soft));
 }
 
 .row-label {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  color: #263735;
+  color: var(--color-ink);
 }
 
 .row-label,
@@ -111,7 +111,7 @@ const rows = computed(() => {
   height: 8px;
   overflow: hidden;
   border-radius: 999px;
-  background: rgba(36, 48, 47, 0.08);
+  background: rgba(37, 48, 45, 0.08);
 }
 
 .row-track span {

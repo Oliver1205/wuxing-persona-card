@@ -57,11 +57,11 @@ defineProps<{
   min-height: 132px;
   border-radius: 8px;
   padding: 18px;
-  border: 1px solid rgba(36, 48, 47, 0.08);
+  border: 1px solid rgba(37, 48, 45, 0.1);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 243, 233, 0.84)),
-    linear-gradient(90deg, rgba(177, 211, 209, 0.18), transparent);
-  color: #24302f;
+    linear-gradient(135deg, rgba(255, 252, 245, 0.94), rgba(248, 240, 226, 0.86)),
+    linear-gradient(90deg, rgba(201, 111, 61, 0.09), rgba(47, 98, 85, 0.08));
+  color: var(--color-ink);
 }
 
 .persona-mark-pair {
@@ -73,8 +73,8 @@ defineProps<{
 
 h1 {
   margin: 0;
-  color: #202725;
-  font-family: "Songti SC", "STSong", "Noto Serif SC", var(--font-display);
+  color: var(--color-ink);
+  font-family: var(--font-serif);
   font-size: 28px;
   font-weight: 650;
   line-height: 1.22;
@@ -82,7 +82,7 @@ h1 {
 
 .identity-line {
   margin: 8px 0 0;
-  color: rgba(36, 48, 47, 0.76);
+  color: rgba(37, 48, 45, 0.76);
   font-weight: 800;
 }
 
@@ -95,8 +95,8 @@ h1 {
 .keywords span {
   border-radius: 999px;
   padding: 7px 10px;
-  background: #f1eadc;
-  color: #6d4f29;
+  background: #f3e4cf;
+  color: #7c5735;
   font-weight: 700;
 }
 

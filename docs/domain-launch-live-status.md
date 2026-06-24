@@ -1,6 +1,6 @@
 # 真实域名上线实时状态
 
-更新日期：2026-06-12
+更新日期：2026-06-24
 
 本文档记录 `wuxingcard.cn` 真实域名上线过程中的当前事实、阻塞点和下一步执行命令。它不是长期架构文档，而是为了让后续接力不丢状态。
 
@@ -17,6 +17,7 @@
 | DNS A 记录 | `@` 和 `www` 已指向 `82.157.137.36`，本地预检通过 |
 | HTTPS 方案 | Certbot / Let's Encrypt 已签发并启用 |
 | 短链子域名 | 首发暂不启用，保持 `SHORT_LINK_MODE=internal` |
+| 备案状态 | 备案订单已通过管局审核，正式备案号待短信/邮箱下发 |
 | 密钥/密码生成 | 用户允许 Codex 在服务器本地生成 |
 | 当前公网入口 | `https://wuxingcard.cn`、`https://www.wuxingcard.cn` |
 
@@ -36,6 +37,8 @@
 - 真实域名 production smoke 已通过，样例 `resultId=R20260612034943137920`、`shortCode=yEWIdP`。
 - HTTPS 真实域名 production smoke 已通过，样例 `resultId=R20260612043129993655`、`shortCode=h7KjpJ`。
 - 仓库内前置准备已完成：域名自审、信息清单、宿主机 Nginx/TLS 模板、服务器 runbook 和学习手册均已落盘。
+- 2026-06-24 用户确认腾讯云备案订单已通过管局审核；正式备案号尚需等通信管理局短信/邮箱下发，不能用备案订单号替代。
+- 仓库已补备案页脚配置：`VITE_ICP_RECORD_NO` 控制展示正式备案号，`VITE_ICP_LINK` 默认链接 `https://beian.miit.gov.cn/`；`wuxingcard.cn` 正式域名预检会要求备案号已配置。
 
 ## 3. 当前复查命令
 
@@ -55,6 +58,17 @@ DOMAIN=wuxingcard.cn BASE_URL=https://wuxingcard.cn scripts/domain-bind-prefligh
 
 ```bash
 BASE_URL=https://wuxingcard.cn ADMIN_TOKEN=<admin-token> scripts/production-smoke-test.sh
+```
+
+备案号下发后的前端重建：
+
+```bash
+cd /opt/wuxing-persona-card
+ICP_RECORD_NO='<通信管理局下发的正式备案号>' \
+BASE_URL=https://wuxingcard.cn \
+NGINX_HTTP_PORT_VALUE=127.0.0.1:8088 \
+APPLY_COMPOSE=true \
+scripts/set-production-entry.sh
 ```
 
 ## 4. DNS 生效后的服务器执行顺序
@@ -87,6 +101,8 @@ NGINX_HTTP_PORT=127.0.0.1:8088
 
 ```text
 APP_BASE_URL=https://wuxingcard.cn
+VITE_ICP_RECORD_NO=<通信管理局下发的正式备案号>
+VITE_ICP_LINK=https://beian.miit.gov.cn/
 ```
 
 4. 重启 Compose：

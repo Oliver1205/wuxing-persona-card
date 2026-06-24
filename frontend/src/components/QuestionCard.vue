@@ -51,7 +51,7 @@ const emit = defineEmits<{
   display: grid;
   gap: 14px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(252, 249, 243, 0.88));
+    linear-gradient(180deg, rgba(255, 252, 245, 0.95), rgba(248, 240, 226, 0.9));
 }
 
 .question-head {
@@ -67,10 +67,10 @@ const emit = defineEmits<{
   width: 40px;
   height: 40px;
   border-radius: 999px;
-  background: #0f6c6e;
+  background: linear-gradient(135deg, var(--color-warm), var(--color-primary));
   color: #fff;
   font-weight: 850;
-  box-shadow: 0 8px 18px rgba(15, 108, 110, 0.16);
+  box-shadow: 0 8px 18px rgba(157, 86, 49, 0.16);
 }
 
 .question-title-block {
@@ -80,24 +80,23 @@ const emit = defineEmits<{
 
 .question-progress {
   margin: 0;
-  color: #bf8918;
+  color: var(--color-warm-deep);
   font-size: 12px;
   font-weight: 800;
 }
 
 h3 {
   margin: 0;
-  color: #263735;
-  font-family: "Songti SC", "STSong", "Noto Serif SC", var(--font-display);
+  color: var(--color-ink);
   font-size: 17px;
-  font-weight: 620;
+  font-weight: 850;
   line-height: 1.42;
   letter-spacing: 0;
 }
 
 .question-hint {
   margin: 0;
-  color: #7a8582;
+  color: var(--color-muted);
   font-size: 13px;
   font-weight: 650;
 }
@@ -116,16 +115,16 @@ h3 {
   align-items: center;
   justify-content: flex-start;
   min-height: 56px;
-  border: 1px solid rgba(36, 48, 47, 0.12);
+  border: 1px solid rgba(37, 48, 45, 0.12);
   border-radius: 8px;
   padding: 11px 12px 11px 14px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #263735;
+  background: rgba(255, 252, 245, 0.92);
+  color: #31403b;
   font-size: 15px;
   line-height: 1.45;
   text-align: left;
   font-weight: 620;
-  box-shadow: 0 8px 18px rgba(31, 48, 43, 0.04);
+  box-shadow: 0 8px 18px rgba(49, 44, 35, 0.04);
   transition:
     transform 150ms ease,
     border-color 150ms ease,
@@ -135,7 +134,7 @@ h3 {
 
 .option:hover {
   transform: translateY(-1px);
-  border-color: rgba(47, 111, 94, 0.26);
+  border-color: rgba(201, 111, 61, 0.28);
 }
 
 .option:disabled {
@@ -145,14 +144,14 @@ h3 {
 }
 
 .option:disabled:hover {
-  border-color: rgba(36, 48, 47, 0.14);
+  border-color: rgba(37, 48, 45, 0.14);
 }
 
 .option.active {
-  border-color: rgba(15, 108, 110, 0.48);
-  background: rgba(239, 248, 244, 0.92);
-  color: #174943;
-  box-shadow: 0 12px 24px rgba(15, 108, 110, 0.11);
+  border-color: rgba(201, 111, 61, 0.48);
+  background: linear-gradient(135deg, rgba(255, 241, 229, 0.96), rgba(239, 248, 244, 0.88));
+  color: #513424;
+  box-shadow: 0 12px 24px rgba(157, 86, 49, 0.1);
   transform: translateY(-1px);
 }
 
@@ -164,8 +163,8 @@ h3 {
   width: 30px;
   height: 30px;
   border-radius: 999px;
-  background: #f1eadc;
-  color: #6d4f29;
+  background: #f3e4cf;
+  color: #7c5735;
   font-weight: 760;
 }
 
@@ -207,13 +206,13 @@ h3 {
 }
 
 .option.active .option-mark {
-  background: #0f6c6e;
+  background: var(--color-warm);
   color: #fff;
 }
 
 .option.active .option-state {
-  border-color: rgba(47, 111, 94, 0.22);
-  background: rgba(255, 255, 255, 0.78);
+  border-color: rgba(201, 111, 61, 0.22);
+  background: rgba(255, 252, 245, 0.8);
   opacity: 1;
 }
 
@@ -221,7 +220,7 @@ h3 {
   content: "✓";
   width: auto;
   height: auto;
-  color: #2f6f5e;
+  color: var(--color-warm-deep);
   background: transparent;
   font-size: 13px;
   font-weight: 900;

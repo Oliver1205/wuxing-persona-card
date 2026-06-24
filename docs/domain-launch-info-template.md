@@ -13,6 +13,7 @@
 | 服务器 SSH 入口 | `ubuntu@82.157.137.36` | 登录服务器，同步 `/opt/wuxing-persona-card` 并重启服务 |
 | DNS 服务商 | 腾讯云 DNSPod / 阿里云 / Cloudflare | 添加或确认 A 记录 |
 | 是否已备案或接入备案 | 已备案 / 未备案 / 不确定 | 判断中国大陆服务器上的域名访问是否可能被拦截 |
+| 正式备案号 | `闽ICP备...号-1` | 展示在网站首页底部并链接工信部备案系统；不要填写备案订单号 |
 | HTTPS 方案 | Certbot / 云厂商证书 / CDN 证书 / 先临时 HTTP | 决定宿主机 Nginx 和证书签发步骤 |
 | 是否需要短链子域名 | 暂不需要 / `s.example.com` | 首次上线建议暂不启用，先保持 internal 短链 |
 
@@ -48,6 +49,7 @@ MYSQL_ROOT_PASSWORD
 DNS 服务商：
 DNS A 记录是否已添加：
 域名是否已备案或接入备案：
+通信管理局正式备案号：
 HTTPS 方案：
 是否允许 Codex 在服务器生成 ADMIN_TOKEN / HASH_SALT / 数据库密码：
 是否需要短链子域名：
@@ -79,7 +81,7 @@ TTL：默认或 600 秒
 1. 本地确认 `origin/main` 已包含最新 runbook 和 Nginx/TLS 模板。
 2. 登录服务器，确认 `/opt/wuxing-persona-card`、Docker、Compose、UFW 和当前容器状态。
 3. 同步 `origin/main`，或在 GitHub 网络不通时改用上传同步。
-4. 更新服务器本地 `deploy/.env`，确保 `APP_BASE_URL=https://<主域名>`。
+4. 更新服务器本地 `deploy/.env`，确保 `APP_BASE_URL=https://<主域名>`，并在正式备案号下发后设置 `VITE_ICP_RECORD_NO`。
 5. 让 Compose Nginx 只监听 `127.0.0.1:8088`。
 6. 配置宿主机 Nginx 临时 HTTP 站点，完成 DNS 首绑验证。
 7. 签发或安装 HTTPS 证书。
@@ -92,5 +94,6 @@ TTL：默认或 600 秒
 - 注册或购买域名。
 - 修改 DNS 控制台中的解析记录。
 - 完成中国大陆服务器可能需要的备案/接入备案。
+- 在通信管理局正式备案号未下发前，不能把备案订单号写到页面底部当作备案号。
 - 获取你的 SSH 密钥、云控制台权限或证书私钥。
 - 在没有真实域名的情况下证明 `https://<主域名>` 可访问。

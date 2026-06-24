@@ -41,17 +41,18 @@ function barStyle(element: string, percent: number) {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  color: #253634;
+  color: var(--color-ink);
   font-weight: 800;
 }
 
 .bar {
   display: flex;
   width: 100%;
-  height: 14px;
+  height: 16px;
   overflow: hidden;
   border-radius: 8px;
-  background: #e8e1d2;
+  background: #eadbc5;
+  box-shadow: inset 0 0 0 1px rgba(37, 48, 45, 0.08);
 }
 
 .secondary {

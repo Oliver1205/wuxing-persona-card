@@ -402,8 +402,8 @@ function goToStep(index: number) {
     <section class="shell stack test-shell">
       <div class="test-header">
         <p class="eyebrow">五行人格测试</p>
-        <h1>用 5 道题找到你的主副五行</h1>
-        <p class="muted">题目没有标准答案，按第一反应选择即可。无需登录和姓名，出生日期、时段可以不透露。</p>
+        <h1>用 5 道题校准你的主副五行</h1>
+        <p class="muted">题目没有标准答案，按第一反应选择即可。无需登录和姓名，日期、时段可以保持不透露。</p>
         <p class="element-inline-hint" aria-label="五行元素参照">金 · 木 · 水 · 火 · 土</p>
         <div class="progress-card" aria-label="答题进度">
           <div class="progress-meta">
@@ -660,8 +660,8 @@ function goToStep(index: number) {
   position: relative;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at 12% 6%, rgba(255, 255, 255, 0.86), transparent 28%),
-    linear-gradient(180deg, #f8f3e9 0%, #fbf7ee 56%, #edf3ee 100%);
+    linear-gradient(180deg, rgba(255, 251, 243, 0.98) 0%, rgba(247, 239, 226, 0.96) 58%, rgba(239, 228, 207, 0.98) 100%),
+    var(--color-paper);
 }
 
 .test-page::before,
@@ -677,13 +677,13 @@ function goToStep(index: number) {
 
 .test-page::before {
   height: 150px;
-  background: rgba(174, 213, 211, 0.58);
+  background: rgba(201, 111, 61, 0.12);
   clip-path: ellipse(76% 48% at 16% 100%);
 }
 
 .test-page::after {
   height: 118px;
-  background: rgba(151, 204, 205, 0.42);
+  background: rgba(47, 98, 85, 0.11);
   clip-path: ellipse(70% 46% at 86% 100%);
 }
 
@@ -698,13 +698,13 @@ function goToStep(index: number) {
   overflow: hidden;
   display: grid;
   gap: 12px;
-  border: 1px solid rgba(36, 48, 47, 0.1);
+  border: 1px solid rgba(37, 48, 45, 0.12);
   border-radius: 8px;
   padding: 22px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(250, 247, 239, 0.86)),
-    linear-gradient(90deg, rgba(177, 211, 209, 0.18), rgba(199, 99, 63, 0.08));
-  box-shadow: 0 16px 42px rgba(31, 48, 43, 0.09);
+    linear-gradient(135deg, rgba(255, 252, 245, 0.94), rgba(248, 240, 226, 0.9)),
+    linear-gradient(90deg, rgba(201, 111, 61, 0.1), rgba(47, 98, 85, 0.08));
+  box-shadow: var(--shadow-paper);
 }
 
 .test-header::after {
@@ -714,15 +714,15 @@ function goToStep(index: number) {
   top: 18px;
   width: 78px;
   height: 64px;
-  border-top: 1px solid rgba(191, 137, 24, 0.58);
-  border-right: 1px solid rgba(191, 137, 24, 0.58);
+  border-top: 1px solid rgba(201, 111, 61, 0.52);
+  border-right: 1px solid rgba(201, 111, 61, 0.52);
   opacity: 0.72;
 }
 
 .test-header h1 {
   max-width: 660px;
-  color: #202725;
-  font-family: "Songti SC", "STSong", "Noto Serif SC", var(--font-display);
+  color: var(--color-ink);
+  font-family: var(--font-serif);
   font-size: 40px;
   font-weight: 600;
   letter-spacing: 0;
@@ -730,10 +730,9 @@ function goToStep(index: number) {
 
 .element-inline-hint {
   margin: -2px 0 0;
-  color: #8a6a38;
-  font-family: "Songti SC", "STSong", "Noto Serif SC", var(--font-display);
+  color: var(--color-warm-deep);
   font-size: 15px;
-  font-weight: 650;
+  font-weight: 850;
   line-height: 1.2;
 }
 
@@ -747,7 +746,7 @@ function goToStep(index: number) {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  color: #40514e;
+  color: #43524d;
   font-size: 14px;
   font-weight: 800;
 }
@@ -756,14 +755,14 @@ function goToStep(index: number) {
   height: 8px;
   overflow: hidden;
   border-radius: 999px;
-  background: rgba(36, 48, 47, 0.1);
+  background: rgba(37, 48, 45, 0.1);
 }
 
 .progress-track span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #123253, #2f705e, #bf8918);
+  background: linear-gradient(90deg, var(--color-warm), var(--color-primary), #b8872d);
   transition: width 180ms ease;
 }
 
@@ -783,26 +782,26 @@ function goToStep(index: number) {
   flex: 0 0 auto;
   min-width: 48px;
   min-height: 44px;
-  border: 1px solid rgba(36, 48, 47, 0.12);
+  border: 1px solid rgba(37, 48, 45, 0.12);
   border-radius: 999px;
   padding: 0 14px;
-  background: rgba(255, 255, 255, 0.72);
-  color: #596764;
+  background: rgba(255, 252, 245, 0.74);
+  color: var(--color-muted);
   font-size: 13px;
   font-weight: 950;
   box-shadow: none;
 }
 
 .step-pill.done {
-  border-color: rgba(47, 111, 94, 0.28);
-  color: #2f6f5e;
+  border-color: rgba(47, 98, 85, 0.28);
+  color: var(--color-primary);
 }
 
 .step-pill.active {
-  border-color: #123253;
-  background: #123253;
+  border-color: var(--color-warm);
+  background: linear-gradient(135deg, var(--color-warm), var(--color-warm-deep));
   color: #fff;
-  box-shadow: 0 12px 24px rgba(18, 50, 83, 0.18);
+  box-shadow: 0 12px 24px rgba(157, 86, 49, 0.18);
 }
 
 .step-pill:disabled {
@@ -826,7 +825,7 @@ function goToStep(index: number) {
 
 .birth-panel {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(252, 249, 243, 0.9));
+    linear-gradient(180deg, rgba(255, 252, 245, 0.94), rgba(248, 240, 226, 0.9));
 }
 
 .birth-panel-head {
@@ -841,12 +840,12 @@ function goToStep(index: number) {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
-  border: 1px solid rgba(47, 111, 94, 0.2);
+  border: 1px solid rgba(47, 98, 85, 0.2);
   border-radius: 8px;
   padding: 13px 14px;
   background:
-    linear-gradient(135deg, rgba(237, 247, 242, 0.96), rgba(255, 249, 238, 0.9));
-  color: #24302f;
+    linear-gradient(135deg, rgba(237, 246, 240, 0.96), rgba(255, 248, 238, 0.9));
+  color: var(--color-ink);
 }
 
 .match-mode-banner span,
@@ -855,7 +854,7 @@ function goToStep(index: number) {
 }
 
 .match-mode-banner span {
-  color: #2f6f5e;
+  color: var(--color-primary);
   font-size: 12px;
   font-weight: 950;
 }
@@ -867,14 +866,14 @@ function goToStep(index: number) {
 
 .match-mode-banner p {
   margin: 0;
-  color: #596764;
+  color: var(--color-muted);
   font-size: 13px;
   font-weight: 800;
 }
 
 .section-kicker {
   margin: 0 0 8px;
-  color: #bf8918;
+  color: var(--color-warm-deep);
   font-size: 12px;
   font-weight: 950;
   letter-spacing: 0;
@@ -884,11 +883,11 @@ function goToStep(index: number) {
   display: grid;
   gap: 5px;
   min-width: 138px;
-  border: 1px solid rgba(36, 48, 47, 0.12);
+  border: 1px solid rgba(37, 48, 45, 0.12);
   border-radius: 8px;
   padding: 12px;
-  background: rgba(255, 255, 255, 0.72);
-  color: #596764;
+  background: rgba(255, 252, 245, 0.72);
+  color: var(--color-muted);
 }
 
 .birth-status span {
@@ -897,14 +896,14 @@ function goToStep(index: number) {
 }
 
 .birth-status strong {
-  color: #24302f;
+  color: var(--color-ink);
   font-size: 15px;
 }
 
 .birth-status.active {
-  border-color: rgba(47, 111, 94, 0.24);
-  background: #edf7f2;
-  color: #2f6f5e;
+  border-color: rgba(201, 111, 61, 0.26);
+  background: #fff2e7;
+  color: var(--color-warm-deep);
 }
 
 .input-stack {
@@ -922,26 +921,26 @@ function goToStep(index: number) {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  color: #40514e;
+  color: #43524d;
   font-weight: 900;
 }
 
 .field-head strong {
-  color: #24302f;
+  color: var(--color-ink);
   font-size: 14px;
 }
 
 .rail-hint {
   margin: -2px 0 0;
-  color: #7a8582;
+  color: #7b8580;
   font-size: 12px;
   font-weight: 800;
 }
 
 .optional-birth-details {
-  border: 1px dashed rgba(36, 48, 47, 0.2);
+  border: 1px dashed rgba(37, 48, 45, 0.2);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.58);
+  background: rgba(255, 252, 245, 0.58);
 }
 
 .optional-birth-details summary {
@@ -951,7 +950,7 @@ function goToStep(index: number) {
   gap: 12px;
   min-height: 54px;
   padding: 0 14px;
-  color: #40514e;
+  color: #43524d;
   font-size: 14px;
   font-weight: 950;
   cursor: pointer;
@@ -975,8 +974,8 @@ function goToStep(index: number) {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: rgba(47, 111, 94, 0.1);
-  color: #2f6f5e;
+  background: rgba(201, 111, 61, 0.12);
+  color: var(--color-warm-deep);
   font-size: 18px;
   font-weight: 950;
 }
@@ -990,7 +989,7 @@ function goToStep(index: number) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #6a7774;
+  color: var(--color-muted);
   font-size: 13px;
   text-align: right;
 }
@@ -998,19 +997,19 @@ function goToStep(index: number) {
 .optional-birth-content {
   display: grid;
   gap: 18px;
-  border-top: 1px solid rgba(36, 48, 47, 0.08);
+  border-top: 1px solid rgba(37, 48, 45, 0.08);
   padding: 14px;
 }
 
 .year-picker {
   display: grid;
   gap: 12px;
-  border: 1px solid rgba(36, 48, 47, 0.12);
+  border: 1px solid rgba(37, 48, 45, 0.12);
   border-radius: 8px;
   padding: 16px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(234, 246, 245, 0.78)),
-    linear-gradient(90deg, rgba(191, 137, 24, 0.08), transparent);
+    linear-gradient(135deg, rgba(255, 252, 245, 0.92), rgba(247, 236, 219, 0.84)),
+    linear-gradient(90deg, rgba(201, 111, 61, 0.1), rgba(47, 98, 85, 0.08));
 }
 
 .year-display {
@@ -1021,15 +1020,14 @@ function goToStep(index: number) {
 }
 
 .year-display strong {
-  color: #123253;
-  font-family: "Songti SC", "STSong", "Noto Serif SC", var(--font-display);
+  color: var(--color-warm-deep);
   font-size: 42px;
-  font-weight: 650;
+  font-weight: 900;
   line-height: 1;
 }
 
 .year-display span {
-  color: #697674;
+  color: var(--color-muted);
   font-size: 13px;
   font-weight: 850;
 }
@@ -1044,8 +1042,8 @@ function goToStep(index: number) {
 .year-step-button {
   min-width: 50px;
   min-height: 44px;
-  border: 1px solid rgba(36, 48, 47, 0.12);
-  background: #123253;
+  border: 1px solid rgba(37, 48, 45, 0.12);
+  background: var(--color-primary-deep);
   color: #fff;
   font-size: 15px;
   font-weight: 950;
@@ -1053,10 +1051,10 @@ function goToStep(index: number) {
 
 .year-manual-input {
   min-height: 44px;
-  border: 1px solid rgba(36, 48, 47, 0.14);
+  border: 1px solid rgba(37, 48, 45, 0.14);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #24302f;
+  background: rgba(255, 252, 245, 0.94);
+  color: var(--color-ink);
   font: inherit;
   font-size: 18px;
   font-weight: 900;
@@ -1070,14 +1068,14 @@ function goToStep(index: number) {
   border: 0;
   padding: 0;
   background: transparent;
-  accent-color: #123253;
+  accent-color: var(--color-warm);
   cursor: pointer;
 }
 
 .year-range::-webkit-slider-runnable-track {
   height: 8px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #123253, #2f705e, #bf8918);
+  background: linear-gradient(90deg, var(--color-warm), var(--color-primary), #b8872d);
 }
 
 .year-range::-webkit-slider-thumb {
@@ -1086,15 +1084,15 @@ function goToStep(index: number) {
   margin-top: -9px;
   border: 4px solid #fff;
   border-radius: 50%;
-  background: #123253;
-  box-shadow: 0 8px 22px rgba(36, 48, 47, 0.25);
+  background: var(--color-warm);
+  box-shadow: 0 8px 22px rgba(157, 86, 49, 0.24);
   appearance: none;
 }
 
 .year-range::-moz-range-track {
   height: 8px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #123253, #2f705e, #bf8918);
+  background: linear-gradient(90deg, var(--color-warm), var(--color-primary), #b8872d);
 }
 
 .year-range::-moz-range-thumb {
@@ -1102,15 +1100,15 @@ function goToStep(index: number) {
   height: 20px;
   border: 4px solid #fff;
   border-radius: 50%;
-  background: #123253;
-  box-shadow: 0 8px 22px rgba(36, 48, 47, 0.25);
+  background: var(--color-warm);
+  box-shadow: 0 8px 22px rgba(157, 86, 49, 0.24);
 }
 
 .year-scale {
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  color: #7a8582;
+  color: #7b8580;
   font-size: 11px;
   font-weight: 800;
 }
@@ -1141,11 +1139,11 @@ function goToStep(index: number) {
 .time-chip {
   flex: 0 0 auto;
   min-height: 44px;
-  border: 1px solid rgba(36, 48, 47, 0.12);
+  border: 1px solid rgba(37, 48, 45, 0.12);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #263735;
-  box-shadow: 0 8px 18px rgba(31, 48, 43, 0.06);
+  background: rgba(255, 252, 245, 0.92);
+  color: #31403b;
+  box-shadow: 0 8px 18px rgba(49, 44, 35, 0.05);
   transition:
     transform 150ms ease,
     border-color 150ms ease,
@@ -1181,7 +1179,7 @@ function goToStep(index: number) {
 }
 
 .choice-chip span {
-  color: #6a7774;
+  color: var(--color-muted);
   font-size: 11px;
   font-weight: 800;
 }
@@ -1209,7 +1207,7 @@ function goToStep(index: number) {
 .choice-chip:disabled,
 .choice-chip.disabled {
   cursor: not-allowed;
-  border-color: rgba(36, 48, 47, 0.08);
+  border-color: rgba(37, 48, 45, 0.08);
   background: rgba(239, 236, 228, 0.62);
   color: #9aa39f;
   box-shadow: none;
@@ -1228,10 +1226,10 @@ function goToStep(index: number) {
 .quick-chip.active,
 .choice-chip.active,
 .time-chip.active {
-  border-color: rgba(18, 50, 83, 0.5);
-  background: linear-gradient(135deg, #123253, #2f705e);
+  border-color: rgba(201, 111, 61, 0.52);
+  background: linear-gradient(135deg, var(--color-warm), var(--color-primary));
   color: #fff;
-  box-shadow: 0 13px 26px rgba(18, 50, 83, 0.18);
+  box-shadow: 0 13px 26px rgba(157, 86, 49, 0.18);
   transform: translateY(-1px);
 }
 
@@ -1261,7 +1259,7 @@ function goToStep(index: number) {
 }
 
 .time-chip span {
-  color: #6a7774;
+  color: var(--color-muted);
   font-size: 11px;
   font-weight: 800;
 }
@@ -1278,11 +1276,11 @@ function goToStep(index: number) {
   grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 12px;
   align-items: center;
-  border: 1px solid rgba(36, 48, 47, 0.12);
+  border: 1px solid rgba(37, 48, 45, 0.12);
   border-radius: 8px;
   padding: 12px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 14px 42px rgba(31, 48, 43, 0.13);
+  background: rgba(255, 252, 245, 0.96);
+  box-shadow: 0 14px 42px rgba(49, 44, 35, 0.12);
   backdrop-filter: blur(10px);
 }
 
@@ -1300,7 +1298,7 @@ function goToStep(index: number) {
 }
 
 .action-summary strong {
-  color: #24302f;
+  color: var(--color-ink);
   white-space: nowrap;
 }
 
@@ -1317,7 +1315,7 @@ function goToStep(index: number) {
   min-height: 44px;
   padding: 0 8px;
   width: fit-content;
-  color: #2f6f5e;
+  color: var(--color-primary);
   font-size: 12px;
   font-weight: 850;
   text-decoration: none;
@@ -1328,13 +1326,19 @@ function goToStep(index: number) {
 }
 
 .sticky-action span {
-  color: #697674;
+  color: var(--color-muted);
   font-size: 13px;
 }
 
 .submit-lock {
-  color: #2f6f5e;
+  color: var(--color-primary);
   font-weight: 900;
+}
+
+.primary-action-button {
+  border: 1px solid rgba(158, 79, 46, 0.28);
+  background: linear-gradient(135deg, var(--color-warm), var(--color-warm-deep));
+  box-shadow: 0 12px 24px rgba(157, 86, 49, 0.16);
 }
 
 .primary-action-button:disabled {

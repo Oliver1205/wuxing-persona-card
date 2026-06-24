@@ -74,6 +74,7 @@ const distText = distFiles.map(read).join('\n');
   'admin-login-button',
   'X-Channel',
   'X-Campaign',
+  'beian.miit.gov.cn',
 ].forEach((snippet) => assertContains(`dist keeps ${snippet}`, distText, snippet));
 
 const sourceFiles = [
@@ -87,6 +88,7 @@ const sourceFiles = [
   'frontend/src/pages/ResultPage.vue',
   'frontend/src/pages/MatchPage.vue',
   'frontend/src/components/ElementMark.vue',
+  'frontend/src/components/RegulatoryFooter.vue',
   'frontend/src/components/ShareLinkBox.vue',
   'frontend/src/pages/AdminDashboard.vue',
   'frontend/src/pages/AdminShortLinkDetail.vue',
@@ -115,6 +117,8 @@ const sourceText = sourceFiles.map(read).join('\n');
   'X-Channel',
   'X-Campaign',
   'perf-test',
+  'VITE_ICP_RECORD_NO',
+  'beian.miit.gov.cn',
 ].forEach((snippet) => assertContains(`source and e2e keep ${snippet}`, sourceText, snippet));
 
 const mobileE2e = read('frontend/e2e/mobile-main-flow.spec.mjs');
@@ -162,6 +166,10 @@ assertContains('API spec documents default CORS closed', apiSpec, '默认不配�
 assertContains('production runbook documents independent API CORS', productionRunbook, '独立 API 域名可选配置');
 assertContains('deploy env example documents optional CORS', deployEnvExample, 'CORS_ALLOWED_ORIGINS=https://your-frontend-domain.com');
 assertContains('external deploy env example documents optional CORS', deployEnvExternalExample, 'CORS_ALLOWED_ORIGINS=https://wuxing.example.com');
+assertContains('deploy env example documents ICP record variable', deployEnvExample, 'VITE_ICP_RECORD_NO=replace-with-issued-icp-record-no');
+assertContains('deploy env example documents MIIT ICP link', deployEnvExample, 'VITE_ICP_LINK=https://beian.miit.gov.cn/');
+assertContains('external deploy env example documents ICP record variable', deployEnvExternalExample, 'VITE_ICP_RECORD_NO=replace-with-issued-icp-record-no');
+assertContains('docker compose passes ICP record build arg', read('deploy/docker-compose.yml'), 'VITE_ICP_RECORD_NO: ${VITE_ICP_RECORD_NO:-}');
 assert('E2E API seed is isolated by channel', /['"]X-Channel['"]:\s*['"]perf-test['"]/.test(mobileE2e));
 assert('E2E API seed helper keeps default campaign', /campaign\s*=\s*['"]mobile-match-e2e['"]/.test(mobileE2e));
 assert('E2E API seed uses per-test campaign header', /['"]X-Campaign['"]:\s*campaign/.test(mobileE2e));

@@ -18,17 +18,18 @@
             <i></i>
             <span></span>
           </div>
-          <p class="lead">90 秒生成你的东方人格画像</p>
+          <p class="lead">从出生年月和 5 个选择，读出你的五行人格倾向。</p>
         </div>
 
         <div class="hero-metrics" aria-label="测试特点">
+          <span>90 秒完成</span>
           <span>出生年月 + 5 题</span>
           <span>结果可分享</span>
         </div>
 
         <div class="actions">
           <RouterLink data-testid="start-test-link" class="button-link primary-cta" to="/test" @click="start">开始测试</RouterLink>
-          <a class="button-link secondary" href="#preview">先看样例</a>
+          <a class="button-link secondary" href="#preview">看五行样例</a>
         </div>
         <p
           id="manual-match-message"
@@ -284,10 +285,10 @@ function dismissMatch() {
   align-items: stretch;
   justify-content: center;
   min-height: 100vh;
-  padding: 54px 18px 120px;
+  padding: 48px 18px 96px;
   background:
-    radial-gradient(circle at 48% 28%, rgba(255, 255, 255, 0.84), transparent 28%),
-    linear-gradient(180deg, #f8f3e9 0%, #f9f5eb 58%, #edf3ee 100%);
+    linear-gradient(180deg, rgba(255, 251, 243, 0.96) 0%, rgba(247, 239, 226, 0.96) 58%, rgba(242, 231, 212, 0.98) 100%),
+    var(--color-paper);
 }
 
 .guide-page::after {
@@ -297,8 +298,8 @@ function dismissMatch() {
   pointer-events: none;
   opacity: 0.2;
   background-image:
-    linear-gradient(rgba(36, 48, 47, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(36, 48, 47, 0.04) 1px, transparent 1px);
+    linear-gradient(rgba(114, 89, 54, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(114, 89, 54, 0.06) 1px, transparent 1px);
   background-size: 42px 42px, 42px 42px;
   mix-blend-mode: multiply;
 }
@@ -324,13 +325,13 @@ function dismissMatch() {
 
 .mountain-back {
   bottom: 28px;
-  background: rgba(154, 207, 207, 0.46);
+  background: rgba(229, 205, 168, 0.6);
   clip-path: ellipse(72% 42% at 80% 100%);
 }
 
 .mountain-front {
   bottom: 28px;
-  background: rgba(177, 211, 209, 0.72);
+  background: rgba(213, 151, 93, 0.18);
   clip-path: ellipse(74% 45% at 18% 100%);
 }
 
@@ -339,7 +340,7 @@ function dismissMatch() {
   right: 0;
   bottom: 0;
   height: 42px;
-  background: rgba(45, 96, 108, 0.24);
+  background: rgba(47, 98, 85, 0.12);
 }
 
 .hero-shell {
@@ -356,16 +357,17 @@ function dismissMatch() {
 .hero-copy {
   position: relative;
   justify-items: center;
-  padding-top: 170px;
+  padding-top: 126px;
   text-align: center;
+  animation: heroEnter 520ms ease both;
 }
 
 .vertical-motto {
   position: absolute;
   top: 10px;
   left: 8px;
-  color: #26302f;
-  font-family: var(--font-display);
+  color: rgba(37, 48, 45, 0.72);
+  font-family: var(--font-serif);
   font-size: 16px;
   font-weight: 650;
   letter-spacing: 0;
@@ -378,8 +380,8 @@ function dismissMatch() {
 }
 
 .hero-title-group h1 {
-  color: #202725;
-  font-family: "Songti SC", "STSong", "Noto Serif SC", var(--font-display);
+  color: var(--color-ink);
+  font-family: var(--font-serif);
   font-size: 78px;
   font-weight: 600;
   letter-spacing: 0;
@@ -397,20 +399,21 @@ function dismissMatch() {
 
 .title-rule span {
   height: 1px;
-  background: rgba(36, 48, 47, 0.45);
+  background: rgba(37, 48, 45, 0.34);
 }
 
 .title-rule i {
   width: 9px;
   height: 9px;
-  background: #bf8918;
+  background: var(--color-warm);
   transform: rotate(45deg);
 }
 
 .lead {
   margin: 0;
-  color: #303837;
-  font-size: 24px;
+  max-width: 620px;
+  color: #33413d;
+  font-size: 22px;
   letter-spacing: 0;
   text-indent: 0;
   line-height: 1.45;
@@ -424,29 +427,37 @@ function dismissMatch() {
 }
 
 .hero-metrics span {
-  border: 1px solid rgba(36, 48, 47, 0.12);
+  border: 1px solid rgba(201, 111, 61, 0.18);
   border-radius: 999px;
-  padding: 10px 18px;
-  background: rgba(255, 255, 255, 0.56);
-  color: #333c39;
-  font-size: 17px;
+  padding: 10px 16px;
+  background: rgba(255, 252, 245, 0.68);
+  color: #4f4035;
+  font-size: 15px;
   font-weight: 650;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.36);
 }
 
 .primary-cta {
   min-width: min(76vw, 500px);
-  min-height: 76px;
-  border: 1px solid rgba(191, 137, 24, 0.6);
+  min-height: 72px;
+  border: 1px solid rgba(158, 79, 46, 0.42);
   border-radius: 8px;
-  background: #123253;
+  background: linear-gradient(135deg, var(--color-warm), var(--color-warm-deep));
   color: #fff;
-  font-family: "Songti SC", "STSong", "Noto Serif SC", var(--font-display);
-  font-size: 32px;
-  font-weight: 600;
+  font-family: var(--font-ui);
+  font-size: 28px;
+  font-weight: 850;
   letter-spacing: 0;
   text-indent: 0;
-  box-shadow: 0 18px 34px rgba(17, 45, 76, 0.24);
+  box-shadow: var(--shadow-lift);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.primary-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 22px 42px rgba(157, 86, 49, 0.22);
 }
 
 .primary-cta::before,
@@ -455,7 +466,7 @@ function dismissMatch() {
   width: 11px;
   height: 11px;
   margin: 0 24px;
-  background: #e2b96b;
+  background: rgba(255, 232, 192, 0.86);
   transform: rotate(45deg);
 }
 
@@ -466,11 +477,11 @@ function dismissMatch() {
 
 .actions .secondary {
   border: 0;
-  border-bottom: 1px solid rgba(191, 137, 24, 0.52);
+  border-bottom: 1px solid rgba(201, 111, 61, 0.46);
   border-radius: 0;
   background: transparent;
-  color: #303837;
-  font-size: 20px;
+  color: #4e4038;
+  font-size: 18px;
   font-weight: 600;
   letter-spacing: 0;
 }
@@ -479,11 +490,11 @@ function dismissMatch() {
   min-width: 0;
   min-height: 44px;
   border: 0;
-  border-bottom: 1px solid rgba(36, 48, 47, 0.18);
+  border-bottom: 1px solid rgba(37, 48, 45, 0.18);
   border-radius: 0;
   padding: 0 2px;
   background: transparent;
-  color: #65706d;
+  color: var(--color-muted);
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0;
@@ -492,7 +503,7 @@ function dismissMatch() {
 .clipboard-message {
   max-width: 620px;
   margin: -2px 0 0;
-  color: #697674;
+  color: var(--color-muted);
   font-size: 13px;
   font-weight: 800;
 }
@@ -527,18 +538,18 @@ function dismissMatch() {
 
 .manual-match-entry input {
   min-height: 44px;
-  border: 1px solid rgba(36, 48, 47, 0.14);
+  border: 1px solid var(--color-line);
   border-radius: 8px;
   padding: 0 12px;
-  background: rgba(255, 255, 255, 0.88);
-  color: #24302f;
+  background: rgba(255, 252, 245, 0.9);
+  color: var(--color-ink);
   font: inherit;
   font-weight: 850;
 }
 
 .manual-match-entry input[aria-invalid="true"] {
-  border-color: rgba(184, 91, 72, 0.42);
-  box-shadow: 0 0 0 3px rgba(184, 91, 72, 0.08);
+  border-color: rgba(201, 95, 60, 0.44);
+  box-shadow: 0 0 0 3px rgba(201, 95, 60, 0.09);
 }
 
 .manual-match-entry button {
@@ -552,12 +563,12 @@ function dismissMatch() {
   align-items: center;
   max-width: 620px;
   text-align: left;
-  border: 1px solid rgba(47, 111, 94, 0.2);
+  border: 1px solid rgba(47, 98, 85, 0.18);
   border-radius: 8px;
   padding: 14px;
   background:
-    linear-gradient(135deg, rgba(237, 247, 242, 0.96), rgba(255, 249, 238, 0.94));
-  box-shadow: 0 12px 28px rgba(31, 48, 43, 0.08);
+    linear-gradient(135deg, rgba(246, 240, 228, 0.96), rgba(255, 250, 242, 0.94));
+  box-shadow: var(--shadow-paper);
 }
 
 .match-invite h2,
@@ -572,13 +583,13 @@ function dismissMatch() {
 
 .match-invite p:not(.match-kicker) {
   margin-top: 6px;
-  color: #50615f;
+  color: var(--color-muted);
   font-size: 14px;
   font-weight: 800;
 }
 
 .match-kicker {
-  color: #2f6f5e;
+  color: var(--color-warm-deep);
   font-size: 12px;
   font-weight: 950;
 }
@@ -607,14 +618,15 @@ function dismissMatch() {
   width: min(100%, 650px);
   min-height: 280px;
   overflow: hidden;
-  border: 1px solid rgba(36, 48, 47, 0.1);
+  border: 1px solid rgba(37, 48, 45, 0.12);
   border-radius: 8px;
   padding: 34px 22px 30px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(253, 250, 244, 0.82)),
-    linear-gradient(90deg, rgba(197, 227, 226, 0.18), rgba(255, 255, 255, 0));
-  box-shadow: 0 20px 46px rgba(31, 48, 43, 0.16);
-  backdrop-filter: blur(10px);
+    linear-gradient(180deg, rgba(255, 252, 245, 0.94), rgba(249, 241, 227, 0.84)),
+    linear-gradient(90deg, rgba(201, 111, 61, 0.08), rgba(47, 98, 85, 0.08));
+  box-shadow: 0 18px 42px rgba(49, 44, 35, 0.12);
+  backdrop-filter: blur(8px);
+  animation: previewRise 620ms 120ms ease both;
 }
 
 .element-column {
@@ -626,15 +638,15 @@ function dismissMatch() {
 }
 
 .element-column + .element-column {
-  border-left: 1px solid rgba(36, 48, 47, 0.16);
+  border-left: 1px solid rgba(37, 48, 45, 0.12);
 }
 
 .element-keywords {
   display: grid;
   gap: 8px;
-  color: #252d2c;
-  font-family: "Songti SC", "STSong", "Noto Serif SC", var(--font-display);
-  font-size: 22px;
+  color: var(--color-ink);
+  font-family: var(--font-serif);
+  font-size: 21px;
   line-height: 1.18;
 }
 
@@ -648,7 +660,7 @@ function dismissMatch() {
 
 @media (max-width: 820px) {
   .guide-page {
-    padding: 42px 14px 94px;
+    padding: 34px 14px 84px;
   }
 
   .hero-shell {
@@ -656,7 +668,7 @@ function dismissMatch() {
   }
 
   .hero-copy {
-    padding-top: 118px;
+    padding-top: 82px;
   }
 
   .match-invite {
@@ -696,7 +708,7 @@ function dismissMatch() {
   }
 
   .lead {
-    font-size: 17px;
+    font-size: 16px;
     letter-spacing: 0;
     text-indent: 0;
   }
@@ -732,5 +744,25 @@ function dismissMatch() {
     font-size: 15px;
   }
 
+}
+
+@keyframes heroEnter {
+  from {
+    transform: translateY(14px);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes previewRise {
+  from {
+    transform: translateY(18px);
+  }
+
+  to {
+    transform: translateY(0);
+  }
 }
 </style>

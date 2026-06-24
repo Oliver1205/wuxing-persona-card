@@ -2,6 +2,10 @@ ARG NODE_IMAGE=node:20-alpine
 ARG NGINX_IMAGE=nginx:1.27-alpine
 
 FROM ${NODE_IMAGE} AS frontend-build
+ARG VITE_ICP_RECORD_NO=""
+ARG VITE_ICP_LINK="https://beian.miit.gov.cn/"
+ENV VITE_ICP_RECORD_NO=${VITE_ICP_RECORD_NO}
+ENV VITE_ICP_LINK=${VITE_ICP_LINK}
 
 WORKDIR /app/frontend
 COPY frontend/package*.json ./

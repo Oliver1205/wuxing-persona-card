@@ -186,13 +186,13 @@ function compactShareUrl(url: string) {
   grid-template-columns: minmax(180px, 0.56fr) minmax(0, 1fr);
   gap: 14px 18px;
   align-items: center;
-  border: 1px solid rgba(36, 48, 47, 0.12);
+  border: 1px solid rgba(37, 48, 45, 0.12);
   border-radius: 8px;
   padding: 16px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(250, 246, 237, 0.86)),
-    linear-gradient(90deg, rgba(177, 211, 209, 0.18), transparent);
-  box-shadow: 0 16px 36px rgba(31, 48, 43, 0.08);
+    linear-gradient(135deg, rgba(255, 252, 245, 0.94), rgba(248, 240, 226, 0.86)),
+    linear-gradient(90deg, rgba(201, 111, 61, 0.08), rgba(47, 98, 85, 0.08));
+  box-shadow: var(--shadow-paper);
 }
 
 .share-heading {
@@ -202,8 +202,8 @@ function compactShareUrl(url: string) {
 }
 
 .share-heading strong {
-  color: #202725;
-  font-family: "Songti SC", "STSong", "Noto Serif SC", var(--font-display);
+  color: var(--color-ink);
+  font-family: var(--font-serif);
   font-size: 22px;
   font-weight: 650;
   line-height: 1.25;
@@ -211,7 +211,7 @@ function compactShareUrl(url: string) {
 
 .share-heading span {
   max-width: 260px;
-  color: #596764;
+  color: var(--color-muted);
   font-size: 13px;
   font-weight: 760;
   line-height: 1.55;
@@ -251,9 +251,9 @@ function compactShareUrl(url: string) {
   align-items: center;
   justify-content: center;
   width: fit-content;
-  border: 1px solid rgba(47, 111, 94, 0.18);
+  border: 1px solid rgba(47, 98, 85, 0.18);
   border-radius: 6px;
-  color: #2f6f5e;
+  color: var(--color-primary);
   cursor: pointer;
   font-weight: 760;
   list-style: none;
@@ -283,14 +283,15 @@ function compactShareUrl(url: string) {
 }
 
 .share-actions .primary-share-action {
-  background: #2f6f5e;
+  border: 1px solid rgba(158, 79, 46, 0.24);
+  background: linear-gradient(135deg, var(--color-warm), var(--color-warm-deep));
   color: #fff;
-  box-shadow: 0 10px 22px rgba(47, 111, 94, 0.18);
+  box-shadow: 0 10px 22px rgba(157, 86, 49, 0.18);
 }
 
 .share-actions .subtle-action {
-  border-color: rgba(47, 111, 94, 0.18);
-  color: #2f6f5e;
+  border-color: rgba(47, 98, 85, 0.18);
+  color: var(--color-primary);
 }
 
 .share-main {
@@ -304,7 +305,7 @@ function compactShareUrl(url: string) {
 
 .label {
   margin: 0 0 4px;
-  color: #6c7976;
+  color: var(--color-muted);
   font-size: 13px;
 }
 
@@ -313,17 +314,17 @@ function compactShareUrl(url: string) {
   margin: 0;
   overflow-wrap: anywhere;
   border-radius: 6px;
-  color: #263735;
+  color: var(--color-ink);
   font-weight: 700;
   outline: none;
 }
 
 .short-code {
   width: fit-content;
-  border: 1px solid rgba(191, 137, 24, 0.28);
+  border: 1px solid rgba(201, 111, 61, 0.28);
   padding: 7px 12px;
-  background: #fff8e8;
-  color: #123253;
+  background: #fff2e7;
+  color: var(--color-warm-deep);
   font-size: 22px;
   font-weight: 950;
   letter-spacing: 0;
@@ -331,13 +332,13 @@ function compactShareUrl(url: string) {
 
 .short-code:focus,
 .url:focus {
-  box-shadow: 0 0 0 3px rgba(47, 111, 94, 0.14);
+  box-shadow: 0 0 0 3px rgba(47, 98, 85, 0.14);
 }
 
 .url {
   display: -webkit-box;
   overflow: hidden;
-  color: #40514e;
+  color: #43524d;
   font-size: 13px;
   font-weight: 760;
   line-height: 1.45;
@@ -348,7 +349,7 @@ function compactShareUrl(url: string) {
 .tip {
   grid-column: 1 / -1;
   margin: 0;
-  color: #2f6f5e;
+  color: var(--color-primary);
   font-size: 14px;
   font-weight: 700;
 }

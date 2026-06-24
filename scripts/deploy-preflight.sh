@@ -35,6 +35,16 @@ require_secret() {
   fi
 }
 
+extract_host() {
+  python3 - "$1" <<'PY'
+from urllib.parse import urlparse
+import sys
+
+parsed = urlparse(sys.argv[1])
+print(parsed.hostname or "")
+PY
+}
+
 [[ -f "$ENV_FILE" ]] || fail "Env file not found: ${ENV_FILE}"
 
 require_key APP_BASE_URL
@@ -47,6 +57,13 @@ require_key SHORT_LINK_MODE
 mode="$(grep -E '^SHORT_LINK_MODE=' "$ENV_FILE" | tail -1 | cut -d= -f2-)"
 if [[ "$mode" != "internal" && "$mode" != "external" ]]; then
   fail "SHORT_LINK_MODE must be internal or external"
+fi
+
+app_base_url="$(grep -E '^APP_BASE_URL=' "$ENV_FILE" | tail -1 | cut -d= -f2-)"
+app_host="$(extract_host "$app_base_url")"
+if [[ "$app_host" == "wuxingcard.cn" || "$app_host" == "www.wuxingcard.cn" ]]; then
+  require_key VITE_ICP_RECORD_NO
+  require_key VITE_ICP_LINK
 fi
 
 if [[ "$mode" == "external" ]]; then

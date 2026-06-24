@@ -53,7 +53,7 @@ const elementName = computed(() => props.name || visual.value.name);
 .element-mark > span {
   position: relative;
   color: currentColor;
-  font-family: "Songti SC", "STSong", "Noto Serif SC", var(--font-display);
+  font-family: var(--font-serif);
   font-size: 28px;
   font-weight: 600;
   line-height: 1;

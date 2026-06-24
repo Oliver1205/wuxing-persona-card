@@ -45,12 +45,13 @@ http://82.157.137.36/admin
 
 ## 3. 备案后正式域名模式
 
-备案通过后，先确认域名访问不再显示腾讯云备案拦截页，再切回正式入口：
+备案通过后，先确认域名访问不再显示腾讯云备案拦截页，再切回正式入口。备案订单号不能当作备案号展示；等通信管理局短信或邮箱下发正式备案号后，把正式编号写入 `VITE_ICP_RECORD_NO`，页面底部会链接到工信部备案管理系统 `https://beian.miit.gov.cn/`。
 
 ```bash
 cd /opt/wuxing-persona-card
 BASE_URL=https://www.wuxingcard.cn \
 SHORT_LINK_EXTERNAL_DOMAIN_VALUE=www.wuxingcard.cn \
+ICP_RECORD_NO='<通信管理局下发的正式备案号>' \
 NGINX_HTTP_PORT_VALUE=127.0.0.1:8088 \
 APPLY_COMPOSE=true \
 scripts/set-production-entry.sh
@@ -66,6 +67,13 @@ set -a
 . deploy/.env
 set +a
 BASE_URL=https://www.wuxingcard.cn ADMIN_TOKEN="$ADMIN_TOKEN" scripts/production-smoke-test.sh
+```
+
+确认备案页脚已经进入前端产物：
+
+```bash
+grep -R "beian.miit.gov.cn" frontend/dist
+grep -R "$VITE_ICP_RECORD_NO" frontend/dist
 ```
 
 正式后台入口：
