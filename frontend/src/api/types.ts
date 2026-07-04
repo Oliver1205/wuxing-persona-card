@@ -108,6 +108,7 @@ export interface AdminOverview {
   shortLinkCreated: number;
   shortLinkVisits: number;
   completionRate: number;
+  averageCompletionSeconds: number;
   syntheticTrafficExcluded: boolean;
   syntheticIsolationLevel: string;
   syntheticIsolationNote: string;
@@ -119,6 +120,8 @@ export interface AdminOverview {
   topCampaigns: NameCount[];
   popularElementCombos: NameCount[];
   popularStarOfficers: NameCount[];
+  popularPersonas: NameCount[];
+  personaDistribution: NameCount[];
   recentResults: RecentResult[];
   recentShortLinks: ShortLinkListItem[];
 }

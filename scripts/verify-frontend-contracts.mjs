@@ -808,70 +808,36 @@ assert('ShareLinkBox mobile copy actions stay in grouped secondary actions', /cl
 assert('MatchPage replaces decorative compact legend with relationship reference copy', /aria-label="双人关系参照"[\s\S]*?把五行差异翻译成相处节奏/.test(matchPage) && !/ElementLegend/.test(matchPage));
 
 const adminDashboard = read('frontend/src/pages/AdminDashboard.vue');
-assertContains('AdminDashboard clears invalid admin token', adminDashboard, "localStorage.removeItem('wuxing_admin_token')");
-assertContains('AdminDashboard clears invalid token input', adminDashboard, "token.value = ''");
-assertContains('AdminDashboard resets stale admin data', adminDashboard, 'resetAdminData()');
-assertContains('AdminDashboard guards stale external runtime request', adminDashboard, 'runtimeRequestSeq');
-assertContains('AdminDashboard guards stale visit runtime request', adminDashboard, 'visitEventRuntimeRequestSeq');
-assertContains('AdminDashboard has localized invalid token message', adminDashboard, '管理 token 无效，请重新输入。');
-assertContains('AdminDashboard announces admin error status', adminDashboard, 'role="alert" aria-live="polite"');
-assertContains('AdminDashboard announces busy status', adminDashboard, 'class="muted admin-busy" role="status" aria-live="polite"');
-assertContains('AdminDashboard has mobile report toggle', adminDashboard, 'data-testid="admin-mobile-report-toggle"');
-assertContains('AdminDashboard gives short link detail links a 44px target class', adminDashboard, 'class="detail-link"');
-assertContains('AdminDashboard detail links meet touch target height', adminDashboard, 'min-height: 44px');
-assertContains('AdminDashboard has mobile short link card list', adminDashboard, 'data-testid="admin-shortlink-mobile-list"');
-assertContains('AdminDashboard keeps mobile short link metrics readable', adminDashboard, 'class="shortlink-mobile-metrics"');
-assertContains('AdminDashboard keeps desktop short link table separate', adminDashboard, 'class="table-wrap shortlink-table-wrap"');
-assertContains('AdminDashboard force-refreshes overview after filter actions', adminDashboard, 'load(true)');
-assertContains('AdminDashboard expands collapsed mobile reports before evidence scroll', adminDashboard, 'async function locateEvidence');
-assertContains('AdminDashboard locates hidden mobile report content after next tick', adminDashboard, "target?.closest('.mobile-report-content')");
-assertContains('AdminDashboard opens nested mobile report group before evidence scroll', adminDashboard, "target.closest('.mobile-report-group')");
-assertContains('AdminDashboard keeps mobile report group state responsive', adminDashboard, "window.matchMedia('(max-width: 760px)')");
-assertContains('AdminDashboard keeps evidence drill-down focused on one mobile report group', adminDashboard, 'openMobileReportGroup(reportGroupKey, compactReportGroups.value)');
-assertContains('AdminDashboard keeps manual mobile report group toggles focused', adminDashboard, 'openMobileReportGroup(key, true)');
-assertContains('AdminDashboard exclusive mobile report group opens only the target core group', adminDashboard, "core: key === 'core'");
-assertContains('AdminDashboard groups mobile report around key metrics', adminDashboard, 'data-report-group="core"');
-assertContains('AdminDashboard groups mobile report around trend and runtime', adminDashboard, 'data-report-group="trend"');
-assertContains('AdminDashboard groups mobile report around attribution and short links', adminDashboard, 'data-report-group="attribution"');
-assertContains('AdminDashboard exposes mobile core report group test id', adminDashboard, 'data-testid="admin-mobile-report-group-core"');
-assertContains('AdminDashboard exposes mobile trend report group test id', adminDashboard, 'data-testid="admin-mobile-report-group-trend"');
-assertContains('AdminDashboard exposes mobile attribution report group test id', adminDashboard, 'data-testid="admin-mobile-report-group-attribution"');
-assertContains('AdminDashboard prevents native details toggle for controlled mobile groups', adminDashboard, '@click.prevent="toggleMobileReportGroup');
-assertContains('AdminDashboard labels mobile report key group', adminDashboard, '指标与链路');
-assertContains('AdminDashboard labels mobile report attribution group', adminDashboard, '归因与短链');
-assert(
-  'AdminDashboard keeps daily trend table inside trend report group before attribution group',
-  adminDashboard.indexOf('data-report-group="trend"') < adminDashboard.indexOf('<h2>日趋势</h2>')
-    && adminDashboard.indexOf('<h2>日趋势</h2>') < adminDashboard.indexOf('data-report-group="attribution"'),
-);
-assertContains('AdminDashboard finds the actual vertical scroll host for evidence links', adminDashboard, 'function findVerticalScrollHost');
-assertContains('AdminDashboard checks scrollable vertical host dimensions', adminDashboard, 'element.scrollHeight > element.clientHeight + 1');
-assertContains('AdminDashboard falls back to explicit page scroll for evidence links', adminDashboard, 'window.scrollTo');
-assertContains('AdminDashboard has dedicated evidence scroll helper', adminDashboard, 'function scrollEvidenceIntoView');
-assertContains('AdminDashboard binds evidence links to locateEvidence', adminDashboard, '@click="locateEvidence($event, item.evidenceId)"');
-assertContains('mobile e2e opens trend report group before expecting growth funnel', mobileE2e, "getByTestId('admin-mobile-report-group-trend').click()");
-assertContains('mobile e2e opens attribution report group before expecting Top Channel', mobileE2e, "getByTestId('admin-mobile-report-group-attribution').click()");
-assert(
-  'AdminDashboard mobile filter controls keep readable typography',
-  /@media \(max-width:\s*760px\)\s*\{[\s\S]*?\.filter-bar input:not\(\[type='checkbox'\]\),\s*\n\s*\.filter-bar select\s*\{[\s\S]*?font-size:\s*14px;[\s\S]*?font-weight:\s*850;/.test(adminDashboard),
-);
-assert(
-  'AdminDashboard mobile synthetic toggle avoids tiny text',
-  /@media \(max-width:\s*760px\)\s*\{[\s\S]*?\.filter-bar \.toggle-row\s*\{[\s\S]*?font-size:\s*13px;/.test(adminDashboard),
-);
+assertContains('AdminDashboard exposes admin shell test id', adminDashboard, 'data-testid="admin-shell"');
+assertContains('AdminDashboard uses left side nav', adminDashboard, 'data-testid="admin-side-nav"');
+['实时概览', '流量趋势', '人格分布', '采集链路', '系统健康'].forEach((label) => {
+  assertContains(`AdminDashboard keeps ${label} page label`, adminDashboard, label);
+});
+[
+  'data-testid="admin-realtime-console"',
+  'data-testid="admin-traffic-console"',
+  'data-testid="admin-distribution-console"',
+  'data-testid="admin-pipeline-console"',
+  'data-testid="admin-health-console"',
+].forEach((selector) => assertContains(`AdminDashboard exposes ${selector}`, adminDashboard, selector));
+assertContains('AdminDashboard hides token login after overview is loaded', adminDashboard, 'v-if="!overview"');
+assertContains('AdminDashboard persists token in local storage', adminDashboard, "localStorage.setItem(ADMIN_TOKEN_KEY, tokenInput.value)");
+assertContains('AdminDashboard clears invalid admin token', adminDashboard, 'localStorage.removeItem(ADMIN_TOKEN_KEY)');
+assertContains('AdminDashboard has localized invalid token message', adminDashboard, '管理 Token 校验失败，请重新输入。');
+assertContains('AdminDashboard announces admin errors', adminDashboard, 'role="alert"');
+assertContains('AdminDashboard shows online user KPI', adminDashboard, '当前在线用户');
+assertContains('AdminDashboard shows today PV KPI', adminDashboard, '今日 PV');
+assertContains('AdminDashboard shows today result KPI', adminDashboard, '今日生成结果');
+assertContains('AdminDashboard shows system health KPI', adminDashboard, '系统健康状态');
+assertContains('AdminDashboard renders average completion duration', adminDashboard, 'averageCompletionSeconds');
+assertContains('AdminDashboard renders 120 persona distribution', adminDashboard, '120 人格分流 Top');
+assertContains('AdminDashboard explains analytics pipeline', adminDashboard, '行为采集链路');
+assertContains('AdminDashboard renders async writer runtime', adminDashboard, '异步写入状态');
+assertContains('AdminDashboard keeps desktop layout class', adminDashboard, 'desktop-admin-layout');
+assert('AdminDashboard primary buttons keep touch target', /button\s*\{[\s\S]*?min-height:\s*44px;/.test(adminDashboard));
+assert('AdminDashboard date inputs keep touch target', /\.login-form input,[\s\S]*?\.date-controls input,[\s\S]*?\.panel select\s*\{[\s\S]*?min-height:\s*44px;/.test(adminDashboard));
+assert('AdminDashboard side nav is sticky on desktop', /\.admin-side-nav\s*\{[\s\S]*?position:\s*sticky;/.test(adminDashboard));
 const adminShortLinkDetail = read('frontend/src/pages/AdminShortLinkDetail.vue');
-assertContains('AdminDashboard keeps localized start date placeholder', adminDashboard, 'data-placeholder="选择开始日期"');
-assertContains('AdminDashboard keeps localized end date placeholder', adminDashboard, 'data-placeholder="选择结束日期"');
-assertContains('AdminDashboard keeps date format aria label', adminDashboard, 'aria-label="开始日期，格式 YYYY-MM-DD"');
-assertContains('AdminDashboard keeps end date format aria label', adminDashboard, 'aria-label="结束日期，格式 YYYY-MM-DD"');
-assertContains('AdminDashboard keeps localized keyword placeholder', adminDashboard, 'placeholder="输入短码或结果 ID"');
-assert('AdminDashboard quick date buttons keep 44px target', /\.quick-range-bar button\s*\{[\s\S]*?min-height:\s*44px;/.test(adminDashboard));
-assert('AdminDashboard mobile report toggle keeps 44px target', /\.mobile-report-gate button\s*\{[\s\S]*?min-height:\s*44px;/.test(adminDashboard));
-assert('AdminDashboard mobile report group summary keeps 48px target', /\.mobile-report-group > summary\s*\{[\s\S]*?min-height:\s*48px;/.test(adminDashboard));
-assert('AdminDashboard mobile text links keep 44px target', /@media \(max-width:\s*760px\)\s*\{[\s\S]*?\.text-link\s*\{[\s\S]*?min-height:\s*44px;/.test(adminDashboard));
-assert('AdminDashboard hides wide short link table on mobile', /@media \(max-width:\s*760px\)\s*\{[\s\S]*?\.shortlink-table-wrap\s*\{[\s\S]*?display:\s*none;/.test(adminDashboard));
-assert('AdminDashboard shows mobile short link cards on mobile', /@media \(max-width:\s*760px\)\s*\{[\s\S]*?\.shortlink-mobile-list\s*\{[\s\S]*?display:\s*grid;/.test(adminDashboard));
-assert('AdminDashboard mobile pager uses two stable columns', /@media \(max-width:\s*760px\)\s*\{[\s\S]*?\.pager-footer > div\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/.test(adminDashboard));
 assertContains('AdminShortLinkDetail keeps localized start date placeholder', adminShortLinkDetail, 'data-placeholder="选择开始日期"');
 assertContains('AdminShortLinkDetail keeps localized end date placeholder', adminShortLinkDetail, 'data-placeholder="选择结束日期"');
 assertContains('AdminShortLinkDetail keeps date format aria label', adminShortLinkDetail, 'aria-label="开始日期，格式 YYYY-MM-DD"');

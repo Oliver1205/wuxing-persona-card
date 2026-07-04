@@ -72,6 +72,9 @@ public class ResultService {
 
         ResultDetailVO detail = toDetail(entity, shortLink);
         redisCacheService.setResult(entity.getResultId(), detail);
+        redisCacheService.incrementResultLeaderboards(detail.getPersonaLabel(), detail.getStarOfficerName(),
+                detail.getPrimaryElementName() + " / " + detail.getSecondaryElementName());
+        redisCacheService.evictAdminOverview();
         return detail;
     }
 

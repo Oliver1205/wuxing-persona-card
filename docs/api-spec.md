@@ -365,10 +365,13 @@ X-Admin-Token: <admin-token>
 返回：
 
 - 总 PV / UV / UIP
+- 当前在线访问者 / 在线会话
+- 今日 PV / 今日 UV / 今日结果 / 今日分享动作
 - 首页访问量
 - 开始测试点击量
 - 测试提交量
 - 结果生成量
+- 平均完成耗时 `averageCompletionSeconds`
 - 短链生成量
 - 短链访问量
 - 完成率
@@ -377,10 +380,14 @@ X-Admin-Token: <admin-token>
 - Top Campaign `topCampaigns`
 - 日趋势来源 `metricSource`
 - 已聚合截止日期 `aggregatedThroughDate`
+- 热门人格 `popularPersonas`
 - 热门五行组合
 - 热门星官
+- 120 人格分布明细 `personaDistribution`
 - 最近结果
 - 最近短链
+
+`popularPersonas` 与 `personaDistribution` 都使用用户可读的人格标签作为优先展示名；当历史数据缺少标签时，后端会回退到稳定的 `persona_type_id`。这两个字段面向后台统计，不应在用户结果页展示后台分流 id。
 
 ## 9. 短链接列表
 

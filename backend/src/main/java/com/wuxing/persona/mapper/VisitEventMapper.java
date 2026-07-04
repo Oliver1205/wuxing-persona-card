@@ -468,6 +468,32 @@ public interface VisitEventMapper {
                                                                                 @Param("excludedChannel") String excludedChannel);
 
     @Select("""
+            <script>
+            SELECT COALESCE(ROUND(AVG(TIMESTAMPDIFF(SECOND, start_at, finish_at)), 1), 0)
+            FROM (
+                SELECT session_id_hash,
+                       MIN(CASE WHEN event_type = 'START_TEST_CLICK' THEN created_at END) AS start_at,
+                       MIN(CASE WHEN event_type IN ('TEST_SUBMIT', 'RESULT_CREATED') THEN created_at END) AS finish_at
+                FROM visit_event
+                WHERE session_id_hash IS NOT NULL
+                  AND event_type IN ('START_TEST_CLICK', 'TEST_SUBMIT', 'RESULT_CREATED')
+                <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+                <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+                <if test="excludedChannel != null and excludedChannel != ''">
+                    AND (channel IS NULL OR channel != #{excludedChannel})
+                </if>
+                GROUP BY session_id_hash
+            ) session_steps
+            WHERE start_at IS NOT NULL
+              AND finish_at IS NOT NULL
+              AND finish_at &gt;= start_at
+            </script>
+            """)
+    double averageCompletionSecondsBetween(@Param("startAt") LocalDateTime startAt,
+                                           @Param("endAt") LocalDateTime endAt,
+                                           @Param("excludedChannel") String excludedChannel);
+
+    @Select("""
             SELECT short_code AS shortCode,
                    COUNT(*) AS pv,
                    COUNT(DISTINCT client_id_hash) AS uv,

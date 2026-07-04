@@ -2,12 +2,16 @@ package com.wuxing.persona.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wuxing.persona.vo.AdminOverviewVO;
+import com.wuxing.persona.vo.NameCountVO;
 import com.wuxing.persona.vo.ResultDetailVO;
 import java.time.Duration;
+import java.util.List;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +24,9 @@ public class RedisCacheService {
     private static final Duration NULL_SHORT_LINK_TTL = Duration.ofMinutes(5);
     private static final Duration ADMIN_OVERVIEW_TTL = Duration.ofSeconds(45);
     private static final String ADMIN_OVERVIEW_VERSION_KEY = "admin:overview:version";
+    private static final String RESULT_PERSONA_RANK_KEY = "admin:rank:persona";
+    private static final String RESULT_STAR_OFFICER_RANK_KEY = "admin:rank:star-officer";
+    private static final String RESULT_ELEMENT_COMBO_RANK_KEY = "admin:rank:element-combo";
 
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
@@ -146,6 +153,67 @@ public class RedisCacheService {
             redisTemplate.opsForValue().increment(ADMIN_OVERVIEW_VERSION_KEY);
         } catch (Exception ex) {
             log.warn("Evict admin overview cache failed");
+        }
+    }
+
+    public void incrementResultLeaderboards(String personaLabel, String starOfficerName, String elementCombo) {
+        if (!redisEnabled) {
+            return;
+        }
+        try {
+            incrementRank(RESULT_PERSONA_RANK_KEY, personaLabel);
+            incrementRank(RESULT_STAR_OFFICER_RANK_KEY, starOfficerName);
+            incrementRank(RESULT_ELEMENT_COMBO_RANK_KEY, elementCombo);
+        } catch (Exception ex) {
+            log.warn("Write result leaderboard cache failed, personaLabel={}, starOfficerName={}, elementCombo={}",
+                    personaLabel, starOfficerName, elementCombo);
+        }
+    }
+
+    public List<NameCountVO> topPersonaLeaderboards(int limit) {
+        return topRank(RESULT_PERSONA_RANK_KEY, limit);
+    }
+
+    public List<NameCountVO> topStarOfficerLeaderboards(int limit) {
+        return topRank(RESULT_STAR_OFFICER_RANK_KEY, limit);
+    }
+
+    public List<NameCountVO> topElementComboLeaderboards(int limit) {
+        return topRank(RESULT_ELEMENT_COMBO_RANK_KEY, limit);
+    }
+
+    private void incrementRank(String key, String member) {
+        if (member == null || member.isBlank()) {
+            return;
+        }
+        ZSetOperations<String, String> zSetOperations = redisTemplate.opsForZSet();
+        if (zSetOperations == null) {
+            return;
+        }
+        zSetOperations.incrementScore(key, member.trim(), 1D);
+    }
+
+    private List<NameCountVO> topRank(String key, int limit) {
+        if (!redisEnabled) {
+            return List.of();
+        }
+        try {
+            ZSetOperations<String, String> zSetOperations = redisTemplate.opsForZSet();
+            if (zSetOperations == null) {
+                return List.of();
+            }
+            Set<ZSetOperations.TypedTuple<String>> rows = zSetOperations.reverseRangeWithScores(key, 0,
+                    Math.max(0, limit - 1L));
+            if (rows == null || rows.isEmpty()) {
+                return List.of();
+            }
+            return rows.stream()
+                    .filter(row -> row.getValue() != null && row.getScore() != null)
+                    .map(row -> new NameCountVO(row.getValue(), Math.round(row.getScore())))
+                    .toList();
+        } catch (Exception ex) {
+            log.warn("Read result leaderboard cache failed, key={}", key);
+            return List.of();
         }
     }
 

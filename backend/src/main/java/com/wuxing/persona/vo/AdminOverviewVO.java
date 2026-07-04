@@ -14,6 +14,7 @@ public class AdminOverviewVO {
     private long shortLinkCreated;
     private long shortLinkVisits;
     private double completionRate;
+    private double averageCompletionSeconds;
     private boolean syntheticTrafficExcluded;
     private String syntheticIsolationLevel;
     private String syntheticIsolationNote;
@@ -25,6 +26,8 @@ public class AdminOverviewVO {
     private List<NameCountVO> topCampaigns;
     private List<NameCountVO> popularElementCombos;
     private List<NameCountVO> popularStarOfficers;
+    private List<NameCountVO> popularPersonas;
+    private List<NameCountVO> personaDistribution;
     private List<RecentResultVO> recentResults;
     private List<ShortLinkListItemVO> recentShortLinks;
 
@@ -106,6 +109,14 @@ public class AdminOverviewVO {
 
     public void setCompletionRate(double completionRate) {
         this.completionRate = completionRate;
+    }
+
+    public double getAverageCompletionSeconds() {
+        return averageCompletionSeconds;
+    }
+
+    public void setAverageCompletionSeconds(double averageCompletionSeconds) {
+        this.averageCompletionSeconds = averageCompletionSeconds;
     }
 
     public boolean isSyntheticTrafficExcluded() {
@@ -194,6 +205,22 @@ public class AdminOverviewVO {
 
     public void setPopularStarOfficers(List<NameCountVO> popularStarOfficers) {
         this.popularStarOfficers = popularStarOfficers;
+    }
+
+    public List<NameCountVO> getPopularPersonas() {
+        return popularPersonas;
+    }
+
+    public void setPopularPersonas(List<NameCountVO> popularPersonas) {
+        this.popularPersonas = popularPersonas;
+    }
+
+    public List<NameCountVO> getPersonaDistribution() {
+        return personaDistribution;
+    }
+
+    public void setPersonaDistribution(List<NameCountVO> personaDistribution) {
+        this.personaDistribution = personaDistribution;
     }
 
     public List<RecentResultVO> getRecentResults() {

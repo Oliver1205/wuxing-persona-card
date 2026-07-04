@@ -207,6 +207,88 @@ public interface UserResultMapper {
                                                                              @Param("excludedChannel") String excludedChannel);
 
     @Select("""
+            <script>
+            SELECT COALESCE(NULLIF(persona_label, ''), persona_type_id) AS name, COUNT(*) AS count
+            FROM user_result
+            WHERE status = 1
+            <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+            GROUP BY COALESCE(NULLIF(persona_label, ''), persona_type_id)
+            ORDER BY count DESC, name ASC
+            LIMIT #{limit}
+            </script>
+            """)
+    List<Map<String, Object>> listPopularPersonasBetween(@Param("limit") int limit,
+                                                         @Param("startAt") LocalDateTime startAt,
+                                                         @Param("endAt") LocalDateTime endAt);
+
+    @Select("""
+            <script>
+            SELECT COALESCE(NULLIF(persona_label, ''), persona_type_id) AS name, COUNT(*) AS count
+            FROM user_result ur
+            WHERE ur.status = 1
+            <if test="startAt != null">AND ur.created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND ur.created_at &lt; #{endAt}</if>
+            <if test="excludedChannel != null and excludedChannel != ''">
+                AND NOT EXISTS (
+                    SELECT 1 FROM visit_event ve
+                    WHERE ve.result_id = ur.result_id
+                      AND ve.event_type = 'RESULT_CREATED'
+                      AND ve.channel = #{excludedChannel}
+                )
+            </if>
+            GROUP BY COALESCE(NULLIF(persona_label, ''), persona_type_id)
+            ORDER BY count DESC, name ASC
+            LIMIT #{limit}
+            </script>
+            """)
+    List<Map<String, Object>> listPopularPersonasBetweenExcludingChannel(@Param("limit") int limit,
+                                                                         @Param("startAt") LocalDateTime startAt,
+                                                                         @Param("endAt") LocalDateTime endAt,
+                                                                         @Param("excludedChannel") String excludedChannel);
+
+    @Select("""
+            <script>
+            SELECT COALESCE(NULLIF(persona_label, ''), persona_type_id) AS name, COUNT(*) AS count
+            FROM user_result
+            WHERE status = 1
+            <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+            GROUP BY COALESCE(NULLIF(persona_label, ''), persona_type_id)
+            ORDER BY count DESC, name ASC
+            LIMIT #{limit}
+            </script>
+            """)
+    List<Map<String, Object>> listPersonaDistributionBetween(@Param("limit") int limit,
+                                                             @Param("startAt") LocalDateTime startAt,
+                                                             @Param("endAt") LocalDateTime endAt);
+
+    @Select("""
+            <script>
+            SELECT COALESCE(NULLIF(persona_label, ''), persona_type_id) AS name, COUNT(*) AS count
+            FROM user_result ur
+            WHERE ur.status = 1
+            <if test="startAt != null">AND ur.created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND ur.created_at &lt; #{endAt}</if>
+            <if test="excludedChannel != null and excludedChannel != ''">
+                AND NOT EXISTS (
+                    SELECT 1 FROM visit_event ve
+                    WHERE ve.result_id = ur.result_id
+                      AND ve.event_type = 'RESULT_CREATED'
+                      AND ve.channel = #{excludedChannel}
+                )
+            </if>
+            GROUP BY COALESCE(NULLIF(persona_label, ''), persona_type_id)
+            ORDER BY count DESC, name ASC
+            LIMIT #{limit}
+            </script>
+            """)
+    List<Map<String, Object>> listPersonaDistributionBetweenExcludingChannel(@Param("limit") int limit,
+                                                                             @Param("startAt") LocalDateTime startAt,
+                                                                             @Param("endAt") LocalDateTime endAt,
+                                                                             @Param("excludedChannel") String excludedChannel);
+
+    @Select("""
             SELECT id, result_id AS resultId, primary_element AS primaryElement,
                    secondary_element AS secondaryElement, star_officer_name AS starOfficerName,
                    created_at AS createdAt

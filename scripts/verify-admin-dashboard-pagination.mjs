@@ -11,8 +11,9 @@ const baseUrl = process.env.E2E_BASE_URL || 'http://127.0.0.1:5176';
 const adminToken = process.env.E2E_ADMIN_TOKEN || 'dev-token';
 const screenshotDir = process.env.SHOWCASE_SCREENSHOT_DIR || path.join(root, 'docs/screenshots/showcase');
 const screenshotPath = path.join(screenshotDir, 'admin-dashboard-pagination-20260704.png');
+const realtimeScreenshotPath = path.join(screenshotDir, 'admin-dashboard-realtime-20260704.png');
 
-const expectedPages = ['实时监控', '核心概览', '流量趋势', '转化漏斗', '结果排行', '事件明细', '性能压测'];
+const expectedPages = ['实时概览', '流量趋势', '人格分布', '采集链路', '系统健康'];
 
 function assert(name, condition, details = {}) {
   if (!condition) {
@@ -79,29 +80,35 @@ try {
     window.localStorage.setItem('wuxing_admin_token', token);
   }, adminToken);
   await page.goto(`${baseUrl}/admin`, { waitUntil: 'networkidle' });
-  await page.waitForSelector('[data-testid="admin-monitor-console"]', { timeout: 15000 });
+  await page.waitForSelector('[data-testid="admin-realtime-console"]', { timeout: 15000 });
 
-  const navLabels = await page.locator('.dashboard-page-nav button strong').allTextContents();
-  assert('admin dashboard has seven pages', navLabels.length === expectedPages.length, { navLabels });
+  const navLabels = await page.locator('.admin-side-nav nav button strong').allTextContents();
+  assert('admin dashboard has five pages', navLabels.length === expectedPages.length, { navLabels });
   assert('admin dashboard page labels', expectedPages.every((label) => navLabels.includes(label)), { navLabels });
 
-  await page.getByRole('button', { name: /事件明细/ }).click();
-  await page.waitForSelector('[data-testid="admin-events-console"]', { timeout: 5000 });
-  assert('events page visible', await page.locator('[data-testid="admin-events-console"]').isVisible());
+  fs.mkdirSync(screenshotDir, { recursive: true });
+  await page.screenshot({ path: realtimeScreenshotPath, fullPage: true, animations: 'disabled' });
 
-  await page.getByRole('button', { name: /性能压测/ }).click();
-  await page.waitForSelector('[data-testid="admin-performance-console"]', { timeout: 5000 });
-  assert('performance page visible', await page.locator('[data-testid="admin-performance-console"]').isVisible());
+  await page.getByRole('button', { name: /人格分布/ }).click();
+  await page.waitForSelector('[data-testid="admin-distribution-console"]', { timeout: 5000 });
+  assert('distribution page visible', await page.locator('[data-testid="admin-distribution-console"]').isVisible());
+
+  await page.getByRole('button', { name: /采集链路/ }).click();
+  await page.waitForSelector('[data-testid="admin-pipeline-console"]', { timeout: 5000 });
+  assert('pipeline page visible', await page.locator('[data-testid="admin-pipeline-console"]').isVisible());
+
+  await page.getByRole('button', { name: /系统健康/ }).click();
+  await page.waitForSelector('[data-testid="admin-health-console"]', { timeout: 5000 });
+  assert('health page visible', await page.locator('[data-testid="admin-health-console"]').isVisible());
 
   const metrics = await page.evaluate(() => ({
-    navCount: document.querySelectorAll('.dashboard-page-nav button').length,
-    activeText: document.querySelector('.dashboard-page-nav button.active strong')?.textContent || '',
+    navCount: document.querySelectorAll('.admin-side-nav nav button').length,
+    activeText: document.querySelector('.admin-side-nav nav button.active strong')?.textContent || '',
     bodyScrollWidth: document.documentElement.scrollWidth,
     bodyClientWidth: document.documentElement.clientWidth,
   }));
   assert('desktop has no body overflow', metrics.bodyScrollWidth <= metrics.bodyClientWidth + 1, metrics);
 
-  fs.mkdirSync(screenshotDir, { recursive: true });
   await page.screenshot({ path: screenshotPath, fullPage: true, animations: 'disabled' });
 
   console.log(JSON.stringify({
@@ -109,6 +116,7 @@ try {
     strategy: launched.strategy,
     baseUrl,
     navLabels,
+    realtimeScreenshotPath: path.relative(root, realtimeScreenshotPath),
     screenshotPath: path.relative(root, screenshotPath),
     metrics,
   }, null, 2));

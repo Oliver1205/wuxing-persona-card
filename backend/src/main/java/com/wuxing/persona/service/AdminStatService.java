@@ -43,6 +43,8 @@ public class AdminStatService {
     private static final int SOURCE_FILTER_SCAN_LIMIT = 500;
     private static final int EXPORT_LIMIT = 500;
     private static final int TOP_ATTRIBUTION_LIMIT = 5;
+    private static final int TOP_PERSONA_LIMIT = 8;
+    private static final int PERSONA_DISTRIBUTION_LIMIT = 120;
     private static final String SYNTHETIC_CHANNEL = "perf-test";
 
     private final UserResultMapper userResultMapper;
@@ -104,6 +106,7 @@ public class AdminStatService {
         overview.setShortLinkCreated(countShortLinks(range, excludedChannel));
         overview.setShortLinkVisits(countEvent(EventType.SHORT_LINK_VISIT, range, excludedChannel));
         overview.setCompletionRate(startClicks == 0 ? 0 : Math.round(resultCreated * 10000.0 / startClicks) / 100.0);
+        overview.setAverageCompletionSeconds(averageCompletionSeconds(range, excludedChannel));
         DailyTrendResult dailyTrendResult = buildDailyTrends(range, excludedChannel);
         overview.setDailyTrends(dailyTrendResult.records());
         overview.setMetricSource(dailyTrendResult.metricSource());
@@ -113,6 +116,8 @@ public class AdminStatService {
         overview.setTopCampaigns(toNameCounts(listTopCampaigns(range, excludedChannel)));
         overview.setPopularElementCombos(toElementCombos(listPopularElementCombos(range, excludedChannel)));
         overview.setPopularStarOfficers(toStarOfficers(listPopularStarOfficers(range, excludedChannel)));
+        overview.setPopularPersonas(toNameCounts(listPopularPersonas(range, excludedChannel)));
+        overview.setPersonaDistribution(toNameCounts(listPersonaDistribution(range, excludedChannel)));
         overview.setRecentResults(toRecentResults(listRecentResults(range, excludedChannel)));
         overview.setRecentShortLinks(toShortLinkItems(listRecentShortLinks(range, 0, 5, null, excludedChannel),
                 range, excludedChannel));
@@ -642,6 +647,30 @@ public class AdminStatService {
         }
         return userResultMapper.listPopularStarOfficersBetweenExcludingChannel(5, range.getStartAt(),
                 range.getEndExclusive(), excludedChannel);
+    }
+
+    private List<Map<String, Object>> listPopularPersonas(AdminDateRange range, String excludedChannel) {
+        if (excludedChannel == null) {
+            return userResultMapper.listPopularPersonasBetween(TOP_PERSONA_LIMIT, range.getStartAt(),
+                    range.getEndExclusive());
+        }
+        return userResultMapper.listPopularPersonasBetweenExcludingChannel(TOP_PERSONA_LIMIT, range.getStartAt(),
+                range.getEndExclusive(), excludedChannel);
+    }
+
+    private List<Map<String, Object>> listPersonaDistribution(AdminDateRange range, String excludedChannel) {
+        if (excludedChannel == null) {
+            return userResultMapper.listPersonaDistributionBetween(PERSONA_DISTRIBUTION_LIMIT, range.getStartAt(),
+                    range.getEndExclusive());
+        }
+        return userResultMapper.listPersonaDistributionBetweenExcludingChannel(PERSONA_DISTRIBUTION_LIMIT,
+                range.getStartAt(), range.getEndExclusive(), excludedChannel);
+    }
+
+    private double averageCompletionSeconds(AdminDateRange range, String excludedChannel) {
+        double value = visitEventMapper.averageCompletionSecondsBetween(range.getStartAt(), range.getEndExclusive(),
+                excludedChannel);
+        return Math.round(value * 10.0) / 10.0;
     }
 
     private List<UserResultEntity> listRecentResults(AdminDateRange range, String excludedChannel) {
