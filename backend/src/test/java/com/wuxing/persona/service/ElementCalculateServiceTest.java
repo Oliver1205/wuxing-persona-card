@@ -32,11 +32,37 @@ class ElementCalculateServiceTest {
     }
 
     @Test
+    void calculateShouldNormalizeQuestionCodesBeforeFinalValidation() {
+        CreateResultRequest request = requestWithAnswers("water");
+        request.getAnswers().get(0).setQuestionCode(" q1 ");
+        request.getAnswers().get(1).setQuestionCode("q2");
+
+        ElementScoreResult result = service.calculate(request);
+
+        assertEquals(ElementType.WATER, result.getPrimaryElement());
+    }
+
+    @Test
     void calculateShouldRejectMissingQuestion() {
         CreateResultRequest request = requestWithAnswers("WOOD");
         request.getAnswers().remove(0);
 
-        assertThrows(BusinessException.class, () -> service.calculate(request));
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.calculate(request));
+
+        assertEquals("test flow is not ready to submit: missing Q1", exception.getMessage());
+    }
+
+    @Test
+    void calculateShouldRejectExtraUnknownQuestionEvenIfRequiredQuestionsAreComplete() {
+        CreateResultRequest request = requestWithAnswers("WOOD");
+        AnswerRequest extra = new AnswerRequest();
+        extra.setQuestionCode("QX");
+        extra.setOptionCode("WATER");
+        request.getAnswers().add(extra);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> service.calculate(request));
+
+        assertEquals("answers must contain 5 unique questions", exception.getMessage());
     }
 
     @Test
@@ -81,7 +107,28 @@ class ElementCalculateServiceTest {
 
         BusinessException exception = assertThrows(BusinessException.class, () -> service.calculate(request));
 
-        assertEquals("birthYear must not be greater than current year", exception.getMessage());
+        if (today.getYear() >= 2026) {
+            assertEquals("birthYear must not be greater than 2026", exception.getMessage());
+        } else {
+            assertEquals("birthYear must not be greater than current year", exception.getMessage());
+        }
+    }
+
+    @Test
+    void calculateShouldRejectBirthYearOutsideSupportedRange() {
+        CreateResultRequest tooEarly = requestWithAnswers("WOOD");
+        tooEarly.setBirthYear(1949);
+
+        BusinessException earlyException = assertThrows(BusinessException.class, () -> service.calculate(tooEarly));
+
+        assertEquals("birthYear must not be earlier than 1950", earlyException.getMessage());
+
+        CreateResultRequest tooLate = requestWithAnswers("WOOD");
+        tooLate.setBirthYear(2027);
+
+        BusinessException lateException = assertThrows(BusinessException.class, () -> service.calculate(tooLate));
+
+        assertEquals("birthYear must not be greater than 2026", lateException.getMessage());
     }
 
     private CreateResultRequest requestWithAnswers(String optionCode) {

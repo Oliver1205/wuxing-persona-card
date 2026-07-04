@@ -66,3 +66,7 @@ app:
       publish-timeout-millis: ${VISIT_EVENT_ROCKETMQ_PUBLISH_TIMEOUT_MILLIS:1000}
       fallback-to-local: ${VISIT_EVENT_ROCKETMQ_FALLBACK_TO_LOCAL:true}
       consumer-enabled: ${VISIT_EVENT_ROCKETMQ_CONSUMER_ENABLED:false}
+  analytics:
+    enabled: ${ANALYTICS_ENABLED:true}
+    heartbeat-interval-millis: ${ANALYTICS_HEARTBEAT_INTERVAL:30000}
+    online-window-millis: ${ANALYTICS_ONLINE_WINDOW:120000}

@@ -58,10 +58,14 @@ import org.springframework.test.web.servlet.RequestBuilder;
         "app.base-url=http://localhost:8080",
         "app.admin-token=test-token",
         "app.hash-salt=test-salt",
+        "app.visit-event.async-mode=sync",
         "app.cors.allowed-origins=https://frontend.example.com"
 })
 @AutoConfigureMockMvc
 @Sql(statements = {
+        "DELETE FROM analytics_metric_snapshot",
+        "DELETE FROM analytics_session",
+        "DELETE FROM analytics_visitor",
         "DELETE FROM short_link_daily_metric",
         "DELETE FROM site_daily_metric",
         "DELETE FROM visit_event",
@@ -193,6 +197,103 @@ class MvpFlowIntegrationTest {
                 .andExpect(jsonPath("$.data.drainLimit").value(64))
                 .andExpect(jsonPath("$.data.droppedAsyncEvents").value(0))
                 .andExpect(jsonPath("$.data.workerAlive").value(true));
+    }
+
+    @Test
+    void shouldRecordAnalyticsSessionAndExposeProtectedRealtimeMetrics() throws Exception {
+        mockMvc.perform(post("/api/analytics/session/start")
+                        .header("X-Client-Id", "analytics-client-a")
+                        .header("X-Session-Id", "analytics-session-a")
+                        .header("User-Agent", "Mozilla/5.0 iPhone Mobile")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "visitorId": "analytics-client-a",
+                                  "sessionId": "analytics-session-a",
+                                  "path": "/test"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/analytics/heartbeat")
+                        .header("X-Client-Id", "analytics-client-a")
+                        .header("X-Session-Id", "analytics-session-a")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "visitorId": "analytics-client-a",
+                                  "sessionId": "analytics-session-a",
+                                  "path": "/result/R1"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/analytics/event")
+                        .header("X-Client-Id", "analytics-client-a")
+                        .header("X-Session-Id", "analytics-session-a")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "visitorId": "analytics-client-a",
+                                  "sessionId": "analytics-session-a",
+                                  "eventName": "result_generated",
+                                  "path": "/result/R1",
+                                  "resultId": "R1"
+                                }
+                                """))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/analytics/event")
+                        .header("X-Client-Id", "analytics-client-a")
+                        .header("X-Session-Id", "analytics-session-a")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "visitorId": "analytics-client-a",
+                                  "sessionId": "analytics-session-a",
+                                  "eventName": "share_click",
+                                  "path": "/result/R1",
+                                  "shortCode": "Abc123"
+                                }
+                                """))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/analytics/event")
+                        .header("X-Client-Id", "analytics-client-a")
+                        .header("X-Session-Id", "analytics-session-a")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "visitorId": "analytics-client-a",
+                                  "sessionId": "analytics-session-a",
+                                  "eventName": "match_enter",
+                                  "path": "/"
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/admin/metrics/realtime")
+                        .header("X-Admin-Token", "test-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.currentOnlineVisitors").value(1))
+                .andExpect(jsonPath("$.data.currentOnlineSessions").value(1))
+                .andExpect(jsonPath("$.data.todayUv").value(1))
+                .andExpect(jsonPath("$.data.todayResults").value(1))
+                .andExpect(jsonPath("$.data.todayShareClicks").value(1))
+                .andExpect(jsonPath("$.data.todayMatchEnters").value(1));
+
+        mockMvc.perform(get("/api/admin/metrics/timeseries")
+                        .header("X-Admin-Token", "test-token")
+                        .param("range", "1h"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.range").value("1h"))
+                .andExpect(jsonPath("$.data.points").isArray())
+                .andExpect(jsonPath("$.data.points[0].time").exists());
+
+        mockMvc.perform(get("/api/admin/metrics/events")
+                        .header("X-Admin-Token", "test-token")
+                        .param("range", "24h"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].eventType").exists())
+                .andExpect(jsonPath("$.data[0].deviceType").exists());
     }
 
     @Test
@@ -890,6 +991,10 @@ class MvpFlowIntegrationTest {
                 get("/api/admin/short-links/abc123/visits"),
                 get("/api/admin/external-shortlink/status"),
                 get("/api/admin/visit-events/runtime"),
+                get("/api/admin/metrics/realtime"),
+                get("/api/admin/metrics/timeseries"),
+                get("/api/admin/metrics/events"),
+                get("/api/admin/metrics/funnel"),
                 post("/api/admin/analytics/aggregate")
         );
     }

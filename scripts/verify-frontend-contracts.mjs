@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import vm from 'node:vm';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const require = createRequire(import.meta.url);
 const failures = [];
 
 function fail(name, detail = '') {
@@ -18,6 +21,30 @@ function assert(name, condition, detail = '') {
 
 function read(relativePath) {
   return fs.readFileSync(path.join(root, relativePath), 'utf8');
+}
+
+function requireFrontendDependency(name) {
+  return require(path.join(root, 'frontend/node_modules', name));
+}
+
+function evaluateTypeScriptModule(relativePath) {
+  const ts = requireFrontendDependency('typescript');
+  const source = read(relativePath);
+  const transpiled = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2022,
+    },
+  }).outputText;
+  const module = { exports: {} };
+  const context = vm.createContext({
+    exports: module.exports,
+    module,
+    require,
+    console,
+  });
+  new vm.Script(transpiled, { filename: relativePath }).runInContext(context);
+  return module.exports;
 }
 
 function listFiles(dir, predicate) {
@@ -103,6 +130,7 @@ const sourceFiles = [
   'scripts/quality-check.sh',
 ];
 const sourceText = sourceFiles.map(read).join('\n');
+const resultPageSource = read('frontend/src/pages/ResultPage.vue');
 
 [
   'manual-match-code',
@@ -121,6 +149,17 @@ const sourceText = sourceFiles.map(read).join('\n');
   'beian.miit.gov.cn',
 ].forEach((snippet) => assertContains(`source and e2e keep ${snippet}`, sourceText, snippet));
 
+[
+  '底色清晰型',
+  '双气互照型',
+  '星宿部分',
+  'result-data-strip',
+  '主五行',
+  '副五行',
+].forEach((snippet) => {
+  assert(`result page hides backend/redundant label ${snippet}`, !resultPageSource.includes(snippet));
+});
+
 const mobileE2e = read('frontend/e2e/mobile-main-flow.spec.mjs');
 const showcaseE2e = read('frontend/e2e/showcase-screenshots.spec.mjs');
 const eightHourArtifacts = read('scripts/verify-eight-hour-artifacts.sh');
@@ -132,6 +171,7 @@ const frontendTypes = read('frontend/src/api/types.ts');
 const backendCreateResultRequest = read('backend/src/main/java/com/wuxing/persona/dto/CreateResultRequest.java');
 const backendCreateMatchRequest = read('backend/src/main/java/com/wuxing/persona/dto/CreateMatchRequest.java');
 const backendAnswerRequest = read('backend/src/main/java/com/wuxing/persona/dto/AnswerRequest.java');
+const backendTestFlowPolicy = read('backend/src/main/java/com/wuxing/persona/common/TestFlowPolicy.java');
 const appProperties = read('backend/src/main/java/com/wuxing/persona/config/AppProperties.java');
 const corsWebConfig = read('backend/src/main/java/com/wuxing/persona/config/CorsWebConfig.java');
 const backendApplicationYml = read('backend/src/main/resources/application.yml');
@@ -195,7 +235,6 @@ assert('E2E API seed uses per-test campaign header', /['"]X-Campaign['"]:\s*camp
   'manual-match-submit',
   'match-accept-button',
   'save-share-image',
-  'copy-tools-toggle',
   'copy-match-code',
   'copy-share-link',
   'native-share',
@@ -207,7 +246,7 @@ assert('E2E API seed uses per-test campaign header', /['"]X-Campaign['"]:\s*camp
   '分享图已生成',
   '分享图生成失败',
   '长按短码手动复制',
-  '长按链接手动复制',
+  '可以使用系统分享',
   '当前浏览器不支持系统分享',
   'String(window.getSelection())',
 ].forEach((snippet) => assertContains(`mobile e2e verifies share fallback ${snippet}`, mobileE2e, snippet));
@@ -403,7 +442,7 @@ assertContains('artifact gate loops over screenshot geometry checks', eightHourA
 assertContains('artifact gate invokes PNG geometry helper from loop', eightHourArtifacts, 'require_png_geometry "$screenshot_path" "$expected_width" "$min_height"');
 assert('artifact gate does not require untracked outputs contact sheet', !/find outputs/.test(eightHourArtifacts));
 assertContains('showcase captures ready birth action state', showcaseE2e, '-02b-test-birth-ready.png');
-assertContains('showcase verifies enabled inline birth action label', showcaseE2e, "toHaveText('进入第 1 题')");
+assertContains('showcase verifies enabled bottom birth action label', showcaseE2e, "toHaveText('进入第 1 题')");
 [
   [mobileE2eScript, 'mobile E2E script'],
   [showcaseScript, 'showcase screenshot script'],
@@ -477,10 +516,13 @@ assertContains('frontend CreateMatchRequest extends result request', frontendTyp
 assertContains('frontend CreateMatchRequest keeps partnerShortCode', frontendTypes, 'partnerShortCode: string');
 assertContains('backend CreateMatchRequest extends result request', backendCreateMatchRequest, 'class CreateMatchRequest extends CreateResultRequest');
 assertContains('backend CreateMatchRequest keeps partnerShortCode', backendCreateMatchRequest, 'partnerShortCode');
-assertDecoratedField('backend birthYear request validation', backendCreateResultRequest, 'birthYear', ['@NotNull', '@Min(1900)']);
+assertContains('backend TestFlowPolicy keeps minimum birth year', backendTestFlowPolicy, 'MIN_BIRTH_YEAR = 1950');
+assertContains('backend TestFlowPolicy keeps maximum birth year', backendTestFlowPolicy, 'MAX_BIRTH_YEAR = 2026');
+assertContains('backend TestFlowPolicy keeps required question count', backendTestFlowPolicy, 'REQUIRED_QUESTION_COUNT = 5');
+assertDecoratedField('backend birthYear request validation', backendCreateResultRequest, 'birthYear', ['@NotNull', '@Min(TestFlowPolicy.MIN_BIRTH_YEAR)', '@Max(TestFlowPolicy.MAX_BIRTH_YEAR)']);
 assertDecoratedField('backend birthMonth request validation', backendCreateResultRequest, 'birthMonth', ['@NotNull', '@Min(1)', '@Max(12)']);
 assertDecoratedField('backend birthDay request validation', backendCreateResultRequest, 'birthDay', ['@Min(1)', '@Max(31)']);
-assertDecoratedField('backend answers request validation', backendCreateResultRequest, 'answers', ['@Valid', '@NotNull', /@Size\(\s*min\s*=\s*5\s*,\s*max\s*=\s*5\s*\)/]);
+assertDecoratedField('backend answers request validation', backendCreateResultRequest, 'answers', ['@Valid', '@NotNull', /@Size\(\s*min\s*=\s*TestFlowPolicy\.REQUIRED_QUESTION_COUNT\s*,\s*max\s*=\s*TestFlowPolicy\.REQUIRED_QUESTION_COUNT\s*\)/]);
 assertDecoratedField('backend match partner short code validation', backendCreateMatchRequest, 'partnerShortCode', ['@NotBlank']);
 assertDecoratedField('backend answer question code validation', backendAnswerRequest, 'questionCode', ['@NotBlank']);
 assertDecoratedField('backend answer option code validation', backendAnswerRequest, 'optionCode', ['@NotBlank']);
@@ -501,32 +543,136 @@ assert('QuestionCard hides inactive option state', /\.option-state\s*\{[\s\S]*?o
 assert('QuestionCard shows active option state', /\.option\.active\s+\.option-state\s*\{[\s\S]*?opacity:\s*1;/.test(questionCard));
 
 const testPage = read('frontend/src/pages/TestPage.vue');
+const testFlowMachine = read('frontend/src/utils/testFlowMachine.ts');
+const testFlowMachineRuntime = evaluateTypeScriptModule('frontend/src/utils/testFlowMachine.ts');
 assert('TestPage flow stage avoids hanging Transition wrapper', !/<Transition\b/.test(testPage));
+assertContains('TestPage uses explicit test flow machine', testPage, 'deriveTestFlowMachineState');
+assertContains('TestPage imports birth year lower bound', testPage, 'MIN_BIRTH_YEAR');
+assertContains('TestPage imports birth year upper bound', testPage, 'MAX_BIRTH_YEAR');
 assert('TestPage birth month uses visible grid', /class="choice-grid month-grid"/.test(testPage));
 assert('TestPage optional day uses visible grid', /class="choice-grid day-grid"/.test(testPage));
 assert('TestPage does not hide birth choices in horizontal rail', !/class="choice-rail (?:month|day)-rail"/.test(testPage));
 assert('TestPage quick years use visible grid', /\.quick-row\s*\{[\s\S]*?display:\s*grid;/.test(testPage));
 assert('TestPage quick years avoid horizontal scrolling', !/\.quick-row\s*\{[\s\S]*?overflow-x:\s*auto;/.test(testPage));
+assertContains('TestPage quick years include current upper bound', testPage, '2026');
+assertContains('TestPage quick years keep common young-user anchor', testPage, '2002');
+assertContains('TestPage quick years include 1950 lower bound', testPage, '1950');
 assert('TestPage keeps optional day grid span', /\.day-grid\s+\.day-chip\.optional\s*\{[\s\S]*?grid-column:\s*span 2;/.test(testPage));
-assert('TestPage keeps narrow month grid at three columns', /@media \(max-width:\s*430px\)\s*\{[\s\S]*?\.month-grid\s*\{[\s\S]*?grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\);/.test(testPage));
+assert('TestPage keeps compact narrow month grid at four columns', /@media \(max-width:\s*430px\)\s*\{[\s\S]*?\.month-grid\s*\{[\s\S]*?grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\);/.test(testPage));
 assert('TestPage makes disabled primary action visually distinct', /\.primary-action-button:disabled\s*\{[\s\S]*?background:\s*#d8e3dd;[\s\S]*?opacity:\s*1;[\s\S]*?box-shadow:\s*none;/.test(testPage));
 assertContains('TestPage announces loading state', testPage, 'role="status" aria-live="polite"');
 assertContains('TestPage announces error state', testPage, 'class="error-text" role="alert" aria-live="polite"');
 assertContains('TestPage announces submit lock', testPage, 'class="submit-lock" role="status" aria-live="polite"');
 assertContains('TestPage guards unavailable question list', testPage, 'questionListUnavailable');
 assertContains('TestPage preserves question loading failure', testPage, "error.value = error.value || '题目加载失败，请刷新重试'");
-assertContains('TestPage uses contextual previous action', testPage, "activeQuestionIndex.value === 0 ? '基础信息' : '上一题'");
+assertContains('Test flow machine uses contextual previous action', testFlowMachine, "activeQuestionIndex === 0 ? '基础信息' : '上一题'");
 assert('TestPage previous action avoids card wording', !/>\s*上一张\s*</.test(testPage));
+assert('TestPage mobile primary action is ordered after previous action', /\.primary-action-button\s*\{[\s\S]*?order:\s*2;[\s\S]*?min-height:\s*44px;/.test(testPage));
+assert('TestPage mobile previous action is ordered before primary action', /\.nav-button\s*\{[\s\S]*?order:\s*1;[\s\S]*?min-height:\s*44px;/.test(testPage));
+assertContains('TestPage keeps top-left back button', testPage, 'class="test-back-button"');
+assertContains('TestPage keeps compact question progress after birth step', testPage, 'class="question-progress"');
+assertContains('Test flow machine fixes minimum birth year', testFlowMachine, 'MIN_BIRTH_YEAR = 1950');
+assertContains('Test flow machine fixes maximum birth year', testFlowMachine, 'MAX_BIRTH_YEAR = 2026');
+assertContains('Test flow machine exposes birth stage', testFlowMachine, "TestFlowStage = 'birth'");
+assertContains('Test flow machine exposes question stage', testFlowMachine, "'question'");
+assert('Test flow machine clamps too-early birth year', testFlowMachineRuntime.clampBirthYear(1949) === 1950);
+assert('Test flow machine clamps too-late birth year', testFlowMachineRuntime.clampBirthYear(2027) === 2026);
+assert('Test flow machine clamps invalid low step', testFlowMachineRuntime.clampTestStepIndex(-1, 5) === 0);
+assert('Test flow machine clamps invalid high step', testFlowMachineRuntime.clampTestStepIndex(9, 5) === 5);
+const birthIncompleteState = testFlowMachineRuntime.deriveTestFlowMachineState({
+  stepIndex: 0,
+  questionCount: 5,
+  birthInfoComplete: false,
+  activeQuestionAnswered: false,
+  submitting: false,
+  loading: false,
+  questionListUnavailable: false,
+  matchMode: false,
+});
+assert('Test flow machine birth incomplete stays on birth stage', birthIncompleteState.stage === 'birth');
+assert('Test flow machine birth incomplete disables primary action', birthIncompleteState.primaryActionDisabled === true);
+assert('Test flow machine birth incomplete keeps helpful CTA', birthIncompleteState.primaryActionText === '选择月份后继续');
+const birthCompleteState = testFlowMachineRuntime.deriveTestFlowMachineState({
+  stepIndex: 0,
+  questionCount: 5,
+  birthInfoComplete: true,
+  activeQuestionAnswered: false,
+  submitting: false,
+  loading: false,
+  questionListUnavailable: false,
+  matchMode: false,
+});
+assert('Test flow machine birth complete enables primary action', birthCompleteState.primaryActionDisabled === false);
+assert('Test flow machine birth complete enters first question', birthCompleteState.primaryActionText === '进入第 1 题');
+const firstQuestionState = testFlowMachineRuntime.deriveTestFlowMachineState({
+  stepIndex: 1,
+  questionCount: 5,
+  birthInfoComplete: true,
+  activeQuestionAnswered: false,
+  submitting: false,
+  loading: false,
+  questionListUnavailable: false,
+  matchMode: false,
+});
+assert('Test flow machine first question can go previous', firstQuestionState.canGoPrevious === true);
+assert('Test flow machine first question previous label points to birth info', firstQuestionState.previousActionText === '基础信息');
+assert('Test flow machine first question keeps right action disabled before answer', firstQuestionState.primaryActionDisabled === true);
+assert('Test flow machine first question caption is compact', firstQuestionState.stepCaption === '第 1 / 5 题');
+const secondAnsweredQuestionState = testFlowMachineRuntime.deriveTestFlowMachineState({
+  stepIndex: 2,
+  questionCount: 5,
+  birthInfoComplete: true,
+  activeQuestionAnswered: true,
+  submitting: false,
+  loading: false,
+  questionListUnavailable: false,
+  matchMode: false,
+});
+assert('Test flow machine later question previous label is intuitive', secondAnsweredQuestionState.previousActionText === '上一题');
+assert('Test flow machine answered non-last question uses next CTA', secondAnsweredQuestionState.primaryActionText === '下一题');
+const lastAnsweredQuestionState = testFlowMachineRuntime.deriveTestFlowMachineState({
+  stepIndex: 5,
+  questionCount: 5,
+  birthInfoComplete: true,
+  activeQuestionAnswered: true,
+  submitting: false,
+  loading: false,
+  questionListUnavailable: false,
+  matchMode: false,
+});
+assert('Test flow machine last question generates result card', lastAnsweredQuestionState.primaryActionText === '生成我的人格卡');
+const blockedBirthState = testFlowMachineRuntime.deriveTestFlowMachineState({
+  stepIndex: 0,
+  questionCount: 0,
+  birthInfoComplete: true,
+  activeQuestionAnswered: false,
+  submitting: false,
+  loading: false,
+  questionListUnavailable: true,
+  matchMode: false,
+});
+assert('Test flow machine blocks when question list is unavailable', blockedBirthState.stage === 'blocked');
+assert('Test flow machine shows question failure CTA', blockedBirthState.primaryActionText === '题目加载失败');
+assert('Test flow machine blocks future unopened question when previous answer missing',
+  testFlowMachineRuntime.canOpenTestStep(2, true, [false, false, false, false, false], 0) === false);
+assert('Test flow machine opens next question after previous answer',
+  testFlowMachineRuntime.canOpenTestStep(2, true, [true, false, false, false, false], 1) === true);
 [
   ':data-testid="\'birth-month-\' + month"',
   'data-testid="birth-day-none"',
+  'data-testid="test-previous-action"',
   'data-testid="test-primary-action"',
 ].forEach((testId) => assertContains(`TestPage keeps ${testId}`, testPage, testId));
 assertContains('TestPage keeps mobile birth action scoped to birth step', testPage, '.sticky-action.birth-action');
-assertContains('TestPage exposes inline birth continuation after month grid', testPage, 'data-testid="birth-inline-primary-action"');
-assertContains('TestPage shows inline birth action only on mobile', testPage, '.birth-inline-action');
-assertContains('mobile e2e uses inline birth continuation', mobileE2e, "getByTestId('birth-inline-primary-action')");
-assertContains('showcase e2e uses inline birth continuation', showcaseE2e, "getByTestId('birth-inline-primary-action')");
+assert('TestPage no longer exposes inline birth continuation after month grid', !testPage.includes('data-testid="birth-inline-primary-action"'));
+assert('mobile e2e uses bottom birth continuation', /getByTestId\('test-primary-action'\)\.click\(\);[\s\S]*?getByTestId\('question-Q1-option-METAL'\)/.test(mobileE2e));
+assertContains('showcase e2e uses bottom birth continuation', showcaseE2e, "getByTestId('test-primary-action').click()");
+assertContains('mobile e2e covers test flow state machine', mobileE2e, 'test-flow-state-machine-e2e');
+assertContains('mobile e2e covers 1950 year shortcut', mobileE2e, "getByTestId('birth-year-quick-1950')");
+assertContains('mobile e2e covers 2026 year shortcut', mobileE2e, "getByTestId('birth-year-quick-2026')");
+assertContains('mobile e2e verifies left previous action', mobileE2e, "getByTestId('test-previous-action')");
+assertContains('mobile e2e verifies browser back within question flow', mobileE2e, 'page.goBack()');
+assertContains('mobile e2e verifies question flow stays on test page', mobileE2e, "toHaveURL(/\\/test/)");
 assertContains('mobile e2e covers question loading failure', mobileE2e, 'questions-failure-e2e');
 assertContains('mobile e2e injects question loading failure', mobileE2e, "page.route('**/api/questions'");
 assertContains('mobile e2e keeps question failure as server error', mobileE2e, 'status: 500');
@@ -597,7 +743,10 @@ assertContains('ElementMark keeps glyphs visually restrained', elementMark, 'fon
 assertContains('ElementMark keeps compact glyphs visually restrained', elementMark, 'font-size: 22px');
 const personaCard = read('frontend/src/components/PersonaCard.vue');
 const elementLegend = read('frontend/src/components/ElementLegend.vue');
-assertContains('PersonaCard tightens mobile element marks to avoid identity wrap', personaCard, '.persona-mark-pair :deep(.element-mark)');
+assert('PersonaCard removes visible header element glyph pair', !/persona-mark-pair|<ElementMark/.test(personaCard));
+assertContains('PersonaCard uses primary decorative element pattern', personaCard, 'class="element-pattern water-pattern"');
+assertContains('PersonaCard uses secondary decorative element pattern', personaCard, 'class="element-pattern earth-pattern"');
+assertContains('PersonaCard centers identity header content', personaCard, 'place-items: center');
 assertContains('PersonaCard tightens mobile identity eyebrow', personaCard, '.card-visual .eyebrow');
 assertContains('ElementLegend mobile layout uses stable three-column first row', elementLegend, 'grid-template-columns: repeat(3, minmax(0, 1fr));');
 assertContains('ElementLegend tiny mobile layout uses two-column rows', elementLegend, '@media (max-width: 420px)');
@@ -611,16 +760,50 @@ assert('ResultPage delegates the single save image action to ShareLinkBox', /<Sh
 assert('Shared result CTA carries match code into the test flow', /campaign:\s*'result-banner',\s*matchCode:\s*result\.shortCode/.test(resultPage));
 assert('Shared result footer CTA carries match code into the test flow', /campaign:\s*'result-footer',\s*matchCode:\s*result\.shortCode/.test(resultPage));
 assert('mobile e2e verifies shared result CTA matchCode', /campaign=result-banner&matchCode=/.test(mobileE2e));
-assertContains('ResultPage uses narrow-screen friendly resonance heading', resultPage, '朋友最容易认出的三个表现');
-assert('ShareLinkBox copy share link remains a secondary action', /data-testid="copy-share-link"[^>]*class="secondary subtle-action"/.test(shareLinkBox));
-assert('ShareLinkBox hides copy helpers behind a details disclosure', /<details class="copy-tools"[\s\S]*?<summary data-testid="copy-tools-toggle">复制备用信息<\/summary>[\s\S]*?data-testid="copy-match-code"[\s\S]*?data-testid="copy-share-link"/.test(shareLinkBox));
-assertContains('ShareLinkBox displays clean short link separately from tracked copy URL', shareLinkBox, 'displayShareUrl');
-assertContains('ShareLinkBox removes tracking query from visible URL', shareLinkBox, 'compactShareUrl');
+[
+  'personaLabel',
+  'starToneName',
+  'structureTitle',
+  'starToneExplanation',
+  'dayMasterText',
+  'primarySecondaryText',
+  'accentText',
+  'heavenText',
+  'humanText',
+  'starOfficerText',
+  'strengthText',
+  'growthAdvice',
+].forEach((field) => assertContains(`ResultPage reads backend persona archetype field ${field}`, resultPage, field));
+assert('ResultPage does not expose backend persona type ids', !/personaTypeId|命中类型/.test(resultPage));
+assertContains('ResultPage renders star tone core title', resultPage, 'const coreSectionTitle = computed');
+assertContains('ResultPage renders star tone explanation', resultPage, 'result.starToneExplanation');
+assert('ResultPage does not render redundant generation basis panel', !/bottom-basis-panel|这张卡从哪里来|生成依据与免责声明/.test(resultPage));
+assertContains('ResultPage renders day master core section', resultPage, "eyebrow: '日主'");
+assertContains('ResultPage renders star officer as its own anchor section', resultPage, '<p class="eyebrow">星官</p>');
+assert('ResultPage avoids duplicate stuck section naming', !/<p class="analysis-kicker">卡点<\/p>/.test(resultPage));
+assert('ResultPage renders star officer explanation as separate paragraphs', /v-for="paragraph in starParagraphs"[\s\S]*class="identity-copy"/.test(resultPage));
+assert('ResultPage sanitizes backend copy before rendering paragraphs', /sanitizeResultText\(current,\s*paragraph\.trim\(\)\)/.test(resultPage));
+assert('ResultPage no longer keeps local persona label override table', !/labelOverrides|labelAdjectives|labelNouns/.test(resultPage));
+assertContains('PersonaCard labels star tone concept', personaCard, "{{ result.starToneLabel || '星曜取象' }}");
+assertContains('PersonaCard uses normalized star tone name as h1', personaCard, '<h1>{{ personaLabel }}</h1>');
+assert('PersonaCard does not append star officer into h1', !/<h1>[\s\S]*starOfficerName/.test(personaCard));
+assertContains('PersonaCard renders star tone hero summary', personaCard, 'props.result.heroSummary');
+assertContains('PersonaCard renders star tone identity line', personaCard, 'props.result.identityLine');
+assertContains('PersonaCard upgrades element roles into structured cards', personaCard, 'class="element-role primary-role"');
+assertContains('PersonaCard keeps role descriptions user-facing', personaCard, '第一反应');
+assertContains('PersonaCard lays keywords out as a stable grid', personaCard, 'grid-template-columns: repeat(5, minmax(0, 1fr));');
+assert('ShareLinkBox copy share link remains a secondary action', /data-testid="copy-share-link"[^>]*class="secondary share-secondary-action"/.test(shareLinkBox));
+assert('ShareLinkBox keeps match code and share-link copy actions visible', /data-testid="copy-match-code"[\s\S]*data-testid="copy-share-link"/.test(shareLinkBox));
+assertContains('ShareLinkBox explains image and short code purposes', shareLinkBox, '分享图适合直接转发，短码可用于双人匹配。');
+assertContains('ShareLinkBox presents match code as a product card', shareLinkBox, 'class="match-code-card"');
+assertContains('ShareLinkBox keeps retake action weak inside share module', shareLinkBox, 'class="retake-action"');
+assert('ShareLinkBox no longer renders a visible result short-link label', !/打开结果短链/.test(shareLinkBox));
+assert('ShareLinkBox no longer keeps a visible short-link formatter', !/displayShareUrl|compactShareUrl/.test(shareLinkBox));
 assertContains('ShareLinkBox still copies attribution URL', shareLinkBox, 'navigator.clipboard.writeText(shareUrl.value)');
 assertContains('ShareLinkBox announces share action status', shareLinkBox, 'class="tip" role="status" aria-live="polite"');
-assert('ShareLinkBox mobile actions align with 760px page breakpoint', /@media \(max-width:\s*760px\)\s*\{[\s\S]*?\.share-actions\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/.test(shareLinkBox));
-assert('ShareLinkBox copy-only native share spans the full mobile row', /\.share-box\.copy-only\s+\.share-actions\s+button\[data-testid="native-share"\][\s\S]*?\.copy-tools\s*\{[\s\S]*?grid-column:\s*1 \/ -1;/.test(shareLinkBox));
-assert('ShareLinkBox mobile copy actions share a row inside the disclosure', /\.copy-actions\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/.test(shareLinkBox));
+assert('ShareLinkBox secondary actions use a stable grid', /\.secondary-action-grid\s*\{[\s\S]*?grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\);/.test(shareLinkBox));
+assert('ShareLinkBox tiny mobile native share spans the first row', /@media \(max-width:\s*380px\)[\s\S]*button\[data-testid="native-share"\][\s\S]*grid-column:\s*1 \/ -1;/.test(shareLinkBox));
+assert('ShareLinkBox mobile copy actions stay in grouped secondary actions', /class="secondary-action-grid"[\s\S]*data-testid="copy-match-code"[\s\S]*data-testid="copy-share-link"/.test(shareLinkBox));
 
 assert('MatchPage replaces decorative compact legend with relationship reference copy', /aria-label="双人关系参照"[\s\S]*?把五行差异翻译成相处节奏/.test(matchPage) && !/ElementLegend/.test(matchPage));
 
@@ -798,6 +981,7 @@ console.log(JSON.stringify({
     'question-testid-contract',
     'stable-e2e-testid-contract',
     'question-option-state-contract',
+    'test-flow-machine-runtime-contract',
     'test-flow-layout-contract',
     'test-page-state-a11y-contract',
     'guide-manual-short-code-contract',

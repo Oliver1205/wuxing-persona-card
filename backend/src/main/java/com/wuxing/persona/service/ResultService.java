@@ -108,6 +108,18 @@ public class ResultService {
         entity.setPrimaryPercent(scoreResult.getPrimaryPercent());
         entity.setSecondaryPercent(scoreResult.getSecondaryPercent());
         entity.setAllElementScoresJson(JsonUtils.toJson(objectMapper, scoreResult.getAllScores()));
+        entity.setPersonaTypeId(resultText.getPersonaTypeId());
+        entity.setAccentElement(resultText.getAccentElement());
+        entity.setRelationKind(resultText.getRelationKind());
+        entity.setPersonaLabel(resultText.getPersonaLabel());
+        entity.setDayMasterText(resultText.getDayMasterText());
+        entity.setPrimarySecondaryText(resultText.getPrimarySecondaryText());
+        entity.setAccentText(resultText.getAccentText());
+        entity.setHeavenText(resultText.getHeavenText());
+        entity.setHumanText(resultText.getHumanText());
+        entity.setStarOfficerText(resultText.getStarOfficerText());
+        entity.setGrowthAdviceJson(JsonUtils.toJson(objectMapper,
+                resultText.getGrowthAdvice() == null ? List.of() : resultText.getGrowthAdvice()));
         entity.setStarOfficerCode(starOfficer.getCode());
         entity.setStarOfficerName(starOfficer.getName());
         entity.setKeywordsJson(JsonUtils.toJson(objectMapper, resultText.getKeywords()));
@@ -163,6 +175,11 @@ public class ResultService {
         ElementType secondary = ElementType.fromCode(entity.getSecondaryElement());
         Map<String, Integer> scores = JsonUtils.fromJson(objectMapper, entity.getAllElementScoresJson(), new TypeReference<>() { });
         List<String> keywords = JsonUtils.fromJson(objectMapper, entity.getKeywordsJson(), new TypeReference<>() { });
+        List<GrowthAdvice> growthAdvice = parseGrowthAdvice(entity.getGrowthAdviceJson());
+        ElementType accent = parseElementOrNull(entity.getAccentElement());
+        String personaTypeId = coalesce(entity.getPersonaTypeId(), primary.name() + "-" + secondary.name());
+        RelationKind relationKind = parseRelationKind(entity.getRelationKind());
+        StarTone starTone = resolveStarTone(personaTypeId, primary, secondary, accent, relationKind);
         ResultDetailVO detail = new ResultDetailVO();
         detail.setResultId(entity.getResultId());
         detail.setPrimaryElement(primary.name());
@@ -172,9 +189,30 @@ public class ResultService {
         detail.setSecondaryElementName(secondary.getDisplayName());
         detail.setSecondaryPercent(entity.getSecondaryPercent());
         detail.setAllElementScores(scores);
+        detail.setPersonaTypeId(personaTypeId);
+        detail.setAccentElement(accent != null ? accent.name() : "");
+        detail.setAccentElementName(accent != null ? accent.getDisplayName() : "");
+        detail.setRelationKind(coalesce(entity.getRelationKind(), ""));
+        detail.setPersonaLabel(normalizePersonaLabel(entity.getPersonaLabel(), starTone));
+        detail.setStarToneName(starTone.getStarToneName());
+        detail.setStarToneLabel(starTone.getStarToneLabel());
+        detail.setStructureTitle(starTone.getStructureTitle());
+        detail.setHeroSummary(starTone.getHeroSummary());
+        detail.setIdentityLine(starTone.getIdentityLine());
+        detail.setStarToneExplanation(starTone.getStarToneExplanation());
+        detail.setDayMasterText(coalesce(entity.getDayMasterText(), entity.getLayoutExplanation()));
+        detail.setPrimarySecondaryText(coalesce(entity.getPrimarySecondaryText(), entity.getStrengthText()));
+        detail.setAccentText(coalesce(entity.getAccentText(), ""));
+        detail.setHeavenText(coalesce(entity.getHeavenText(), ""));
+        detail.setHumanText(coalesce(entity.getHumanText(), entity.getRelationshipText()));
+        detail.setStarOfficerText(normalizeStarOfficerText(coalesce(entity.getStarOfficerText(),
+                "你的出生月份对应「" + entity.getStarOfficerName()
+                        + "」，这里把它作为传统星宿体系里的记忆名称，帮助这张人格卡更容易被记住。"),
+                entity.getStarOfficerName()));
+        detail.setGrowthAdvice(growthAdvice);
         detail.setStarOfficerCode(entity.getStarOfficerCode());
         detail.setStarOfficerName(entity.getStarOfficerName());
-        detail.setKeywords(keywords);
+        detail.setKeywords(keywords == null || keywords.isEmpty() ? starTone.getKeywords() : keywords);
         detail.setLayoutExplanation(entity.getLayoutExplanation());
         detail.setStrengthText(entity.getStrengthText());
         detail.setRelationshipText(entity.getRelationshipText());
@@ -185,6 +223,76 @@ public class ResultService {
         }
         detail.setCreatedAt(entity.getCreatedAt());
         return detail;
+    }
+
+    private ElementType parseElementOrNull(String code) {
+        if (code == null || code.isBlank()) {
+            return null;
+        }
+        return ElementType.fromCode(code);
+    }
+
+    private RelationKind parseRelationKind(String code) {
+        if (RelationKind.BALANCED.getCode().equals(code)) {
+            return RelationKind.BALANCED;
+        }
+        return RelationKind.DOMINANT;
+    }
+
+    private StarTone resolveStarTone(String personaTypeId,
+                                     ElementType primary,
+                                     ElementType secondary,
+                                     ElementType accent,
+                                     RelationKind relationKind) {
+        try {
+            return StarToneRegistry.get(personaTypeId);
+        } catch (RuntimeException ignored) {
+            ElementType safeAccent = accent == null ? fallbackAccent(primary, secondary) : accent;
+            return StarToneRegistry.get(primary, secondary, safeAccent, relationKind);
+        }
+    }
+
+    private ElementType fallbackAccent(ElementType primary, ElementType secondary) {
+        for (ElementType elementType : ElementType.values()) {
+            if (elementType != primary && elementType != secondary) {
+                return elementType;
+            }
+        }
+        return ElementType.FIRE;
+    }
+
+    private List<GrowthAdvice> parseGrowthAdvice(String json) {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+        return JsonUtils.fromJson(objectMapper, json, new TypeReference<>() { });
+    }
+
+    private String coalesce(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
+    }
+
+    private String normalizePersonaLabel(String value, StarTone starTone) {
+        if (isValidPersonaLabel(value)) {
+            return value;
+        }
+        return starTone.getStarToneName();
+    }
+
+    private boolean isValidPersonaLabel(String value) {
+        return PersonaNameRegistry.isValidPersonaName(value);
+    }
+
+    private String normalizeStarOfficerText(String value, String starOfficerName) {
+        if (value == null || value.isBlank()) {
+            return "你的出生月份对应「" + starOfficerName + "」，这里把它作为传统星宿体系里的记忆名称。";
+        }
+        if (value.startsWith("星宿锚点：")) {
+            String name = value.substring("星宿锚点：".length()).trim();
+            String displayName = name.isBlank() ? starOfficerName : name;
+            return "你的出生月份对应「" + displayName + "」，这里把它作为传统星宿体系里的记忆名称，帮助这张人格卡更容易被记住。";
+        }
+        return value;
     }
 
     private String generateResultId() {

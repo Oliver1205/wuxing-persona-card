@@ -25,6 +25,17 @@ secondary_element
 primary_percent
 secondary_percent
 all_element_scores_json
+persona_type_id
+accent_element
+relation_kind
+persona_label
+day_master_text
+primary_secondary_text
+accent_text
+heaven_text
+human_text
+star_officer_text
+growth_advice_json
 star_officer_code
 star_officer_name
 keywords_json
@@ -36,6 +47,30 @@ status
 created_at
 updated_at
 ```
+
+结果引擎字段说明：
+
+- `persona_type_id`：120 人格注册表里的稳定后端 id，只用于存储、排查和统计，不应该原样展示给用户。
+- `accent_element`：点睛元素，从非主副元素中选择，用来让人格标签更有辨识度。
+- `relation_kind`：主从关系类型，当前对应主导型和均衡型两类。
+- `persona_label`：用户可见的人格标签，当前要求四个汉字且包含“的”字。
+- `day_master_text`：日主依据说明，从真实出生日柱或出生信息边界出发。
+- `primary_secondary_text`：主元素和副元素的关系分析。
+- `accent_text`：点睛元素分析。
+- `heaven_text` / `human_text`：内在世界与外部感受。
+- `star_officer_text`：星官或星宿记忆锚点说明。
+- `growth_advice_json`：结构化成长建议，便于前端按卡片展示。
+
+字段边界：
+
+- `persona_type_id`、`accent_element`、`relation_kind` 是系统内部分类字段，主要用于稳定分流、后台统计、问题排查和后续 A/B 版本对比。
+- 用户端只展示 `persona_label`、`star_officer_name`、结构化说明文案和五行比例，不展示 `WATER-EARTH-FIRE-dominant` 这类后台组合词。
+- 如果未来批量替换 120 种人格文案，应优先改 `PersonaArchetypeRegistry` 和对应测试，再确认数据库历史结果是否需要迁移或继续使用创建时快照。
+
+关键索引：
+
+- `idx_persona_type_id`：支撑后续按 120 人格分布做统计或排查。
+- `idx_primary_secondary`：支撑主副五行组合统计。
 
 ### `short_link`
 

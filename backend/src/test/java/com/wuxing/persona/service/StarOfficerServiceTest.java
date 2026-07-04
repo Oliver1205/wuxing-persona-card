@@ -10,11 +10,11 @@ class StarOfficerServiceTest {
     private final StarOfficerService service = new StarOfficerService();
 
     @Test
-    void byMonthShouldReturnBailuForAugust() {
+    void byMonthShouldReturnDocumentedMansionForAugust() {
         StarOfficer starOfficer = service.byMonth(8);
 
-        assertEquals("BAILU", starOfficer.getCode());
-        assertEquals("白露星官", starOfficer.getName());
+        assertEquals("KUI_XIU", starOfficer.getCode());
+        assertEquals("奎宿", starOfficer.getName());
         assertEquals(ElementType.METAL, starOfficer.getElementType());
     }
 }

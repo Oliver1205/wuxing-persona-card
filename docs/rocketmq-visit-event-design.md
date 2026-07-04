@@ -8,6 +8,7 @@
 
 - 默认 `local`：继续使用本地有界队列 + 批量写 `visit_event`，不依赖 RocketMQ。
 - 可选 `rocketmq`：先把事件发布给 RocketMQ publisher；在未启用 MQ consumer 前，仍然 shadow 写入本地队列，保证数据中台不丢数。
+- 测试 `sync`：只用于集成测试或本地验收，把清洗后的事件直接写入数据库，避免测试结果被后台队列调度影响。
 - MQ 不可用：默认回退本地队列；也可以关闭回退，把低价值事件丢弃并通过 runtime 指标暴露。
 
 ## 当前已落地
@@ -16,7 +17,7 @@
 | --- | --- | --- |
 | 投递接口 | 已落地 | `VisitEventRocketMqPublisher` 抽象了发布动作 |
 | 默认禁用实现 | 已落地 | 无 RocketMQ 依赖时也能启动 |
-| 配置开关 | 已落地 | `VISIT_EVENT_ASYNC_MODE=local|rocketmq` |
+| 配置开关 | 已落地 | `VISIT_EVENT_ASYNC_MODE=local|rocketmq|sync` |
 | MQ 发布指标 | 已落地 | runtime 暴露 publish/failure/fallback/shadow 计数 |
 | shadow 本地写入 | 已落地 | consumer 落库未就绪时，MQ 发布成功后仍写本地队列 |
 | 安全主消费闸门 | 已落地 | 仅当 `consumer-enabled=true` 且 publisher 声明 consumer persistence ready 时，才允许 MQ 接管落库 |
@@ -30,6 +31,12 @@
 VISIT_EVENT_ASYNC_MODE=local
 VISIT_EVENT_ASYNC_QUEUE_CAPACITY=2048
 VISIT_EVENT_ASYNC_DRAIN_LIMIT=64
+```
+
+本地验收或集成测试需要确定性落库时：
+
+```bash
+VISIT_EVENT_ASYNC_MODE=sync
 ```
 
 启用 RocketMQ shadow 发布：
@@ -62,7 +69,7 @@ X-Admin-Token: <admin-token>
 
 | 字段 | 含义 |
 | --- | --- |
-| `asyncMode` | 当前投递模式，`local` 或 `rocketmq` |
+| `asyncMode` | 当前投递模式，`local`、`rocketmq` 或测试用 `sync` |
 | `queueSize` | 本地队列积压 |
 | `droppedAsyncEvents` | 本地队列满或关闭回退时丢弃的事件 |
 | `rocketMqAvailable` | 当前 publisher 是否可用 |
@@ -82,7 +89,9 @@ flowchart LR
   Request["用户请求 /s 或 /api/events"] --> Clean["清洗事件: 截断字段、匿名 hash、归一化渠道"]
   Clean --> Mode{"asyncMode"}
   Mode -->|"local"| LocalQueue["本地有界队列"]
+  Mode -->|"sync"| DirectWrite["同步写 visit_event"]
   Mode -->|"rocketmq"| Publisher["RocketMQ publisher"]
+  DirectWrite --> VisitEvent
   Publisher -->|"发布失败且允许回退"| LocalQueue
   Publisher -->|"发布成功但 consumer 未就绪"| LocalQueue
   Publisher -->|"consumer 已就绪"| MQ["RocketMQ topic"]

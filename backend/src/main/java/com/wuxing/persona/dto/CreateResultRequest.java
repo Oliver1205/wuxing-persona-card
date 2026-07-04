@@ -1,5 +1,6 @@
 package com.wuxing.persona.dto;
 
+import com.wuxing.persona.common.TestFlowPolicy;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -10,7 +11,8 @@ import java.util.List;
 public class CreateResultRequest {
 
     @NotNull
-    @Min(1900)
+    @Min(TestFlowPolicy.MIN_BIRTH_YEAR)
+    @Max(TestFlowPolicy.MAX_BIRTH_YEAR)
     private Integer birthYear;
 
     @NotNull
@@ -26,7 +28,7 @@ public class CreateResultRequest {
 
     @Valid
     @NotNull
-    @Size(min = 5, max = 5)
+    @Size(min = TestFlowPolicy.REQUIRED_QUESTION_COUNT, max = TestFlowPolicy.REQUIRED_QUESTION_COUNT)
     private List<AnswerRequest> answers;
 
     public Integer getBirthYear() {

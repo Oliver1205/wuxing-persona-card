@@ -2,6 +2,7 @@ package com.wuxing.persona.service;
 
 import com.wuxing.persona.enums.BirthTimeRange;
 import com.wuxing.persona.enums.ElementType;
+import java.time.LocalDate;
 
 final class WuxingCalendarTerms {
 
@@ -75,9 +76,17 @@ final class WuxingCalendarTerms {
         };
     }
 
-    static DayTone dayTone(int day) {
-        ElementType element = elementByMod(day % 5);
-        return new DayTone(element, "日序五行作轻量修饰，不替代完整日柱");
+    static DayTone dayTone(int year, int month, int day) {
+        LocalDate date = LocalDate.of(year, month, day);
+        int jdn = julianDayNumber(date);
+        int cycleIndex = Math.floorMod(jdn + 49, 60);
+        int stemIndex = cycleIndex % 10;
+        int branchIndex = cycleIndex % 12;
+        return new DayTone(
+                HEAVENLY_STEMS[stemIndex],
+                stemElement(stemIndex),
+                EARTHLY_BRANCHES[branchIndex],
+                branchElement(branchIndex));
     }
 
     static TimeTone timeTone(BirthTimeRange timeRange) {
@@ -100,6 +109,19 @@ final class WuxingCalendarTerms {
             case 4 -> ElementType.EARTH;
             default -> throw new IllegalStateException("unexpected mod");
         };
+    }
+
+    private static int julianDayNumber(LocalDate date) {
+        int a = (14 - date.getMonthValue()) / 12;
+        int y = date.getYear() + 4800 - a;
+        int m = date.getMonthValue() + 12 * a - 3;
+        return date.getDayOfMonth()
+                + (153 * m + 2) / 5
+                + 365 * y
+                + y / 4
+                - y / 100
+                + y / 400
+                - 32045;
     }
 
     private static ElementType stemElement(int stemIndex) {
@@ -141,7 +163,17 @@ final class WuxingCalendarTerms {
     record MonthTone(ElementType main, ElementType secondary, String solarTerms, String reason) {
     }
 
-    record DayTone(ElementType element, String reason) {
+    record DayTone(String stem,
+                   ElementType stemElement,
+                   String branch,
+                   ElementType branchElement) {
+        String ganZhi() {
+            return stem + branch;
+        }
+
+        ElementType element() {
+            return stemElement;
+        }
     }
 
     record TimeTone(String label, ElementType element, String reason) {

@@ -37,7 +37,7 @@ test('mobile user flow creates result, shares link, and admin sees metrics', asy
   await page.getByTestId('birth-year-plus').click();
   await page.getByTestId('birth-year-minus').click();
   await page.getByTestId('birth-month-8').click();
-  await page.getByTestId('birth-inline-primary-action').click();
+  await page.getByTestId('test-primary-action').click();
 
   await page.getByTestId('question-Q1-option-METAL').click();
   await page.getByTestId('test-primary-action').click();
@@ -51,6 +51,7 @@ test('mobile user flow creates result, shares link, and admin sees metrics', asy
   await page.getByTestId('test-primary-action').click();
 
   await expect(page.getByText('你的五行人格身份')).toBeVisible();
+  expect(await page.evaluate(() => window.scrollY)).toBeLessThanOrEqual(4);
   await expectNoHorizontalOverflow(page);
   await expectNoElementMarkGraphics(page);
   const resultUrl = page.url();
@@ -58,16 +59,12 @@ test('mobile user flow creates result, shares link, and admin sees metrics', asy
   const resultId = new URL(resultUrl).pathname.split('/').pop();
   expect(resultId).toBeTruthy();
   const shortCodeText = await page.locator('.share-box .short-code').innerText();
-  const shortUrlText = await page.locator('.share-box .url').innerText();
-  expect(shortUrlText).toContain('/s/');
-  expect(shortUrlText).not.toContain('channel=');
-  expect(shortUrlText).not.toContain('campaign=');
   await expect(page.getByTestId('result-primary-save-image')).toHaveCount(0);
   await expect(page.getByTestId('save-share-image')).toBeVisible();
   await expect(page.getByTestId('native-share')).toBeVisible();
-  await expect(page.getByTestId('copy-tools-toggle')).toBeVisible();
-  await expect(page.getByTestId('copy-match-code')).toBeHidden();
-  await expect(page.getByTestId('copy-share-link')).toBeHidden();
+  await expect(page.getByText('匹配短码')).toBeVisible();
+  await expect(page.getByTestId('copy-match-code')).toBeVisible();
+  await expect(page.getByTestId('copy-share-link')).toBeVisible();
   const shareDownloadPromise = page.waitForEvent('download');
   await page.getByTestId('save-share-image').click();
   const shareDownload = await shareDownloadPromise;
@@ -82,19 +79,15 @@ test('mobile user flow creates result, shares link, and admin sees metrics', asy
   await expect(page.locator('.share-box')).toBeVisible();
   await expect(page.getByText('分享图已生成')).toBeVisible();
   await expect(page.getByText('分享图生成失败')).toHaveCount(0);
-  await page.getByTestId('copy-tools-toggle').click();
-  await expect(page.getByTestId('copy-match-code')).toBeVisible();
-  await expect(page.getByTestId('copy-share-link')).toBeVisible();
   await page.getByTestId('copy-match-code').click();
   await expect(page.locator('.share-box .tip')).toContainText('长按短码手动复制');
   expect(await page.evaluate(() => String(window.getSelection()))).toBe(shortCodeText);
   await page.getByTestId('copy-share-link').click();
-  await expect(page.locator('.share-box .tip')).toContainText('长按链接手动复制');
-  expect(await page.evaluate(() => String(window.getSelection()))).toBe(shortUrlText);
+  await expect(page.locator('.share-box .tip')).toContainText('可以使用系统分享');
   await page.getByTestId('native-share').click();
   await expect(page.locator('.share-box .tip')).toContainText('当前浏览器不支持系统分享');
 
-  await page.goto(new URL(shortUrlText, baseUrl).toString());
+  await page.goto(`${resultUrl}?sc=${shortCodeText}&channel=share&campaign=result-card`);
   await page.waitForURL(/\/result\/.+sc=/);
   await expectNoHorizontalOverflow(page);
   await expectNoElementMarkGraphics(page);
@@ -162,7 +155,7 @@ test('mobile match flow accepts a short code and opens pair result', async ({ pa
 
   await page.getByTestId('birth-year-quick-2002').click();
   await page.getByTestId('birth-month-8').click();
-  await page.getByTestId('birth-inline-primary-action').click();
+  await page.getByTestId('test-primary-action').click();
   await page.getByTestId('question-Q1-option-METAL').click();
   await page.getByTestId('test-primary-action').click();
   await page.getByTestId('question-Q2-option-WOOD').click();
@@ -311,9 +304,61 @@ test('test page keeps question loading failure visible and disabled', async ({ p
   await expect(page.getByText('题目加载失败，请刷新重试')).toBeVisible();
   await page.getByTestId('birth-year-quick-2002').click();
   await page.getByTestId('birth-month-8').click();
-  await expect(page.getByTestId('birth-inline-primary-action')).toBeDisabled();
-  await expect(page.getByTestId('birth-inline-primary-action')).toHaveText('题目加载失败');
+  await expect(page.getByTestId('test-primary-action')).toBeDisabled();
+  await expect(page.getByTestId('test-primary-action')).toHaveText('题目加载失败');
   await expect(page.getByText('题目加载失败，请刷新重试')).toBeVisible();
+});
+
+test('test flow uses 1950 year entry and intuitive question navigation', async ({ page }) => {
+  await page.goto(attributedUrl('/test', 'test-flow-state-machine-e2e'));
+  await expect(page.getByTestId('birth-year-quick-1950')).toBeVisible();
+  await expect(page.getByTestId('birth-year-quick-2026')).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await page.getByTestId('birth-year-quick-1950').click();
+  await expect(page.getByTestId('birth-year-input')).toHaveValue('1950');
+  await page.getByTestId('birth-month-8').click();
+  await expect(page.getByTestId('test-primary-action')).toHaveText('进入第 1 题');
+  await page.getByTestId('test-primary-action').click();
+
+  await expect(page.locator('.question-panel .question-progress')).toHaveText('第 1 / 5 题');
+  await expect(page.getByTestId('test-previous-action')).toHaveText('基础信息');
+  await expect(page.getByTestId('test-primary-action')).toBeDisabled();
+  await page.getByTestId('question-Q1-option-METAL').click();
+  await expect(page.getByTestId('test-primary-action')).toHaveText('下一题');
+  const firstQuestionPreviousBox = await page.getByTestId('test-previous-action').boundingBox();
+  const firstQuestionPrimaryBox = await page.getByTestId('test-primary-action').boundingBox();
+  expect(firstQuestionPreviousBox).toBeTruthy();
+  expect(firstQuestionPrimaryBox).toBeTruthy();
+  expect(firstQuestionPreviousBox.x).toBeLessThan(firstQuestionPrimaryBox.x);
+  await page.getByTestId('test-primary-action').click();
+
+  await expect(page.locator('.question-panel .question-progress')).toHaveText('第 2 / 5 题');
+  await expect(page.getByTestId('test-previous-action')).toHaveText('上一题');
+  await page.goBack();
+  await expect(page.locator('.question-panel .question-progress')).toHaveText('第 1 / 5 题');
+  await expect(page).toHaveURL(/\/test/);
+  await expectNoHorizontalOverflow(page);
+});
+
+test('test page respects latest supported birth year and disables future months', async ({ page }) => {
+  const now = new Date();
+  const latestSupportedYear = Math.min(2026, now.getFullYear());
+  const currentMonth = now.getMonth() + 1;
+
+  await page.goto(attributedUrl('/test', 'latest-year-month-boundary-e2e'));
+  await page.getByTestId('birth-year-input').fill(String(latestSupportedYear));
+  await page.getByTestId('birth-year-input').blur();
+  await expect(page.getByTestId('birth-year-input')).toHaveValue(String(latestSupportedYear));
+
+  if (latestSupportedYear === now.getFullYear() && currentMonth < 12) {
+    await expect(page.getByTestId(`birth-month-${currentMonth + 1}`)).toBeDisabled();
+  }
+
+  await expect(page.getByTestId(`birth-month-${currentMonth}`)).toBeEnabled();
+  await page.getByTestId(`birth-month-${currentMonth}`).click();
+  await expect(page.getByTestId('test-primary-action')).toHaveText('进入第 1 题');
+  await expectNoHorizontalOverflow(page);
 });
 
 test('mobile native share passes the attributed short link payload', async ({ page }) => {

@@ -11,6 +11,17 @@ CREATE TABLE user_result (
     primary_percent INT NOT NULL,
     secondary_percent INT NOT NULL,
     all_element_scores_json CLOB NOT NULL,
+    persona_type_id VARCHAR(96) NULL,
+    accent_element VARCHAR(32) NULL,
+    relation_kind VARCHAR(32) NULL,
+    persona_label VARCHAR(96) NULL,
+    day_master_text CLOB NULL,
+    primary_secondary_text CLOB NULL,
+    accent_text CLOB NULL,
+    heaven_text CLOB NULL,
+    human_text CLOB NULL,
+    star_officer_text CLOB NULL,
+    growth_advice_json CLOB NULL,
     star_officer_code VARCHAR(64) NOT NULL,
     star_officer_name VARCHAR(64) NOT NULL,
     keywords_json CLOB NOT NULL,
@@ -25,6 +36,7 @@ CREATE TABLE user_result (
 
 CREATE INDEX idx_user_result_created_at ON user_result(created_at);
 CREATE INDEX idx_user_result_primary_secondary ON user_result(primary_element, secondary_element);
+CREATE INDEX idx_user_result_persona_type_id ON user_result(persona_type_id);
 
 CREATE TABLE short_link (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -105,3 +117,50 @@ CREATE TABLE short_link_daily_metric (
 
 CREATE INDEX idx_short_link_daily_metric_code ON short_link_daily_metric(short_code, metric_date);
 CREATE INDEX idx_short_link_daily_metric_pv ON short_link_daily_metric(metric_date, pv);
+
+CREATE TABLE analytics_visitor (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    visitor_id_hash VARCHAR(128) UNIQUE NOT NULL,
+    first_seen_at TIMESTAMP NOT NULL,
+    last_seen_at TIMESTAMP NOT NULL,
+    user_agent_hash VARCHAR(128) NULL,
+    ip_hash VARCHAR(128) NULL,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
+);
+
+CREATE INDEX idx_analytics_visitor_last_seen ON analytics_visitor(last_seen_at);
+
+CREATE TABLE analytics_session (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    session_id_hash VARCHAR(128) UNIQUE NOT NULL,
+    visitor_id_hash VARCHAR(128) NOT NULL,
+    started_at TIMESTAMP NOT NULL,
+    last_heartbeat_at TIMESTAMP NOT NULL,
+    ended_at TIMESTAMP NULL,
+    entry_path VARCHAR(255) NULL,
+    latest_path VARCHAR(255) NULL,
+    referrer VARCHAR(512) NULL,
+    device_type VARCHAR(32) NULL,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
+);
+
+CREATE INDEX idx_analytics_session_visitor ON analytics_session(visitor_id_hash);
+CREATE INDEX idx_analytics_session_last_heartbeat ON analytics_session(last_heartbeat_at);
+CREATE INDEX idx_analytics_session_online ON analytics_session(last_heartbeat_at, ended_at);
+
+CREATE TABLE analytics_metric_snapshot (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    metric_time TIMESTAMP UNIQUE NOT NULL,
+    online_visitors BIGINT NOT NULL DEFAULT 0,
+    online_sessions BIGINT NOT NULL DEFAULT 0,
+    pv_1m BIGINT NOT NULL DEFAULT 0,
+    uv_1m BIGINT NOT NULL DEFAULT 0,
+    result_generated_1m BIGINT NOT NULL DEFAULT 0,
+    share_click_1m BIGINT NOT NULL DEFAULT 0,
+    match_enter_1m BIGINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL
+);
+
+CREATE INDEX idx_analytics_metric_time ON analytics_metric_snapshot(metric_time);

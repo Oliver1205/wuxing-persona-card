@@ -23,5 +23,10 @@ deploy/.env
 # Logs
 *.log
 
+# Local generated evidence / exports
+outputs/
+test-results/
+docs/exports/
+
 # Private planning notes
 前期工作/

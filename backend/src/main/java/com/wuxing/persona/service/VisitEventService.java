@@ -110,6 +110,10 @@ public class VisitEventService {
                             String campaign) {
         VisitEventEntity entity = buildEntity(eventType, pagePath, resultId, shortCode, clientId, request,
                 sessionId, channel, campaign);
+        if (appProperties.getVisitEvent().isSyncMode()) {
+            recordSynchronously(entity, eventType, pagePath, resultId, shortCode);
+            return;
+        }
         if (appProperties.getVisitEvent().isRocketMqMode()) {
             if (publishToRocketMq(entity, eventType, pagePath, resultId, shortCode)) {
                 if (shouldUseRocketMqConsumerPersistence()) {
@@ -217,6 +221,11 @@ public class VisitEventService {
         if (appProperties.getVisitEvent().isRocketMqMode() && !shouldUseRocketMqConsumerPersistence()) {
             runtime.setHealthStatus("watch");
             runtime.setHealthMessage("RocketMQ 处于 shadow 观察模式，数据中台仍由本地队列落库。");
+            return;
+        }
+        if (appProperties.getVisitEvent().isSyncMode()) {
+            runtime.setHealthStatus("ok");
+            runtime.setHealthMessage("访问事件同步写入正常，适合测试和本地验收。");
             return;
         }
         runtime.setHealthStatus("ok");
@@ -370,6 +379,18 @@ public class VisitEventService {
             log.warn("Visit event write failed, eventType={}, pagePath={}, resultId={}, shortCode={}, error={}: {}",
                     eventType, pagePath, resultId, shortCode, ex.getClass().getSimpleName(), ex.getMessage());
             return false;
+        }
+    }
+
+    private void recordSynchronously(VisitEventEntity entity,
+                                     EventType eventType,
+                                     String pagePath,
+                                     String resultId,
+                                     String shortCode) {
+        if (insertWithDegrade(entity, eventType, pagePath, resultId, shortCode)) {
+            totalFlushedEvents.incrementAndGet();
+            lastBatchSize.set(1);
+            lastFlushAt = LocalDateTime.now();
         }
     }
 

@@ -16,6 +16,7 @@ public class AppProperties {
     private CorsProperties cors = new CorsProperties();
     private ShortLinkProperties shortLink = new ShortLinkProperties();
     private VisitEventProperties visitEvent = new VisitEventProperties();
+    private AnalyticsProperties analytics = new AnalyticsProperties();
 
     public String getBaseUrl() {
         return baseUrl;
@@ -68,6 +69,16 @@ public class AppProperties {
     public void setVisitEvent(VisitEventProperties visitEvent) {
         if (visitEvent != null) {
             this.visitEvent = visitEvent;
+        }
+    }
+
+    public AnalyticsProperties getAnalytics() {
+        return analytics;
+    }
+
+    public void setAnalytics(AnalyticsProperties analytics) {
+        if (analytics != null) {
+            this.analytics = analytics;
         }
     }
 
@@ -299,10 +310,14 @@ public class AppProperties {
                 return;
             }
             String normalized = asyncMode.trim().toLowerCase(Locale.ROOT);
-            if (!"local".equals(normalized) && !"rocketmq".equals(normalized)) {
-                throw new IllegalArgumentException("app.visit-event.async-mode must be local or rocketmq");
+            if (!"local".equals(normalized) && !"rocketmq".equals(normalized) && !"sync".equals(normalized)) {
+                throw new IllegalArgumentException("app.visit-event.async-mode must be local, rocketmq or sync");
             }
             this.asyncMode = normalized;
+        }
+
+        public boolean isSyncMode() {
+            return "sync".equalsIgnoreCase(asyncMode);
         }
 
         public boolean isRocketMqMode() {
@@ -397,6 +412,37 @@ public class AppProperties {
 
         private String defaultIfBlank(String value, String defaultValue) {
             return value == null || value.isBlank() ? defaultValue : value.trim();
+        }
+    }
+
+    public static class AnalyticsProperties {
+
+        private boolean enabled = true;
+        private int heartbeatIntervalMillis = 30000;
+        private int onlineWindowMillis = 120000;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public int getHeartbeatIntervalMillis() {
+            return heartbeatIntervalMillis;
+        }
+
+        public void setHeartbeatIntervalMillis(int heartbeatIntervalMillis) {
+            this.heartbeatIntervalMillis = Math.max(10000, heartbeatIntervalMillis);
+        }
+
+        public int getOnlineWindowMillis() {
+            return onlineWindowMillis;
+        }
+
+        public void setOnlineWindowMillis(int onlineWindowMillis) {
+            this.onlineWindowMillis = Math.max(heartbeatIntervalMillis * 2, onlineWindowMillis);
         }
     }
 }

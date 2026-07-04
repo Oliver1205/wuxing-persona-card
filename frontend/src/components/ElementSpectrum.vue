@@ -122,13 +122,46 @@ const rows = computed(() => {
 }
 
 @media (max-width: 460px) {
+  .element-spectrum {
+    gap: 10px;
+  }
+
+  .spectrum-head {
+    gap: 2px;
+  }
+
+  .spectrum-head h2 {
+    font-size: 19px;
+    line-height: 1.25;
+  }
+
+  .spectrum-head p {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .spectrum-list {
+    gap: 7px;
+  }
+
   .spectrum-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 6px;
+    padding: 7px;
   }
 
   .row-label,
   .row-track {
-    grid-column: auto;
+    grid-column: 2;
+  }
+
+  .row-label {
+    gap: 8px;
+    font-size: 12px;
+  }
+
+  .row-track {
+    height: 6px;
   }
 }
 </style>

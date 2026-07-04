@@ -1,11 +1,19 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { fetchQuestions } from '../api/questions';
 import { createMatch } from '../api/matches';
 import { createResult } from '../api/results';
 import type { Question } from '../api/types';
 import QuestionCard from '../components/QuestionCard.vue';
+import {
+  MAX_BIRTH_YEAR,
+  MIN_BIRTH_YEAR,
+  canOpenTestStep,
+  clampBirthYear as clampBirthYearByPolicy,
+  clampTestStepIndex,
+  deriveTestFlowMachineState,
+} from '../utils/testFlowMachine';
 import { track } from '../utils/tracker';
 
 const router = useRouter();
@@ -19,10 +27,13 @@ const formStarted = ref(false);
 const today = new Date();
 const currentYear = today.getFullYear();
 const currentMonth = today.getMonth() + 1;
-const minBirthYear = 1900;
-const defaultBirthYear = Math.min(currentYear, 2002);
+const minBirthYear = MIN_BIRTH_YEAR;
+const maxBirthYear = Math.min(MAX_BIRTH_YEAR, currentYear);
+const defaultBirthYear = Math.min(maxBirthYear, 2002);
 const shortCodePattern = /^[0-9a-zA-Z]{6,7}$/;
 const matchPartnerShortCode = ref(normalizeMatchShortCode(route.query.matchCode));
+const testHistoryFlowKey = 'wuxingTestFlow';
+const testHistoryStepKey = 'wuxingTestStep';
 
 const form = reactive<{
   birthYear: number | null;
@@ -40,9 +51,10 @@ const form = reactive<{
 
 const yearDraft = ref(defaultBirthYear);
 const yearPickerValue = computed(() => form.birthYear ?? yearDraft.value);
-const quickYears = computed(() => [2008, 2005, 2002, 1999, 1996, 1993].filter((year) => year <= currentYear));
-const yearScale = computed(() => [minBirthYear, 1970, 1990, 2000, 2010, currentYear]
-  .filter((year, index, source) => year <= currentYear && source.indexOf(year) === index));
+const quickYears = computed(() => [2026, 2018, 2010, 2005, 2002, 1996, 1988, 1970, 1950]
+  .filter((year) => year >= minBirthYear && year <= maxBirthYear));
+const yearScale = computed(() => [minBirthYear, 1970, 1990, 2000, 2010, 2020, maxBirthYear]
+  .filter((year, index, source) => year >= minBirthYear && year <= maxBirthYear && source.indexOf(year) === index));
 const monthHints = [
   '水气沉静',
   '木气初生',
@@ -88,68 +100,38 @@ const displayQuestions = computed<Question[]>(() => questions.value.map((questio
   ...question,
   options: [...question.options].sort((left, right) => optionRank(question.questionCode, left.optionCode) - optionRank(question.questionCode, right.optionCode)),
 })));
-const isBirthStep = computed(() => activeStepIndex.value === 0);
 const matchMode = computed(() => Boolean(matchPartnerShortCode.value));
-const canGoPrevious = computed(() => activeStepIndex.value > 0 && !submitting.value);
-const activeQuestionIndex = computed(() => Math.max(0, activeStepIndex.value - 1));
-const activeQuestion = computed(() => displayQuestions.value[activeQuestionIndex.value]);
+const rawActiveQuestionIndex = computed(() => Math.max(0, activeStepIndex.value - 1));
+const activeQuestion = computed(() => displayQuestions.value[rawActiveQuestionIndex.value]);
 const activeQuestionAnswered = computed(() => {
   const question = activeQuestion.value;
   return Boolean(question && form.answers[question.questionCode]);
 });
-const isLastQuestion = computed(() => activeStepIndex.value === questions.value.length);
 const questionListUnavailable = computed(() => !loading.value && questions.value.length === 0);
-const primaryActionText = computed(() => {
-  if (submitting.value) {
-    return matchMode.value ? '生成匹配中...' : '生成中...';
-  }
-  if (isBirthStep.value) {
-    if (questionListUnavailable.value) {
-      return '题目加载失败';
-    }
-    return birthInfoComplete.value ? '进入第 1 题' : '选择月份后继续';
-  }
-  if (isLastQuestion.value) {
-    return matchMode.value ? '生成双人匹配' : '生成我的人格卡';
-  }
-  return '下一题';
-});
-const previousActionText = computed(() => (activeQuestionIndex.value === 0 ? '基础信息' : '上一题'));
-const primaryActionDisabled = computed(() => {
-  if (submitting.value || loading.value || questionListUnavailable.value) {
-    return true;
-  }
-  if (isBirthStep.value) {
-    return !birthInfoComplete.value;
-  }
-  return !activeQuestionAnswered.value;
-});
-const stepCaption = computed(() => {
-  if (isBirthStep.value) {
-    return '先完成基础信息';
-  }
-  return `第 ${activeQuestionIndex.value + 1} / ${questions.value.length} 题`;
-});
-const actionSummaryText = computed(() => {
-  if (isBirthStep.value) {
-    if (questionListUnavailable.value) {
-      return '题目没有加载成功，请刷新重试';
-    }
-    if (!birthInfoComplete.value) {
-      return '只需要选年份和月份';
-    }
-    return matchMode.value ? '完成后直接进入双人匹配结果' : '可以进入问答卡片';
-  }
-  if (!activeQuestionAnswered.value) {
-    return '按第一反应选择一个答案';
-  }
-  if (isLastQuestion.value) {
-    return matchMode.value ? '确认无误后生成匹配结果' : '确认无误后生成卡片';
-  }
-  return '已选择，可以改选或进入下一题';
-});
+const flowState = computed(() => deriveTestFlowMachineState({
+  stepIndex: activeStepIndex.value,
+  questionCount: questions.value.length,
+  birthInfoComplete: birthInfoComplete.value,
+  activeQuestionAnswered: activeQuestionAnswered.value,
+  submitting: submitting.value,
+  loading: loading.value,
+  questionListUnavailable: questionListUnavailable.value,
+  matchMode: matchMode.value,
+}));
+const isBirthStep = computed(() => flowState.value.isBirthStep);
+const canGoPrevious = computed(() => flowState.value.canGoPrevious);
+const activeQuestionIndex = computed(() => flowState.value.activeQuestionIndex);
+const isLastQuestion = computed(() => flowState.value.isLastQuestion);
+const primaryActionText = computed(() => flowState.value.primaryActionText);
+const previousActionText = computed(() => flowState.value.previousActionText);
+const primaryActionDisabled = computed(() => flowState.value.primaryActionDisabled);
+const stepCaption = computed(() => flowState.value.stepCaption);
+const actionSummaryText = computed(() => flowState.value.actionSummaryText);
+const topBackLabel = computed(() => flowState.value.topBackLabel);
 
 onMounted(async () => {
+  replaceTestStepHistory(activeStepIndex.value);
+  window.addEventListener('popstate', handleBrowserPopState);
   try {
     questions.value = await fetchQuestions();
   } catch (err) {
@@ -157,6 +139,10 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('popstate', handleBrowserPopState);
 });
 
 async function submit() {
@@ -286,7 +272,7 @@ function adjustBirthYear(delta: number) {
 }
 
 function clampBirthYear(year: number) {
-  return Math.min(currentYear, Math.max(minBirthYear, Math.trunc(year)));
+  return Math.min(maxBirthYear, clampBirthYearByPolicy(year));
 }
 
 function selectBirthMonth(month: number) {
@@ -340,7 +326,25 @@ function goPrevious() {
     return;
   }
   error.value = '';
-  activeStepIndex.value = Math.max(0, activeStepIndex.value - 1);
+  if (activeStepIndex.value <= 0) {
+    return;
+  }
+  if (isTestHistoryState(window.history.state)) {
+    window.history.back();
+    return;
+  }
+  setActiveStep(activeStepIndex.value - 1, 'replace');
+}
+
+function handleTopBack() {
+  if (submitting.value) {
+    return;
+  }
+  if (isBirthStep.value) {
+    void router.push('/');
+    return;
+  }
+  goPrevious();
 }
 
 function goNext() {
@@ -357,7 +361,7 @@ function goNext() {
       error.value = '请先选择出生年份和月份';
       return;
     }
-    activeStepIndex.value = Math.min(questions.value.length, activeStepIndex.value + 1);
+    setActiveStep(activeStepIndex.value + 1, 'push');
     return;
   }
 
@@ -371,18 +375,12 @@ function goNext() {
     return;
   }
 
-  activeStepIndex.value = Math.min(questions.value.length, activeStepIndex.value + 1);
+  setActiveStep(activeStepIndex.value + 1, 'push');
 }
 
 function canOpenStep(index: number) {
-  if (index <= activeStepIndex.value) {
-    return true;
-  }
-  if (index === 1) {
-    return birthInfoComplete.value;
-  }
-  const previousQuestion = questions.value[index - 2];
-  return Boolean(previousQuestion && form.answers[previousQuestion.questionCode]);
+  const answeredQuestionCodes = questions.value.map((question) => Boolean(form.answers[question.questionCode]));
+  return canOpenTestStep(index, birthInfoComplete.value, answeredQuestionCodes, activeStepIndex.value);
 }
 
 function goToStep(index: number) {
@@ -393,17 +391,80 @@ function goToStep(index: number) {
     return;
   }
   error.value = '';
-  activeStepIndex.value = index;
+  setActiveStep(index, 'push');
+}
+
+type TestHistoryMode = 'push' | 'replace' | 'none';
+
+function setActiveStep(index: number, historyMode: TestHistoryMode = 'push') {
+  activeStepIndex.value = clampStepIndex(index);
+  if (historyMode === 'push') {
+    pushTestStepHistory(activeStepIndex.value);
+  } else if (historyMode === 'replace') {
+    replaceTestStepHistory(activeStepIndex.value);
+  }
+  scrollTestTopIntoView();
+}
+
+function scrollTestTopIntoView() {
+  void nextTick(() => {
+    document.querySelector('.test-shell')?.scrollIntoView({ block: 'start' });
+  });
+}
+
+function clampStepIndex(index: number) {
+  return clampTestStepIndex(index, questions.value.length);
+}
+
+function isTestHistoryState(state: unknown): state is Record<string, unknown> {
+  return Boolean(
+    state
+      && typeof state === 'object'
+      && (state as Record<string, unknown>)[testHistoryFlowKey] === true,
+  );
+}
+
+function createTestHistoryState(stepIndex: number) {
+  const currentState = window.history.state && typeof window.history.state === 'object'
+    ? window.history.state
+    : {};
+  return {
+    ...currentState,
+    [testHistoryFlowKey]: true,
+    [testHistoryStepKey]: stepIndex,
+  };
+}
+
+function replaceTestStepHistory(stepIndex: number) {
+  window.history.replaceState(createTestHistoryState(stepIndex), '', window.location.href);
+}
+
+function pushTestStepHistory(stepIndex: number) {
+  window.history.pushState(createTestHistoryState(stepIndex), '', window.location.href);
+}
+
+function handleBrowserPopState(event: PopStateEvent) {
+  if (!isTestHistoryState(event.state)) {
+    return;
+  }
+  const stepIndex = Number(event.state[testHistoryStepKey]);
+  error.value = '';
+  setActiveStep(stepIndex, 'none');
 }
 </script>
 
 <template>
   <main class="page test-page">
-    <section class="shell stack test-shell">
-      <div class="test-header">
+    <section class="shell stack test-shell" :class="{ 'question-shell': !isBirthStep }">
+      <div class="test-topbar" aria-label="测试导航">
+        <button type="button" class="test-back-button" :aria-label="topBackLabel" @click="handleTopBack">←</button>
+        <span>{{ isBirthStep ? '基础信息' : `第 ${activeQuestionIndex + 1} 题` }}</span>
+      </div>
+
+      <div v-if="isBirthStep" class="test-header">
         <p class="eyebrow">五行人格测试</p>
-        <h1>用 5 道题校准你的主副五行</h1>
-        <p class="muted">题目没有标准答案，按第一反应选择即可。无需登录和姓名，日期、时段可以保持不透露。</p>
+        <h1>5 题校准主副五行</h1>
+        <p class="muted">无需登录，年月必选，日期时段可不透露。</p>
         <p class="element-inline-hint" aria-label="五行元素参照">金 · 木 · 水 · 火 · 土</p>
         <div class="progress-card" aria-label="答题进度">
           <div class="progress-meta">
@@ -413,6 +474,16 @@ function goToStep(index: number) {
           <div class="progress-track">
             <span :style="{ width: `${progressPercent}%` }"></span>
           </div>
+        </div>
+      </div>
+
+      <div v-else class="question-progress" aria-label="答题进度">
+        <div class="progress-meta">
+          <span>{{ stepCaption }}</span>
+          <strong>{{ progressPercent }}%</strong>
+        </div>
+        <div class="progress-track">
+          <span :style="{ width: `${progressPercent}%` }"></span>
         </div>
       </div>
 
@@ -435,20 +506,20 @@ function goToStep(index: number) {
 
       <div class="flow-stage" :class="{ 'question-mode': !isBirthStep, 'birth-mode': isBirthStep }">
         <div v-if="isBirthStep" key="birth" class="panel stack birth-panel input-panel flow-card">
-            <div class="birth-panel-head">
-              <div>
-                <p class="section-kicker">STEP 00</p>
-                <h2>先选出生年月</h2>
-                <p class="muted">这里只需要年份和月份，用来让解读更有个人感；日期、时段默认不透露也可以继续。</p>
-              </div>
-              <div class="birth-status" :class="{ active: birthInfoComplete }">
-                <span>{{ birthInfoComplete ? '已完成' : '待选择' }}</span>
-                <strong>{{ form.birthYear ?? '年份' }} / {{ form.birthMonth ? form.birthMonth + '月' : '月份' }}</strong>
-              </div>
+          <div class="birth-panel-head">
+            <div>
+              <p class="section-kicker">STEP 00</p>
+              <h2>先选出生年月</h2>
+              <p class="muted">年月必选，日期时段可不透露。</p>
             </div>
+            <div class="birth-status" :class="{ active: birthInfoComplete }">
+              <span>{{ birthInfoComplete ? '已完成' : '待选择' }}</span>
+              <strong>{{ form.birthYear ?? '年份' }} / {{ form.birthMonth ? form.birthMonth + '月' : '月份' }}</strong>
+            </div>
+          </div>
 
-            <div v-if="matchMode" class="match-mode-banner" data-testid="match-mode-banner">
-              <div>
+          <div v-if="matchMode" class="match-mode-banner" data-testid="match-mode-banner">
+            <div>
                 <span>双人匹配模式</span>
                 <strong>正在和短码 {{ matchPartnerShortCode }} 做五行匹配</strong>
               </div>
@@ -476,7 +547,7 @@ function goToStep(index: number) {
                       inputmode="numeric"
                       type="number"
                       :min="minBirthYear"
-                      :max="currentYear"
+                      :max="maxBirthYear"
                       :value="birthYearInputValue"
                       placeholder="输入年份"
                       aria-label="手动输入出生年份"
@@ -493,7 +564,7 @@ function goToStep(index: number) {
                     data-testid="birth-year-range"
                     type="range"
                     :min="minBirthYear"
-                    :max="currentYear"
+                    :max="maxBirthYear"
                     :value="yearPickerValue"
                     aria-label="出生年份"
                     @input="updateBirthYear"
@@ -536,17 +607,6 @@ function goToStep(index: number) {
                   >
                     <strong>{{ month }} 月</strong>
                     <span>{{ isBirthMonthDisabled(month) ? '尚未到来' : monthHints[month - 1] }}</span>
-                  </button>
-                </div>
-                <div class="birth-inline-action">
-                  <button
-                    data-testid="birth-inline-primary-action"
-                    type="button"
-                    class="primary-action-button"
-                    :disabled="primaryActionDisabled"
-                    @click="goNext"
-                  >
-                    {{ primaryActionText }}
                   </button>
                 </div>
               </section>
@@ -637,7 +697,6 @@ function goToStep(index: number) {
         <div class="action-summary">
           <strong>{{ stepCaption }}</strong>
           <span class="action-detail">{{ actionSummaryText }}</span>
-          <RouterLink class="home-inline-link" to="/">返回首页</RouterLink>
           <span v-if="submitting" class="submit-lock" role="status" aria-live="polite">正在生成，请不要关闭页面</span>
         </div>
         <button v-if="canGoPrevious" data-testid="test-previous-action" type="button" class="secondary nav-button" @click="goPrevious">
@@ -693,6 +752,42 @@ function goToStep(index: number) {
   padding-bottom: 72px;
 }
 
+.test-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+}
+
+.test-back-button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid rgba(37, 48, 45, 0.12);
+  border-radius: 999px;
+  padding: 0;
+  background: rgba(255, 252, 245, 0.82);
+  color: var(--color-ink);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 8px 18px rgba(49, 44, 35, 0.06);
+}
+
+.test-topbar > span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .test-header {
   position: relative;
   overflow: hidden;
@@ -726,6 +821,13 @@ function goToStep(index: number) {
   font-size: 40px;
   font-weight: 600;
   letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.test-header .muted {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .element-inline-hint {
@@ -740,6 +842,16 @@ function goToStep(index: number) {
   display: grid;
   gap: 8px;
   margin-top: 6px;
+}
+
+.question-progress {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(37, 48, 45, 0.1);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: rgba(255, 252, 245, 0.78);
+  box-shadow: 0 8px 18px rgba(49, 44, 35, 0.05);
 }
 
 .progress-meta {
@@ -1264,10 +1376,6 @@ function goToStep(index: number) {
   font-weight: 800;
 }
 
-.birth-inline-action {
-  display: none;
-}
-
 .sticky-action {
   position: sticky;
   bottom: 14px;
@@ -1282,6 +1390,12 @@ function goToStep(index: number) {
   background: rgba(255, 252, 245, 0.96);
   box-shadow: 0 14px 42px rgba(49, 44, 35, 0.12);
   backdrop-filter: blur(10px);
+}
+
+.sticky-action.birth-action {
+  position: static;
+  bottom: auto;
+  margin-top: 2px;
 }
 
 .action-summary {
@@ -1309,22 +1423,6 @@ function goToStep(index: number) {
   white-space: nowrap;
 }
 
-.home-inline-link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 8px;
-  width: fit-content;
-  color: var(--color-primary);
-  font-size: 12px;
-  font-weight: 850;
-  text-decoration: none;
-}
-
-.home-inline-link:hover {
-  text-decoration: underline;
-}
-
 .sticky-action span {
   color: var(--color-muted);
   font-size: 13px;
@@ -1350,39 +1448,100 @@ function goToStep(index: number) {
 }
 
 @media (max-width: 760px) {
+  .test-page {
+    padding: 16px 14px;
+  }
+
   .test-shell {
-    padding-bottom: 118px;
+    gap: 10px;
+    padding-bottom: 0;
+  }
+
+  .test-shell.question-shell {
+    padding-bottom: 120px;
+  }
+
+  .test-topbar {
+    min-height: 44px;
+  }
+
+  .test-back-button {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
   }
 
   .test-header {
-    gap: 9px;
-    padding: 18px;
+    gap: 7px;
+    padding: 14px;
   }
 
   .test-header::after {
-    width: 54px;
-    height: 46px;
+    right: 14px;
+    top: 14px;
+    width: 44px;
+    height: 38px;
   }
 
   .test-header h1 {
-    font-size: 28px;
-    line-height: 1.12;
+    font-size: 25px;
+    line-height: 1.08;
   }
 
   .test-header .muted {
-    line-height: 1.62;
+    font-size: 13px;
+    line-height: 1.35;
   }
 
   .element-inline-hint {
-    font-size: 14px;
+    font-size: 13px;
   }
 
   .progress-card {
-    margin-top: 2px;
+    gap: 6px;
+    margin-top: 0;
+  }
+
+  .question-progress {
+    gap: 6px;
+    padding: 10px 12px;
+  }
+
+  .progress-meta {
+    font-size: 13px;
+  }
+
+  .progress-track {
+    height: 6px;
+  }
+
+  .step-strip {
+    gap: 6px;
+    padding-bottom: 4px;
+  }
+
+  .step-pill {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
+
+  .birth-panel {
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .birth-panel h2 {
+    margin-bottom: 6px;
+    font-size: 21px;
+    line-height: 1.18;
   }
 
   .birth-panel-head {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
   }
 
   .match-mode-banner {
@@ -1390,15 +1549,129 @@ function goToStep(index: number) {
   }
 
   .birth-status {
-    min-width: 0;
+    min-width: 112px;
+    padding: 8px 10px;
+  }
+
+  .birth-status span {
+    font-size: 11px;
+  }
+
+  .birth-status strong {
+    font-size: 13px;
+    line-height: 1.2;
+  }
+
+  .input-stack {
+    gap: 14px;
+  }
+
+  .field-block {
+    gap: 8px;
+  }
+
+  .field-head {
+    font-size: 14px;
+  }
+
+  .year-picker {
+    gap: 9px;
+    padding: 12px;
+  }
+
+  .year-display {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .year-display span {
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .year-display strong {
-    font-size: 36px;
+    font-size: 30px;
+  }
+
+  .year-control-row {
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    gap: 8px;
+  }
+
+  .year-step-button,
+  .year-manual-input {
+    min-height: 44px;
+  }
+
+  .year-step-button {
+    min-width: 44px;
+    font-size: 13px;
+  }
+
+  .year-manual-input {
+    font-size: 16px;
+  }
+
+  .year-range {
+    min-height: 44px;
+    height: 44px;
+  }
+
+  .year-range::-webkit-slider-runnable-track {
+    height: 6px;
+  }
+
+  .year-range::-webkit-slider-thumb {
+    width: 22px;
+    height: 22px;
+    margin-top: -8px;
+    border-width: 3px;
+  }
+
+  .year-range::-moz-range-track {
+    height: 6px;
+  }
+
+  .year-range::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-width: 3px;
+  }
+
+  .quick-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+    padding-bottom: 0;
+  }
+
+  .quick-chip {
+    min-height: 44px;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .choice-grid {
+    gap: 7px;
   }
 
   .month-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .choice-chip {
+    min-height: 58px;
+    padding: 8px 6px;
+  }
+
+  .choice-chip strong {
+    font-size: 15px;
+  }
+
+  .choice-chip span {
+    font-size: 11px;
   }
 
   .day-grid {
@@ -1423,24 +1696,22 @@ function goToStep(index: number) {
     min-width: 44px;
   }
 
-  .year-control-row {
-    grid-template-columns: 48px minmax(0, 1fr) 48px;
-  }
-
   .sticky-action {
+    position: fixed;
+    right: max(14px, calc((100vw - 660px) / 2 + 14px));
+    left: max(14px, calc((100vw - 660px) / 2 + 14px));
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    bottom: calc(8px + env(safe-area-inset-bottom));
-    gap: 7px;
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    gap: 6px;
     padding: 8px;
+    z-index: 30;
   }
 
   .sticky-action.birth-action {
-    display: none;
-  }
-
-  .birth-inline-action {
-    display: grid;
-    margin-top: 2px;
+    position: static;
+    bottom: auto;
+    grid-template-columns: 1fr;
+    margin-top: -2px;
   }
 
   .action-summary {
@@ -1448,14 +1719,19 @@ function goToStep(index: number) {
   }
 
   .primary-action-button {
-    order: 1;
+    order: 2;
     min-height: 44px;
-    font-size: 15px;
+    font-size: 14px;
   }
 
   .action-summary {
     order: 0;
-    min-height: 26px;
+    min-height: 24px;
+  }
+
+  .action-summary strong,
+  .sticky-action span {
+    font-size: 12px;
   }
 
   .action-detail {
@@ -1463,12 +1739,9 @@ function goToStep(index: number) {
   }
 
   .nav-button {
-    order: 2;
+    order: 1;
     min-height: 44px;
-  }
-
-  .sticky-action a {
-    order: initial;
+    font-size: 14px;
   }
 
   .sticky-action button {
@@ -1479,11 +1752,15 @@ function goToStep(index: number) {
     grid-column: 1 / -1;
   }
 
+  .sticky-action.birth-action .primary-action-button {
+    grid-column: 1 / -1;
+  }
+
 }
 
 @media (max-width: 430px) {
   .month-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .day-grid {
@@ -1491,12 +1768,12 @@ function goToStep(index: number) {
   }
 
   .month-chip {
-    min-height: 64px;
-    padding: 8px 5px;
+    min-height: 56px;
+    padding: 7px 4px;
   }
 
   .choice-chip strong {
-    font-size: 15px;
+    font-size: 14px;
   }
 
   .month-chip span {

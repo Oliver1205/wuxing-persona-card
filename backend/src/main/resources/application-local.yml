@@ -29,6 +29,8 @@ app:
   base-url: ${APP_BASE_URL:http://127.0.0.1:5175}
   admin-token: ${ADMIN_TOKEN:dev-token}
   hash-salt: ${HASH_SALT:dev-salt}
+  cache:
+    redis-enabled: false
   short-link:
     mode: ${SHORT_LINK_MODE:internal}
     last-visit-touch-interval-seconds: ${SHORT_LINK_LAST_VISIT_TOUCH_INTERVAL_SECONDS:30}
@@ -53,3 +55,7 @@ app:
       publish-timeout-millis: ${VISIT_EVENT_ROCKETMQ_PUBLISH_TIMEOUT_MILLIS:1000}
       fallback-to-local: ${VISIT_EVENT_ROCKETMQ_FALLBACK_TO_LOCAL:true}
       consumer-enabled: ${VISIT_EVENT_ROCKETMQ_CONSUMER_ENABLED:false}
+  analytics:
+    enabled: ${ANALYTICS_ENABLED:true}
+    heartbeat-interval-millis: ${ANALYTICS_HEARTBEAT_INTERVAL:30000}
+    online-window-millis: ${ANALYTICS_ONLINE_WINDOW:120000}

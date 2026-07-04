@@ -8,13 +8,22 @@ import {
   fetchExternalShortLinkRuntime,
   fetchVisitEventRuntime,
 } from '../api/admin';
+import {
+  fetchMetricTimeseries,
+  fetchRealtimeMetrics,
+  fetchRecentMetricEvents,
+} from '../api/analytics';
 import type { AdminDateFilter } from '../api/admin';
 import { useRoute } from 'vue-router';
 import type {
   AdminOverview,
   AnalyticsAggregation,
   ExternalShortLinkRuntime,
+  MetricTimeseries,
+  MetricTimeseriesPoint,
   PageResult,
+  RealtimeMetrics,
+  RecentMetricEvent,
   ShortLinkListItem,
   VisitEventRuntime,
 } from '../api/types';
@@ -22,6 +31,9 @@ import StatCard from '../components/StatCard.vue';
 
 type ActionTone = 'good' | 'watch' | 'danger' | 'cold';
 type MobileReportGroupKey = 'core' | 'trend' | 'attribution';
+type MonitorRangeKey = '1h' | '24h' | '7d' | '30d';
+type MonitorMetricKey = 'onlineVisitors' | 'pv' | 'uv' | 'resultGenerated' | 'shareClicks';
+type DashboardPageKey = 'monitor' | 'overview' | 'trend' | 'attribution';
 
 interface ActionItem {
   level: string;
@@ -59,6 +71,14 @@ interface EvidenceItem {
   tone: ActionTone;
 }
 
+interface DashboardPageItem {
+  key: DashboardPageKey;
+  index: string;
+  label: string;
+  title: string;
+  note: string;
+}
+
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const quickDateRanges = [
   { label: '今日', days: 1 },
@@ -67,6 +87,19 @@ const quickDateRanges = [
   { label: '全部', days: null },
 ];
 const pageSizeOptions = [10, 20, 50];
+const monitorRanges: Array<{ label: string; value: MonitorRangeKey }> = [
+  { label: '1 小时', value: '1h' },
+  { label: '24 小时', value: '24h' },
+  { label: '7 天', value: '7d' },
+  { label: '30 天', value: '30d' },
+];
+const monitorMetricOptions: Array<{ label: string; value: MonitorMetricKey; color: string }> = [
+  { label: '在线用户', value: 'onlineVisitors', color: '#2f6f5e' },
+  { label: 'PV', value: 'pv', color: '#276b9a' },
+  { label: 'UV', value: 'uv', color: '#6d7d32' },
+  { label: '结果生成', value: 'resultGenerated', color: '#b65f35' },
+  { label: '分享点击', value: 'shareClicks', color: '#8b6b3d' },
+];
 
 const route = useRoute();
 const token = ref(localStorage.getItem('wuxing_admin_token') || '');
@@ -83,7 +116,14 @@ const shortLinks = ref<PageResult<ShortLinkListItem> | null>(null);
 const runtime = ref<ExternalShortLinkRuntime | null>(null);
 const visitEventRuntime = ref<VisitEventRuntime | null>(null);
 const aggregation = ref<AnalyticsAggregation | null>(null);
+const realtimeMetrics = ref<RealtimeMetrics | null>(null);
+const metricTimeseries = ref<MetricTimeseries | null>(null);
+const recentMetricEvents = ref<RecentMetricEvent[]>([]);
+const monitorRange = ref<MonitorRangeKey>('1h');
+const monitorMetric = ref<MonitorMetricKey>('onlineVisitors');
+const activeDashboardPage = ref<DashboardPageKey>('monitor');
 const error = ref('');
+const monitorWarning = ref('');
 const runtimeWarning = ref('');
 const visitEventRuntimeWarning = ref('');
 const loading = ref(false);
@@ -92,7 +132,7 @@ const visitEventRuntimeChecking = ref(false);
 const exporting = ref(false);
 const aggregating = ref(false);
 const briefingCopied = ref(false);
-const mobileReportOpen = ref(false);
+const mobileReportOpen = ref(true);
 const compactReportGroups = ref(false);
 const mobileReportGroups = ref<Record<MobileReportGroupKey, boolean>>({
   core: true,
@@ -103,7 +143,129 @@ const lastLoadedAt = ref('');
 let runtimeRequestSeq = 0;
 let visitEventRuntimeRequestSeq = 0;
 let compactReportMedia: MediaQueryList | null = null;
+let realtimeTimer: number | undefined;
+let timeseriesTimer: number | undefined;
 const busy = computed(() => loading.value || exporting.value || aggregating.value);
+const monitorCards = computed(() => {
+  const data = realtimeMetrics.value;
+  return [
+    {
+      label: '当前在线用户',
+      value: formatNumber(data?.currentOnlineVisitors ?? 0),
+      unit: '人',
+      note: data ? `${data.onlineWindowSeconds}s 窗口 · 匿名访客去重` : '等待在线心跳',
+      tone: 'online',
+    },
+    {
+      label: '当前在线会话',
+      value: formatNumber(data?.currentOnlineSessions ?? 0),
+      unit: '个',
+      note: data ? `${data.heartbeatIntervalSeconds}s 心跳` : '等待会话',
+      tone: 'session',
+    },
+    {
+      label: '今日 PV',
+      value: formatNumber(data?.todayPv ?? 0),
+      unit: '次',
+      note: '访问与关键事件总量',
+      tone: 'pv',
+    },
+    {
+      label: '今日 UV',
+      value: formatNumber(data?.todayUv ?? 0),
+      unit: '人',
+      note: '匿名 clientId 去重',
+      tone: 'uv',
+    },
+    {
+      label: '今日结果生成',
+      value: formatNumber(data?.todayResults ?? 0),
+      unit: '次',
+      note: '结果页成功生成',
+      tone: 'result',
+    },
+    {
+      label: '今日分享点击',
+      value: formatNumber(data?.todayShareClicks ?? 0),
+      unit: '次',
+      note: '保存图 / 分享 / 复制',
+      tone: 'share',
+    },
+    {
+      label: '今日匹配入口',
+      value: formatNumber(data?.todayMatchEnters ?? 0),
+      unit: '次',
+      note: '短码匹配相关动作',
+      tone: 'match',
+    },
+  ];
+});
+const selectedMonitorMetric = computed(() => monitorMetricOptions.find((item) => item.value === monitorMetric.value) ?? monitorMetricOptions[0]);
+const monitorChartPoints = computed(() => {
+  const points = metricTimeseries.value?.points ?? [];
+  return points.map((point) => ({
+    time: point.time,
+    value: metricValue(point, monitorMetric.value),
+  }));
+});
+const monitorChartMax = computed(() => Math.max(1, ...monitorChartPoints.value.map((point) => point.value)));
+const monitorChartPath = computed(() => buildChartPath(monitorChartPoints.value, monitorChartMax.value));
+const monitorChartAreaPath = computed(() => {
+  const path = monitorChartPath.value;
+  if (!path) {
+    return '';
+  }
+  return `${path} L 100 100 L 0 100 Z`;
+});
+const monitorLatestPoint = computed(() => monitorChartPoints.value[monitorChartPoints.value.length - 1]);
+const monitorHasData = computed(() => monitorChartPoints.value.some((point) => point.value > 0));
+const dashboardPages = computed<DashboardPageItem[]>(() => {
+  const data = overview.value;
+  const realtime = realtimeMetrics.value;
+  return [
+    {
+      key: 'monitor',
+      index: '01',
+      label: '实时监控',
+      title: '在线与事件',
+      note: realtime
+        ? `在线 ${formatNumber(realtime.currentOnlineVisitors)} 人 · 今日 PV ${formatNumber(realtime.todayPv)}`
+        : '在线、心跳、事件流',
+    },
+    {
+      key: 'overview',
+      index: '02',
+      label: '核心概览',
+      title: '转化与判断',
+      note: data
+        ? `完成率 ${rateLabel(data.completionRate, { compact: true })} · 结果 ${formatNumber(data.resultCreated)}`
+        : '指标、风险、复盘',
+    },
+    {
+      key: 'trend',
+      index: '03',
+      label: '趋势运行',
+      title: '趋势与漏斗',
+      note: data
+        ? `${data.dailyTrends.length} 天趋势 · ${data.funnelSteps.length} 个漏斗节点`
+        : '趋势、漏斗、运行态',
+    },
+    {
+      key: 'attribution',
+      index: '04',
+      label: '归因短链',
+      title: '来源与明细',
+      note: data
+        ? `${data.topChannels.length} 个渠道 · ${formatNumber(shortLinks.value?.total ?? 0)} 条短链`
+        : '渠道、人格、短链',
+    },
+  ];
+});
+const activeDashboardPageIndex = computed(() => {
+  const index = dashboardPages.value.findIndex((item) => item.key === activeDashboardPage.value);
+  return index >= 0 ? index : 0;
+});
+const activeDashboardPageItem = computed(() => dashboardPages.value[activeDashboardPageIndex.value] ?? dashboardPages.value[0]);
 const dailyTrendMax = computed(() => {
   const rows = overview.value?.dailyTrends ?? [];
   return Math.max(1, ...rows.flatMap((item) => [item.pv, item.resultCreated, item.shortLinkVisits]));
@@ -626,6 +788,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   compactReportMedia?.removeEventListener('change', syncCompactReportMode);
+  stopMonitoringAutoRefresh();
 });
 
 function setupCompactReportGroups() {
@@ -678,6 +841,33 @@ function setMobileReportGroup(key: MobileReportGroupKey, open: boolean) {
   };
 }
 
+function setDashboardPage(key: DashboardPageKey) {
+  if (activeDashboardPage.value === key) {
+    return;
+  }
+  activeDashboardPage.value = key;
+  void nextTick(() => resetAdminHorizontalScroll());
+}
+
+function goDashboardPage(offset: number) {
+  const pages = dashboardPages.value;
+  const nextIndex = Math.min(Math.max(activeDashboardPageIndex.value + offset, 0), pages.length - 1);
+  const nextPage = pages[nextIndex];
+  if (nextPage) {
+    setDashboardPage(nextPage.key);
+  }
+}
+
+function pageForEvidence(evidenceId: string): DashboardPageKey {
+  if (evidenceId === 'trend-section' || evidenceId === 'funnel-section' || evidenceId === 'runtime-section' || evidenceId === 'external-shortlink-section') {
+    return 'trend';
+  }
+  if (evidenceId === 'attribution-section' || evidenceId === 'shortlink-section') {
+    return 'attribution';
+  }
+  return 'overview';
+}
+
 async function load(forceRefresh = false) {
   if (busy.value) {
     return;
@@ -703,6 +893,8 @@ async function load(forceRefresh = false) {
     shortLinks.value = normalizeShortLinks(shortLinkData);
     comparisonOverview.value = await fetchComparisonOverview();
     lastLoadedAt.value = formatClock(new Date());
+    await loadMonitoring(adminToken);
+    startMonitoringAutoRefresh();
   } catch (err) {
     const message = err instanceof Error ? err.message : '后台数据加载失败';
     const invalidToken = message.includes('admin token is invalid');
@@ -724,6 +916,12 @@ async function load(forceRefresh = false) {
 
 async function locateEvidence(event: MouseEvent, evidenceId: string) {
   event.preventDefault();
+  await openEvidence(evidenceId);
+}
+
+async function openEvidence(evidenceId: string) {
+  activeDashboardPage.value = pageForEvidence(evidenceId);
+  await nextTick();
   const target = document.getElementById(evidenceId);
   if (target?.closest('.mobile-report-content')) {
     mobileReportOpen.value = true;
@@ -788,6 +986,11 @@ function resetAdminData() {
   runtime.value = null;
   visitEventRuntime.value = null;
   aggregation.value = null;
+  realtimeMetrics.value = null;
+  metricTimeseries.value = null;
+  recentMetricEvents.value = [];
+  monitorWarning.value = '';
+  stopMonitoringAutoRefresh();
   runtimeChecking.value = false;
   visitEventRuntimeChecking.value = false;
   runtimeWarning.value = '';
@@ -1279,6 +1482,151 @@ async function resetAdminHorizontalScroll() {
     }
   });
 }
+
+async function loadMonitoring(adminToken = token.value.trim()) {
+  if (!adminToken) {
+    return;
+  }
+  monitorWarning.value = '';
+  try {
+    await Promise.all([
+      refreshRealtimeMetrics(adminToken),
+      refreshMetricTimeseries(adminToken),
+      refreshRecentMetricEvents(adminToken),
+    ]);
+  } catch {
+    monitorWarning.value = '实时监控暂不可用，不影响原有运营报表。';
+  }
+}
+
+async function refreshRealtimeMetrics(adminToken = token.value.trim()) {
+  if (!adminToken) {
+    return;
+  }
+  try {
+    realtimeMetrics.value = await fetchRealtimeMetrics(adminToken);
+  } catch (err) {
+    monitorWarning.value = err instanceof Error ? `实时指标加载失败：${err.message}` : '实时指标加载失败';
+  }
+}
+
+async function refreshMetricTimeseries(adminToken = token.value.trim()) {
+  if (!adminToken) {
+    return;
+  }
+  try {
+    metricTimeseries.value = await fetchMetricTimeseries(adminToken, monitorRange.value);
+  } catch (err) {
+    monitorWarning.value = err instanceof Error ? `趋势曲线加载失败：${err.message}` : '趋势曲线加载失败';
+  }
+}
+
+async function refreshRecentMetricEvents(adminToken = token.value.trim()) {
+  if (!adminToken) {
+    return;
+  }
+  try {
+    recentMetricEvents.value = await fetchRecentMetricEvents(adminToken, '24h');
+  } catch (err) {
+    monitorWarning.value = err instanceof Error ? `事件流加载失败：${err.message}` : '事件流加载失败';
+  }
+}
+
+function startMonitoringAutoRefresh() {
+  if (typeof window === 'undefined' || !token.value.trim()) {
+    return;
+  }
+  stopMonitoringAutoRefresh();
+  realtimeTimer = window.setInterval(() => {
+    void refreshRealtimeMetrics();
+    void refreshRecentMetricEvents();
+  }, 15000);
+  timeseriesTimer = window.setInterval(() => {
+    void refreshMetricTimeseries();
+  }, 60000);
+}
+
+function stopMonitoringAutoRefresh() {
+  if (realtimeTimer) {
+    window.clearInterval(realtimeTimer);
+    realtimeTimer = undefined;
+  }
+  if (timeseriesTimer) {
+    window.clearInterval(timeseriesTimer);
+    timeseriesTimer = undefined;
+  }
+}
+
+function changeMonitorRange(range: MonitorRangeKey) {
+  if (monitorRange.value === range) {
+    return;
+  }
+  monitorRange.value = range;
+  void refreshMetricTimeseries();
+}
+
+function metricValue(point: MetricTimeseriesPoint, metric: MonitorMetricKey) {
+  switch (metric) {
+    case 'pv':
+      return point.pv ?? 0;
+    case 'uv':
+      return point.uv ?? 0;
+    case 'resultGenerated':
+      return point.resultGenerated ?? 0;
+    case 'shareClicks':
+      return point.shareClicks ?? 0;
+    default:
+      return point.onlineVisitors ?? 0;
+  }
+}
+
+function buildChartPath(points: Array<{ time: string; value: number }>, max: number) {
+  if (!points.length) {
+    return '';
+  }
+  const denominator = Math.max(1, points.length - 1);
+  return points
+    .map((point, index) => {
+      const x = Math.round((index / denominator) * 1000) / 10;
+      const y = Math.round((100 - (point.value / Math.max(1, max)) * 88) * 10) / 10;
+      return `${index === 0 ? 'M' : 'L'} ${x} ${Math.min(100, Math.max(6, y))}`;
+    })
+    .join(' ');
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat('zh-CN').format(value);
+}
+
+function formatMonitorTime(value: string | null | undefined) {
+  if (!value) {
+    return '-';
+  }
+  return value.replace('T', ' ').slice(5, 16);
+}
+
+function metricEventLabel(eventType: string) {
+  const normalized = eventType.toUpperCase();
+  if (normalized === 'PAGE_VIEW') {
+    return '访问页面';
+  }
+  if (normalized === 'SESSION_START') {
+    return '进入会话';
+  }
+  if (normalized === 'SESSION_END') {
+    return '离开会话';
+  }
+  if (normalized === 'RESULT_GENERATED' || normalized === 'RESULT_CREATED') {
+    return '生成结果';
+  }
+  if (normalized.includes('SHARE') || normalized.includes('COPY') || normalized.includes('SAVE_SHARE')) {
+    return '分享动作';
+  }
+  if (normalized.includes('MATCH')) {
+    return '匹配入口';
+  }
+  return normalized;
+}
 </script>
 
 <template>
@@ -1365,7 +1713,146 @@ async function resetAdminHorizontalScroll() {
       </div>
 
       <template v-if="overview">
-        <div class="focus-grid" aria-label="运营核心观察">
+        <nav class="panel dashboard-page-nav" aria-label="数据中台板块分页">
+          <button
+            v-for="item in dashboardPages"
+            :key="item.key"
+            type="button"
+            :class="{ active: activeDashboardPage === item.key }"
+            @click="setDashboardPage(item.key)"
+          >
+            <span>{{ item.index }}</span>
+            <strong>{{ item.label }}</strong>
+            <small>{{ item.note }}</small>
+          </button>
+        </nav>
+
+        <section
+          v-show="activeDashboardPage === 'monitor'"
+          class="panel stack monitor-console"
+          data-testid="admin-monitor-console"
+          aria-label="实时数据监控中台"
+        >
+          <div class="monitor-header">
+            <div>
+              <p class="eyebrow">实时监控</p>
+              <h2>数据监控中台</h2>
+              <p class="muted">实时查看在线、访问、生成、分享与匹配入口；匿名统计，不记录出生信息。</p>
+            </div>
+            <div class="monitor-actions">
+              <span class="live-pill"><i></i>自动刷新 15s</span>
+              <button class="secondary" type="button" :disabled="busy" @click="loadMonitoring()">
+                刷新监控
+              </button>
+            </div>
+          </div>
+
+          <p v-if="monitorWarning" class="monitor-warning" role="status">{{ monitorWarning }}</p>
+
+          <div class="monitor-kpi-grid" aria-label="实时核心指标">
+            <article
+              v-for="item in monitorCards"
+              :key="item.label"
+              class="monitor-kpi-card"
+              :class="`monitor-${item.tone}`"
+            >
+              <span>{{ item.label }}</span>
+              <div>
+                <strong>{{ item.value }}</strong>
+                <em>{{ item.unit }}</em>
+              </div>
+              <small>{{ item.note }}</small>
+            </article>
+          </div>
+
+          <div class="monitor-chart-layout">
+            <section class="monitor-chart-panel" aria-label="在线用户趋势曲线">
+              <div class="monitor-chart-head">
+                <div>
+                  <h3>{{ selectedMonitorMetric.label }}趋势</h3>
+                  <p>
+                    {{ metricTimeseries ? `粒度 ${metricTimeseries.intervalSeconds}s` : '等待样本' }}
+                    <span v-if="monitorLatestPoint"> · 最新 {{ monitorLatestPoint.value }}</span>
+                  </p>
+                </div>
+                <div class="monitor-range-tabs" aria-label="趋势时间范围">
+                  <button
+                    v-for="item in monitorRanges"
+                    :key="item.value"
+                    type="button"
+                    :class="{ active: monitorRange === item.value }"
+                    :disabled="busy"
+                    @click="changeMonitorRange(item.value)"
+                  >
+                    {{ item.label }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="monitor-metric-tabs" aria-label="趋势指标切换">
+                <button
+                  v-for="item in monitorMetricOptions"
+                  :key="item.value"
+                  type="button"
+                  :class="{ active: monitorMetric === item.value }"
+                  :style="{ '--metric-color': item.color }"
+                  @click="monitorMetric = item.value"
+                >
+                  <i></i>{{ item.label }}
+                </button>
+              </div>
+
+              <div class="monitor-chart-box" :class="{ empty: !monitorHasData }" :style="{ color: selectedMonitorMetric.color }">
+                <svg v-if="monitorChartPath" class="monitor-chart-svg" viewBox="0 0 100 100" preserveAspectRatio="none" role="img">
+                  <defs>
+                    <linearGradient id="monitorAreaGradient" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stop-color="currentColor" stop-opacity="0.22" />
+                      <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
+                    </linearGradient>
+                  </defs>
+                  <path class="monitor-chart-area" :d="monitorChartAreaPath" />
+                  <path class="monitor-chart-line" :d="monitorChartPath" />
+                  <circle
+                    v-for="(point, index) in monitorChartPoints"
+                    :key="`${point.time}-${index}`"
+                    class="monitor-chart-dot"
+                    :cx="monitorChartPoints.length === 1 ? 0 : (index / (monitorChartPoints.length - 1)) * 100"
+                    :cy="Math.min(100, Math.max(6, 100 - (point.value / monitorChartMax) * 88))"
+                    r="1.35"
+                  >
+                    <title>{{ formatMonitorTime(point.time) }} · {{ selectedMonitorMetric.label }} {{ point.value }}</title>
+                  </circle>
+                </svg>
+                <div class="monitor-axis">
+                  <span>{{ formatMonitorTime(monitorChartPoints[0]?.time) }}</span>
+                  <span>{{ selectedMonitorMetric.label }}</span>
+                  <span>{{ formatMonitorTime(monitorChartPoints[monitorChartPoints.length - 1]?.time) }}</span>
+                </div>
+                <p v-if="!monitorHasData" class="monitor-empty">暂无趋势样本，等待用户访问和 heartbeat 后生成曲线。</p>
+              </div>
+            </section>
+
+            <aside class="monitor-event-stream" aria-label="最近事件流">
+              <div class="monitor-event-head">
+                <div>
+                  <h3>实时事件流</h3>
+                  <p>最近 24 小时关键访问事件</p>
+                </div>
+                <span>{{ recentMetricEvents.length }} 条</span>
+              </div>
+              <div v-if="recentMetricEvents.length" class="monitor-event-list">
+                <article v-for="(item, index) in recentMetricEvents" :key="`${item.eventType}-${item.occurredAt}-${index}`">
+                  <span>{{ metricEventLabel(item.eventType) }}</span>
+                  <strong>{{ item.pagePath || '/' }}</strong>
+                  <small>{{ item.deviceType || 'unknown' }} · {{ formatMonitorTime(item.occurredAt) }}</small>
+                </article>
+              </div>
+              <p v-else class="monitor-empty">暂无事件流，后台会在访问产生后自动刷新。</p>
+            </aside>
+          </div>
+        </section>
+
+        <div v-show="activeDashboardPage === 'overview'" class="focus-grid" aria-label="运营核心观察">
           <article
             v-for="item in focusMetrics"
             :key="item.label"
@@ -1378,21 +1865,23 @@ async function resetAdminHorizontalScroll() {
           </article>
         </div>
 
-        <nav v-if="evidenceIndex.length" class="panel evidence-nav" aria-label="证据索引">
-          <a
+        <nav v-show="activeDashboardPage === 'overview'" v-if="evidenceIndex.length" class="panel evidence-nav" aria-label="证据索引">
+          <button
             v-for="item in evidenceIndex"
             :key="item.id"
             class="evidence-link"
             :class="`tone-${item.tone}`"
-            :href="`#${item.id}`"
+            type="button"
+            @click="openEvidence(item.id)"
           >
             <span>{{ item.label }}</span>
             <strong>{{ item.value }}</strong>
             <small>{{ item.note }}</small>
-          </a>
+          </button>
         </nav>
 
         <div
+          v-show="activeDashboardPage === 'overview'"
           v-if="syntheticImpact"
           id="synthetic-section"
           class="impact-band"
@@ -1418,7 +1907,7 @@ async function resetAdminHorizontalScroll() {
           </div>
         </div>
 
-        <section class="panel stack action-panel" aria-label="风险与行动建议">
+        <section v-show="activeDashboardPage === 'overview'" class="panel stack action-panel" aria-label="风险与行动建议">
           <div class="section-head">
             <div>
               <h2>风险与行动建议</h2>
@@ -1448,7 +1937,7 @@ async function resetAdminHorizontalScroll() {
           </div>
         </section>
 
-        <section v-if="operationBriefing" class="panel stack briefing-panel" aria-label="复盘摘要">
+        <section v-show="activeDashboardPage === 'overview'" v-if="operationBriefing" class="panel stack briefing-panel" aria-label="复盘摘要">
           <div class="section-head">
             <div>
               <h2>复盘摘要</h2>
@@ -1463,7 +1952,7 @@ async function resetAdminHorizontalScroll() {
           </div>
         </section>
 
-        <div class="mobile-report-shell" :class="{ open: mobileReportOpen }">
+        <div v-show="activeDashboardPage !== 'monitor'" class="mobile-report-shell" :class="{ open: mobileReportOpen }">
           <div class="mobile-report-gate" aria-label="详细报表折叠入口">
             <div>
               <span>详细报表</span>
@@ -1482,9 +1971,10 @@ async function resetAdminHorizontalScroll() {
           </div>
           <div class="mobile-report-content">
             <details
+              v-show="activeDashboardPage === 'overview'"
               class="mobile-report-group"
               data-report-group="core"
-              :open="reportGroupOpen('core')"
+              :open="activeDashboardPage === 'overview' || reportGroupOpen('core')"
             >
               <summary data-testid="admin-mobile-report-group-core" @click.prevent="toggleMobileReportGroup('core')">
                 <span>指标与链路</span>
@@ -1582,9 +2072,10 @@ async function resetAdminHorizontalScroll() {
             </details>
 
             <details
+              v-show="activeDashboardPage === 'trend'"
               class="mobile-report-group"
               data-report-group="trend"
-              :open="reportGroupOpen('trend')"
+              :open="activeDashboardPage === 'trend' || reportGroupOpen('trend')"
             >
               <summary data-testid="admin-mobile-report-group-trend" @click.prevent="toggleMobileReportGroup('trend')">
                 <span>趋势与运行态</span>
@@ -1798,9 +2289,10 @@ async function resetAdminHorizontalScroll() {
             </details>
 
             <details
+              v-show="activeDashboardPage === 'attribution'"
               class="mobile-report-group"
               data-report-group="attribution"
-              :open="reportGroupOpen('attribution')"
+              :open="activeDashboardPage === 'attribution' || reportGroupOpen('attribution')"
             >
               <summary data-testid="admin-mobile-report-group-attribution" @click.prevent="toggleMobileReportGroup('attribution')">
                 <span>归因与短链</span>
@@ -2107,6 +2599,23 @@ async function resetAdminHorizontalScroll() {
             </details>
           </div>
         </div>
+        <div class="panel dashboard-page-footer" aria-label="数据中台板块翻页">
+          <button class="secondary" type="button" :disabled="activeDashboardPageIndex <= 0" @click="goDashboardPage(-1)">
+            上一板块
+          </button>
+          <span>
+            第 {{ activeDashboardPageIndex + 1 }} / {{ dashboardPages.length }} 页 ·
+            {{ activeDashboardPageItem?.label }}
+          </span>
+          <button
+            class="secondary"
+            type="button"
+            :disabled="activeDashboardPageIndex >= dashboardPages.length - 1"
+            @click="goDashboardPage(1)"
+          >
+            下一板块
+          </button>
+        </div>
       </template>
     </section>
   </main>
@@ -2298,6 +2807,463 @@ async function resetAdminHorizontalScroll() {
 
 .focus-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.dashboard-page-nav {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 250, 0.94)),
+    linear-gradient(90deg, rgba(47, 111, 94, 0.05), rgba(39, 107, 154, 0.05));
+}
+
+.dashboard-page-nav button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 10px;
+  align-items: center;
+  min-height: 86px;
+  border: 1px solid rgba(36, 48, 47, 0.08);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #40514e;
+  text-align: left;
+  box-shadow: 0 8px 20px rgba(37, 48, 47, 0.04);
+}
+
+.dashboard-page-nav button:hover {
+  transform: translateY(-1px);
+}
+
+.dashboard-page-nav button.active {
+  border-color: rgba(47, 111, 94, 0.24);
+  background: linear-gradient(180deg, #ffffff, #edf7f2);
+  color: #2f6f5e;
+  box-shadow: 0 14px 28px rgba(47, 111, 94, 0.1);
+}
+
+.dashboard-page-nav span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: rgba(47, 111, 94, 0.08);
+  color: #2f6f5e;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.dashboard-page-nav strong,
+.dashboard-page-nav small {
+  display: block;
+  min-width: 0;
+}
+
+.dashboard-page-nav strong {
+  color: #24302f;
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.dashboard-page-nav small {
+  grid-column: 2;
+  overflow: hidden;
+  color: #6a7774;
+  font-size: 11px;
+  font-weight: 820;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-page-footer {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.dashboard-page-footer span {
+  color: #596764;
+  font-size: 13px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.monitor-console {
+  overflow: hidden;
+  border-color: rgba(42, 84, 100, 0.14);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 249, 249, 0.94)),
+    linear-gradient(120deg, rgba(39, 107, 154, 0.08), rgba(47, 111, 94, 0.07) 48%, rgba(215, 155, 67, 0.06));
+}
+
+.monitor-header,
+.monitor-chart-head,
+.monitor-event-head,
+.monitor-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.monitor-header h2 {
+  margin: 0;
+  color: #24302f;
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+.monitor-actions {
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.live-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  border: 1px solid rgba(47, 111, 94, 0.16);
+  border-radius: 999px;
+  padding: 0 12px;
+  background: #edf7f2;
+  color: #2f6f5e;
+  font-size: 12px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.live-pill i {
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 999px;
+  background: #31a36f;
+  box-shadow: 0 0 0 5px rgba(49, 163, 111, 0.12);
+}
+
+.monitor-warning {
+  margin: 0;
+  border: 1px solid rgba(215, 155, 67, 0.22);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fff7e8;
+  color: #8a5f18;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.monitor-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.monitor-kpi-card {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 8px;
+  min-height: 124px;
+  border: 1px solid rgba(36, 48, 47, 0.09);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 24px rgba(38, 55, 62, 0.06);
+}
+
+.monitor-kpi-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: #2f6f5e;
+}
+
+.monitor-kpi-card span {
+  color: #596764;
+  font-size: 12px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.monitor-kpi-card div {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.monitor-kpi-card strong {
+  overflow: hidden;
+  color: #24302f;
+  font-size: 28px;
+  font-weight: 950;
+  line-height: 1;
+  text-overflow: ellipsis;
+}
+
+.monitor-kpi-card em {
+  color: #6a7774;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.monitor-kpi-card small {
+  color: #6a7774;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.monitor-online::before {
+  background: #2f6f5e;
+}
+
+.monitor-session::before {
+  background: #3c7d8c;
+}
+
+.monitor-pv::before {
+  background: #276b9a;
+}
+
+.monitor-uv::before {
+  background: #6d7d32;
+}
+
+.monitor-result::before {
+  background: #b65f35;
+}
+
+.monitor-share::before {
+  background: #8b6b3d;
+}
+
+.monitor-match::before {
+  background: #8b6b95;
+}
+
+.monitor-chart-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.32fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.monitor-chart-panel,
+.monitor-event-stream {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(36, 48, 47, 0.08);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 12px 28px rgba(38, 55, 62, 0.06);
+}
+
+.monitor-chart-head h3,
+.monitor-event-head h3 {
+  margin: 0;
+  color: #24302f;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.monitor-chart-head p,
+.monitor-event-head p {
+  margin: 5px 0 0;
+  color: #6a7774;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.monitor-event-head span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  border-radius: 999px;
+  padding: 0 10px;
+  background: rgba(39, 107, 154, 0.1);
+  color: #276b9a;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.monitor-range-tabs,
+.monitor-metric-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.monitor-range-tabs button,
+.monitor-metric-tabs button {
+  min-height: 34px;
+  border: 1px solid rgba(36, 48, 47, 0.1);
+  border-radius: 8px;
+  padding: 0 11px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #596764;
+  font-size: 12px;
+  font-weight: 950;
+  box-shadow: none;
+}
+
+.monitor-range-tabs button.active {
+  border-color: rgba(39, 107, 154, 0.24);
+  background: #eef6fb;
+  color: #276b9a;
+}
+
+.monitor-metric-tabs {
+  justify-content: flex-start;
+}
+
+.monitor-metric-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.monitor-metric-tabs i {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--metric-color);
+}
+
+.monitor-metric-tabs button.active {
+  border-color: color-mix(in srgb, var(--metric-color), transparent 70%);
+  background: color-mix(in srgb, var(--metric-color), #fff 90%);
+  color: var(--metric-color);
+}
+
+.monitor-chart-box {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  min-height: 286px;
+  border: 1px solid rgba(36, 48, 47, 0.08);
+  border-radius: 8px;
+  padding: 12px 12px 34px;
+  background:
+    linear-gradient(rgba(36, 48, 47, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(36, 48, 47, 0.04) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 251, 250, 0.72));
+  background-size: 100% 25%, 12.5% 100%, auto;
+}
+
+.monitor-chart-svg {
+  width: 100%;
+  height: 238px;
+  color: currentColor;
+}
+
+.monitor-chart-area {
+  fill: url('#monitorAreaGradient');
+  stroke: none;
+}
+
+.monitor-chart-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.monitor-chart-dot {
+  fill: #fff;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  opacity: 0.82;
+  vector-effect: non-scaling-stroke;
+}
+
+.monitor-chart-dot:hover {
+  opacity: 1;
+}
+
+.monitor-axis {
+  position: absolute;
+  inset: auto 12px 10px;
+  display: flex;
+  justify-content: space-between;
+  color: #7a8783;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.monitor-empty {
+  margin: 0;
+  color: #7a8783;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.monitor-chart-box .monitor-empty {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: min(360px, calc(100% - 40px));
+  transform: translate(-50%, -50%);
+  border: 1px dashed rgba(36, 48, 47, 0.16);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.76);
+  text-align: center;
+}
+
+.monitor-event-list {
+  display: grid;
+  gap: 8px;
+  max-height: 330px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.monitor-event-list article {
+  display: grid;
+  gap: 5px;
+  border: 1px solid rgba(36, 48, 47, 0.08);
+  border-radius: 8px;
+  padding: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 251, 0.82)),
+    #fff;
+}
+
+.monitor-event-list span {
+  color: #2f6f5e;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.monitor-event-list strong {
+  overflow: hidden;
+  color: #24302f;
+  font-size: 13px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.monitor-event-list small {
+  color: #6a7774;
+  font-size: 11px;
+  font-weight: 850;
 }
 
 .evidence-nav {
@@ -3406,6 +4372,10 @@ th {
   }
 
   .admin-hero,
+  .monitor-header,
+  .monitor-chart-head,
+  .monitor-chart-layout,
+  .monitor-event-head,
   .admin-token,
   .filter-bar,
   .impact-band,
@@ -3432,6 +4402,101 @@ th {
 
   .admin-state {
     justify-self: start;
+  }
+
+  .dashboard-page-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .dashboard-page-nav button {
+    min-height: 78px;
+    padding: 10px;
+  }
+
+  .dashboard-page-nav span {
+    width: 30px;
+    height: 30px;
+  }
+
+  .dashboard-page-nav strong {
+    font-size: 15px;
+  }
+
+  .dashboard-page-footer {
+    grid-template-columns: minmax(0, 1fr);
+    text-align: center;
+  }
+
+  .dashboard-page-footer button {
+    width: 100%;
+  }
+
+  .monitor-header,
+  .monitor-chart-head,
+  .monitor-event-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .monitor-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .monitor-header h2 {
+    font-size: 24px;
+    white-space: nowrap;
+  }
+
+  .monitor-header .muted {
+    max-width: 32em;
+    line-height: 1.55;
+  }
+
+  .live-pill,
+  .monitor-actions button {
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .monitor-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .monitor-kpi-card {
+    min-height: 104px;
+    padding: 12px;
+  }
+
+  .monitor-kpi-card strong {
+    font-size: 24px;
+  }
+
+  .monitor-chart-panel,
+  .monitor-event-stream {
+    padding: 12px;
+  }
+
+  .monitor-range-tabs,
+  .monitor-metric-tabs {
+    justify-content: flex-start;
+  }
+
+  .monitor-chart-box {
+    min-height: 230px;
+  }
+
+  .monitor-chart-svg {
+    height: 186px;
+  }
+
+  .monitor-event-list {
+    max-height: 240px;
   }
 
   .quick-range-bar,
@@ -3620,7 +4685,7 @@ th {
   }
 
   .mobile-report-gate {
-    display: flex;
+    display: none;
     gap: 12px;
     align-items: center;
     justify-content: space-between;
@@ -3831,6 +4896,7 @@ th {
 }
 
 @media (max-width: 430px) {
+  .monitor-kpi-grid,
   .ops-grid,
   .radar-grid,
   .journey-grid {

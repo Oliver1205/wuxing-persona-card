@@ -28,6 +28,11 @@ export interface CreateMatchRequest extends CreateResultRequest {
   partnerShortCode: string;
 }
 
+export interface GrowthAdvice {
+  title: string;
+  text: string;
+}
+
 export interface ResultDetail {
   resultId: string;
   primaryElement: string;
@@ -37,6 +42,24 @@ export interface ResultDetail {
   secondaryElementName: string;
   secondaryPercent: number;
   allElementScores: Record<string, number>;
+  personaTypeId: string;
+  accentElement: string;
+  accentElementName: string;
+  relationKind: 'dominant' | 'balanced' | '';
+  personaLabel: string;
+  starToneName: string;
+  starToneLabel: string;
+  structureTitle: string;
+  heroSummary: string;
+  identityLine: string;
+  starToneExplanation: string;
+  dayMasterText: string;
+  primarySecondaryText: string;
+  accentText: string;
+  heavenText: string;
+  humanText: string;
+  starOfficerText: string;
+  growthAdvice: GrowthAdvice[];
   starOfficerCode: string;
   starOfficerName: string;
   keywords: string[];
@@ -151,6 +174,46 @@ export interface VisitEventRuntime {
   rocketMqConsumerPersistenceReady: boolean;
   healthStatus: 'ok' | 'watch' | 'danger';
   healthMessage: string;
+}
+
+export interface RealtimeMetrics {
+  currentOnlineVisitors: number;
+  currentOnlineSessions: number;
+  todayPv: number;
+  todayUv: number;
+  todayResults: number;
+  todayShareClicks: number;
+  todayMatchEnters: number;
+  heartbeatIntervalSeconds: number;
+  onlineWindowSeconds: number;
+  refreshedAt: string;
+}
+
+export interface MetricTimeseriesPoint {
+  time: string;
+  onlineVisitors: number;
+  onlineSessions: number;
+  pv: number;
+  uv: number;
+  resultGenerated: number;
+  shareClicks: number;
+  matchEnters: number;
+}
+
+export interface MetricTimeseries {
+  range: string;
+  intervalSeconds: number;
+  generatedAt: string;
+  points: MetricTimeseriesPoint[];
+}
+
+export interface RecentMetricEvent {
+  eventType: string;
+  pagePath: string | null;
+  deviceType: string | null;
+  channel: string | null;
+  campaign: string | null;
+  occurredAt: string | null;
 }
 
 export interface DailyMetric {

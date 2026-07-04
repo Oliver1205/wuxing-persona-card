@@ -156,11 +156,12 @@ async function captureMobileFlow(page, viewport) {
   await expectVerticalOrder(page, [
     '.hero-title-group',
     '.hero-metrics',
-    '.actions',
+    '.hero-preview',
+    '.primary-action-row',
+    '.secondary-copy',
     '.manual-match-entry',
     '.manual-match-tools',
     '.notice',
-    '.hero-preview',
   ], `${viewport.name} home`);
   await page.screenshot({ path: screenshotPath(`${viewport.name}-01-home.png`), fullPage: true });
 
@@ -172,12 +173,12 @@ async function captureMobileFlow(page, viewport) {
 
   await page.getByTestId('birth-year-quick-2002').click();
   await page.getByTestId('birth-month-8').click();
-  await expect(page.getByTestId('birth-inline-primary-action')).toBeVisible();
-  await expect(page.getByTestId('birth-inline-primary-action')).toHaveText('进入第 1 题');
+  await expect(page.getByTestId('test-primary-action')).toBeVisible();
+  await expect(page.getByTestId('test-primary-action')).toHaveText('进入第 1 题');
   await expectNoControlTextOverflow(page, `${viewport.name} birth ready`);
   await expectMinimumTouchTargets(page, `${viewport.name} birth ready`);
   await page.screenshot({ path: screenshotPath(`${viewport.name}-02b-test-birth-ready.png`), fullPage: true });
-  await page.getByTestId('birth-inline-primary-action').click();
+  await page.getByTestId('test-primary-action').click();
   await expect(page.getByTestId('question-Q1-option-METAL')).toBeVisible();
   await expectNoControlTextOverflow(page, `${viewport.name} question`);
   await expectMinimumTouchTargets(page, `${viewport.name} question`);

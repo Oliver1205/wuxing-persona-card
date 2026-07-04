@@ -6,6 +6,8 @@ import com.wuxing.persona.vo.ResultDetailVO;
 import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -21,13 +23,25 @@ public class RedisCacheService {
 
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+    private final boolean redisEnabled;
 
     public RedisCacheService(StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
+        this(redisTemplate, objectMapper, true);
+    }
+
+    @Autowired
+    public RedisCacheService(StringRedisTemplate redisTemplate,
+                             ObjectMapper objectMapper,
+                             @Value("${app.cache.redis-enabled:true}") boolean redisEnabled) {
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
+        this.redisEnabled = redisEnabled;
     }
 
     public ResultDetailVO getResult(String resultId) {
+        if (!redisEnabled) {
+            return null;
+        }
         try {
             String json = redisTemplate.opsForValue().get(resultKey(resultId));
             if (json == null || json.isBlank()) {
@@ -41,6 +55,9 @@ public class RedisCacheService {
     }
 
     public void setResult(String resultId, ResultDetailVO result) {
+        if (!redisEnabled) {
+            return;
+        }
         try {
             redisTemplate.opsForValue().set(resultKey(resultId), objectMapper.writeValueAsString(result), RESULT_TTL);
         } catch (Exception ex) {
@@ -49,6 +66,9 @@ public class RedisCacheService {
     }
 
     public String getShortLinkResultId(String shortCode) {
+        if (!redisEnabled) {
+            return null;
+        }
         try {
             return redisTemplate.opsForValue().get(shortLinkKey(shortCode));
         } catch (Exception ex) {
@@ -58,6 +78,9 @@ public class RedisCacheService {
     }
 
     public void setShortLinkResultId(String shortCode, String resultId) {
+        if (!redisEnabled) {
+            return;
+        }
         try {
             redisTemplate.opsForValue().set(shortLinkKey(shortCode), resultId, SHORT_LINK_TTL);
         } catch (Exception ex) {
@@ -66,6 +89,9 @@ public class RedisCacheService {
     }
 
     public boolean isNullShortLink(String shortCode) {
+        if (!redisEnabled) {
+            return false;
+        }
         try {
             return Boolean.TRUE.equals(redisTemplate.hasKey(nullShortLinkKey(shortCode)));
         } catch (Exception ex) {
@@ -75,6 +101,9 @@ public class RedisCacheService {
     }
 
     public void setNullShortLink(String shortCode) {
+        if (!redisEnabled) {
+            return;
+        }
         try {
             redisTemplate.opsForValue().set(nullShortLinkKey(shortCode), "1", NULL_SHORT_LINK_TTL);
         } catch (Exception ex) {
@@ -83,6 +112,9 @@ public class RedisCacheService {
     }
 
     public AdminOverviewVO getAdminOverview(String rangeKey) {
+        if (!redisEnabled) {
+            return null;
+        }
         try {
             String json = redisTemplate.opsForValue().get(adminOverviewKey(rangeKey));
             if (json == null || json.isBlank()) {
@@ -96,6 +128,9 @@ public class RedisCacheService {
     }
 
     public void setAdminOverview(String rangeKey, AdminOverviewVO overview) {
+        if (!redisEnabled) {
+            return;
+        }
         try {
             redisTemplate.opsForValue().set(adminOverviewKey(rangeKey), objectMapper.writeValueAsString(overview), ADMIN_OVERVIEW_TTL);
         } catch (Exception ex) {
@@ -104,6 +139,9 @@ public class RedisCacheService {
     }
 
     public void evictAdminOverview() {
+        if (!redisEnabled) {
+            return;
+        }
         try {
             redisTemplate.opsForValue().increment(ADMIN_OVERVIEW_VERSION_KEY);
         } catch (Exception ex) {

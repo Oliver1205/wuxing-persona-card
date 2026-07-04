@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { fetchResult } from '../api/results';
 import type { ResultDetail } from '../api/types';
-import ElementSpectrum from '../components/ElementSpectrum.vue';
 import PersonaCard from '../components/PersonaCard.vue';
 import ShareLinkBox from '../components/ShareLinkBox.vue';
 import { downloadResultShareCard } from '../utils/shareCard';
@@ -20,200 +19,390 @@ const sharedEntry = computed(() => Boolean(
   || route.query.channel === 'share',
 ));
 
-interface GrowthAdvice {
-  title: string;
-  text: string;
-}
-
-interface ElementProfile {
-  label: string;
-  image: string;
-  core: string;
-  action: string;
-  pressure: string;
-  role: string;
-  advice: GrowthAdvice[];
-}
-
-interface AnalysisSection {
-  order: string;
-  kicker: string;
+interface TextBlock {
+  eyebrow: string;
   title: string;
   paragraphs: string[];
+  termHint?: string;
+  quote?: QuoteBlock;
+  tone?: 'default' | 'stuck';
 }
 
-const elementProfiles: Record<string, ElementProfile> = {
-  METAL: {
-    label: '清醒型的理性行动者',
-    image: '金像经过淬炼的器物和清晰的边界，代表判断、秩序、执行和标准感。',
-    core: '你通常不是靠情绪推进的人，而是会先分辨重点、确认规则，再决定怎么行动。',
-    action: '当目标和边界清楚时，你会展现出很强的完成欲，也更愿意把事情做到有标准、有结果。',
-    pressure: '压力大时，你容易把标准拉得太高，反复校准细节，反而让自己迟迟不满意。',
-    role: '金会增强你的归纳、判断和边界感，让你更容易看见规则、重点和逻辑漏洞。',
-    advice: [
-      { title: '把标准变成步骤', text: '不要只在脑子里判断好坏，把标准拆成可执行清单，你会推进得更轻松。' },
-      { title: '允许先完成一版', text: '先交付一个可修改版本，再继续打磨，会比一直等到完美更适合你。' },
-      { title: '把判断说出来', text: '你看到的问题和边界感很有价值，表达出来才能变成团队或关系里的帮助。' },
-      { title: '给自己留一点弹性', text: '不是每件事都需要满分，保留回旋空间会让你的清醒更有温度。' },
-    ],
+interface QuoteBlock {
+  quote: string;
+  source: string;
+  explain: string;
+}
+
+const fallbackAdvice = [
+  { title: '先确定主线', text: '当方向太多时，先选一条最重要的线推进。' },
+  { title: '固定复盘节奏', text: '用固定复盘把经验沉淀下来，能减少反复摇摆。' },
+  { title: '保留行动版本', text: '先做出一个小版本，再根据反馈调整。' },
+  { title: '把感受说清楚', text: '表达真实需求，会让关系和合作更稳定。' },
+];
+
+const termGlossary = {
+  dayMaster: '日主：出生日天干，在传统命理里常作为“我”的核心符号。',
+  primaryElement: '主元素：五题选择里最先冒出来的反应倾向。',
+  secondaryElement: '副元素：修正主元素的第二层力量。',
+  accentElement: '点睛元素：不主导人格，但会让人格多出反差、入口和余味。',
+  starOfficer: '星官：传统星宿文化里的意象锚点，用来增加画面和记忆，仅作文化参考。',
+  xuXiu: '虚宿：北方玄武七宿之一，意象偏幽静、藏蓄、留白。',
+};
+
+const stemProfiles: Record<string, { label: string; action: string; hint: string; quote?: QuoteBlock }> = {
+  甲: {
+    label: '甲木',
+    action: '先立骨架，再向上生长',
+    hint: '甲木：十天干之一，属阳木，常取大树、梁柱、向上支撑之象。',
   },
-  WOOD: {
-    label: '生长型的长期规划者',
-    image: '木像持续向上的枝条，代表生长、规划、表达和创造。',
-    core: '你更容易从未来可能性里获得动力，喜欢看到事情一点点展开、变清晰、变成自己的路径。',
-    action: '当你相信一件事值得长期投入时，会愿意积累、复盘、调整，并把想法慢慢养成成果。',
-    pressure: '压力大时，你容易被太多方向拉扯，想同时生长很多枝条，导致节奏变散。',
-    role: '木会带来表达、生长和长期规划，让你的想法不只是停留在脑内，而是逐渐长成作品和能力。',
-    advice: [
-      { title: '给目标设阶段', text: '把长期目标拆成三到五个阶段，你会更容易看到自己正在成长。' },
-      { title: '减少同时开太多线', text: '选择一条主线先养起来，比同时追很多方向更能积累势能。' },
-      { title: '多做公开表达', text: '写总结、讲给别人听、做作品集，会让你的规划力被看见。' },
-      { title: '保留稳定节奏', text: '灵感之外还需要固定训练，节奏会让你的成长更扎实。' },
-    ],
+  乙: {
+    label: '乙木',
+    action: '先贴近环境，再柔韧生长',
+    hint: '乙木：十天干之一，属阴木，常取藤蔓、花草、细枝舒展之象。',
   },
-  WATER: {
-    label: '深水型的理性行动者',
-    image: '水像雨露、细流和雾气，代表细腻、敏感、观察、学习和适应。',
-    core: '你通常不是一上来就强硬推进的人，而是会先观察局面、捕捉细节、理解逻辑，再决定怎么行动。',
-    action: '你对信息、氛围和人的状态比较敏感，理解力强、学习吸收快，也擅长处理复杂线索。',
-    pressure: '压力大时，你容易想得太多，把自己困在反复推演里。',
-    role: '水会增强你的感知、学习和适应能力，让你更容易理解复杂信息，也更能捕捉环境变化。',
-    advice: [
-      { title: '把想明白变成先做一版', text: '你不需要等到完全确定才开始，小步试错会比一直推演更适合你。' },
-      { title: '用固定节奏增强稳定感', text: '固定复盘、固定训练、固定输出，会让你的敏锐变成长期成果。' },
-      { title: '多做表达输出', text: '写总结、讲给别人听、做文档，能把复杂思考整理成可复用能力。' },
-      { title: '压力大时先结构化', text: '先写下事实、原因、下一步，你会更快从内耗回到行动。' },
-    ],
+  丙: {
+    label: '丙火',
+    action: '先被点亮，再照向外界',
+    hint: '丙火：十天干之一，属阳火，常取太阳、明光、外放照临之象。',
+    quote: {
+      quote: '离，丽也',
+      source: '《说卦传》',
+      explain: '离火有附着、照明、显现之意，用在这里是说目标被看见后，行动才会真正亮起来。',
+    },
   },
-  FIRE: {
-    label: '点火型的表达行动者',
-    image: '火像一束被点亮的光，代表热情、行动、表达、目标感和感染力。',
-    core: '你更容易被清晰目标、现场反馈和强烈兴趣点燃，一旦进入状态，会有明显的投入感。',
-    action: '你适合把想法推到台前，用表达、行动和反馈来确认方向。',
-    pressure: '压力大时，你可能会急着证明结果，或者在情绪被点燃后快速消耗能量。',
-    role: '火会给你目标感和行动欲，让想法不只停留在判断里，而是被点燃、被表达、被推进。',
-    advice: [
-      { title: '先定一个清晰目标', text: '目标越明确，你越容易进入行动状态，也越不容易被杂事消耗。' },
-      { title: '把热情接到节奏上', text: '热情负责启动，节奏负责完成，两者结合会让你更稳定。' },
-      { title: '表达前先收束重点', text: '先写下要传达的三件事，你的感染力会更聚焦。' },
-      { title: '给自己留恢复时间', text: '高投入之后需要主动降温，才能避免短时间内过度透支。' },
-    ],
+  丁: {
+    label: '丁火',
+    action: '先守住微光，再照见重点',
+    hint: '丁火：十天干之一，属阴火，常取灯火、烛焰、精神亮点之象。',
+    quote: {
+      quote: '离，丽也',
+      source: '《说卦传》',
+      explain: '离火重在显现与照明。放到性格上，它不是喧闹，而是在关键处把重要目标照出来。',
+    },
   },
-  EARTH: {
-    label: '厚土型的稳定承载者',
-    image: '土像稳稳托住局面的地面，代表稳定、承载、责任、秩序和安全感。',
-    core: '你更容易关注事情能不能落地、关系能不能稳定、结果能不能长期维持。',
-    action: '你不是只看一时兴奋的人，更适合在稳定节奏里慢慢做出可靠成果。',
-    pressure: '压力大时，你可能会过度承担，或者为了稳定而把变化推迟太久。',
-    role: '土会给你责任感、秩序感和承载力，让你的想法更容易被固定成计划和结果。',
-    advice: [
-      { title: '把责任分清楚', text: '你可以承担，但不需要替所有人兜底，边界清楚会让稳定更健康。' },
-      { title: '给变化留一个入口', text: '在计划里预留调整空间，会让你的稳不变成僵。' },
-      { title: '用复盘沉淀经验', text: '你适合把每次完成的事复盘成方法，下次会越来越稳。' },
-      { title: '及时表达自己的需要', text: '不要只照顾整体，也要让别人知道你需要什么支持。' },
-    ],
+  戊: {
+    label: '戊土',
+    action: '先稳住边界，再承接重量',
+    hint: '戊土：十天干之一，属阳土，常取山岳、台基、厚重承载之象。',
+    quote: {
+      quote: '地势坤，君子以厚德载物',
+      source: '《周易·坤卦》',
+      explain: '土的力量在承载与安顿。这里取其“能接住重量”的意思，不作命运判断。',
+    },
+  },
+  己: {
+    label: '己土',
+    action: '先整理细节，再慢慢滋养',
+    hint: '己土：十天干之一，属阴土，常取田地、沃土、整理滋养之象。',
+    quote: {
+      quote: '地势坤，君子以厚德载物',
+      source: '《周易·坤卦》',
+      explain: '这句话强调承载和包容。放在这里，是说土能把复杂感受安放到现实秩序里。',
+    },
+  },
+  庚: {
+    label: '庚金',
+    action: '先辨标准，再利落出手',
+    hint: '庚金：十天干之一，属阳金，常取矿石、刀剑、原则与执行之象。',
+  },
+  辛: {
+    label: '辛金',
+    action: '分寸在前，轻重自清',
+    hint: '辛金：十天干之一，属阴金，常取珠玉、镜面、精细辨别之象。',
+  },
+  壬: {
+    label: '壬水',
+    action: '观大势，顺流转向',
+    hint: '壬水：十天干之一，属阳水，常取江河、流动、格局与探索之象。',
+    quote: {
+      quote: '上善若水',
+      source: '《道德经》',
+      explain: '水的价值不在硬冲，而在能容、能入、能转。这里用来说明你会先理解局势再行动。',
+    },
+  },
+  癸: {
+    label: '癸水',
+    action: '先感知，再判断',
+    hint: '癸水：十天干之一，属阴水，常取雨露、泉脉、细流之象。',
+    quote: {
+      quote: '癸水至弱，达于天津',
+      source: '《滴天髓》',
+      explain: '这里的“弱”不是软弱，而是柔细、流通、能深入。放到现实里，就是更擅长在复杂信息里找到暗线。',
+    },
   },
 };
 
-const fallbackProfile: ElementProfile = {
-  label: '平衡型的自我观察者',
-  image: '你的结构里有多种元素共同作用，代表观察、平衡、适应和持续调整。',
-  core: '你更适合在真实情境里理解自己，而不是被单一标签完全定义。',
-  action: '当目标清楚、节奏稳定时，你会更容易把想法变成行动。',
-  pressure: '压力大时，先把问题拆开，会比直接给自己下结论更有效。',
-  role: '这一元素会给你的性格增加一层调和力，让整体表达更有弹性。',
-  advice: [
-    { title: '先确定主线', text: '当方向太多时，先选一条最重要的线推进。' },
-    { title: '固定复盘节奏', text: '用固定复盘把经验沉淀下来，能减少反复摇摆。' },
-    { title: '保留行动版本', text: '先做出一个小版本，再根据反馈调整。' },
-    { title: '把感受说清楚', text: '表达真实需求，会让关系和合作更稳定。' },
-  ],
+const elementTitles: Record<string, { relation: string; section: string; inner: string; outer: string; stuck: string }> = {
+  水: {
+    relation: '水先入心',
+    section: '水有岸，灯才会亮',
+    inner: '心中有潮，先让局势变清',
+    outer: '外在有岸，慢热但可靠',
+    stuck: '想得太深，出口太少',
+  },
+  土: {
+    relation: '土后成形',
+    section: '土能承重，光才站稳',
+    inner: '心里先安顿，行动再落地',
+    outer: '外在能承接，节奏有重量',
+    stuck: '太想稳住，启动偏慢',
+  },
+  火: {
+    relation: '火把目标照亮',
+    section: '火有方向，才有行动',
+    inner: '心里有光，目标会先亮',
+    outer: '外在有热度，行动更明显',
+    stuck: '热度太急，容易烧散',
+  },
+  木: {
+    relation: '木把路径长出来',
+    section: '枝有方向，路会长出',
+    inner: '心里先找路，再让想法生长',
+    outer: '外在有生长感，愿意推进',
+    stuck: '路径太多，收束太少',
+  },
+  金: {
+    relation: '金替边界定音',
+    section: '镜能照形，判断才清',
+    inner: '心里先分辨，再决定轻重',
+    outer: '外在有分寸，标准更清楚',
+    stuck: '标准太高，行动被拦',
+  },
 };
 
-function profileOf(elementCode: string) {
-  return elementProfiles[elementCode] ?? fallbackProfile;
-}
+const accentTitles: Record<string, string> = {
+  水: '暗处有回声，判断会更深',
+  土: '脚下有台面，想法能站稳',
+  火: '暗处有灯，目标会亮',
+  木: '石缝有青枝，路径会长出',
+  金: '袖口有清铃，边界会响',
+};
 
-const primaryProfile = computed(() => (result.value ? profileOf(result.value.primaryElement) : fallbackProfile));
-const secondaryProfile = computed(() => (result.value ? profileOf(result.value.secondaryElement) : fallbackProfile));
+const starTitleRegistry: Record<string, string> = {
+  JIAO_XIU: '角宿：春木初探',
+  FANG_XIU: '房宿：有处安放',
+  JI_XIU: '箕宿：风里有序',
+  JING_XIU: '井宿：水源有井',
+  XING_XIU: '星宿：光点可辨',
+  ZHANG_XIU: '张宿：气势铺开',
+  KUI_XIU: '奎宿：文理有纹',
+  LOU_XIU: '娄宿：收拢成仓',
+  MAO_XIU: '昴宿：众星成辨',
+  NIU_XIU: '牛宿：慢处蓄力',
+  XU_XIU: '虚宿：深处有留白',
+  WEI_XIU: '危宿：临界见边',
+};
 
-const personaLine = computed(() => {
-  if (!result.value) {
-    return '';
+const quoteRegistry: { element: Record<string, QuoteBlock | undefined> } = {
+  element: {
+    水: {
+      quote: '上善若水',
+      source: '《道德经》',
+      explain: '水的价值不在硬冲，而在能容、能入、能转。放到这里，是先接住信息，再找到行动的方向。',
+    },
+    土: {
+      quote: '地势坤，君子以厚德载物',
+      source: '《周易·坤卦》',
+      explain: '土的力量在承载、稳定和包容。放到这里，是把感受落成责任、节奏和可交付的结果。',
+    },
+    火: {
+      quote: '离，丽也',
+      source: '《说卦传》',
+      explain: '离火有照明、显现之意。放到这里，是让目标被看见，让行动有一个亮起来的入口。',
+    },
+  },
+};
+
+function sanitizeResultText(current: ResultDetail, text?: string) {
+  const raw = current.personaLabel?.trim();
+  const displayLabel = current.starToneName || current.personaLabel || '';
+  if (!text || !raw || raw === displayLabel) {
+    return text || '';
   }
-  return `你像一张以${result.value.primaryElementName}为底色、由${result.value.secondaryElementName}来校准节奏的人格卡，习惯先抓住自己的主线，再把想法慢慢落成行动。`;
-});
+  return text.split(raw).join(displayLabel);
+}
 
-const behaviorSignals = computed(() => {
+const dayMasterParagraphs = computed(() => (
+  result.value ? splitResultParagraphs(result.value, result.value.dayMasterText) : []
+));
+
+const primarySecondaryParagraphs = computed(() => (
+  result.value ? splitResultParagraphs(result.value, result.value.primarySecondaryText) : []
+));
+
+const accentParagraphs = computed(() => (
+  result.value ? splitResultParagraphs(result.value, result.value.accentText) : []
+));
+
+const starParagraphs = computed(() => (
+  result.value ? splitResultParagraphs(result.value, result.value.starOfficerText) : []
+));
+
+const coreBlocks = computed<TextBlock[]>(() => {
   if (!result.value) {
     return [];
   }
-  const [primaryTrait = '有主见', orderTrait = '有节奏', judgmentTrait = '会判断', secondaryTrait = '能调和', starTrait = '有辨识度'] = result.value.keywords;
+  const current = result.value;
+  const dayMaster = dayMasterProfile(current);
+  const secondaryTitle = elementTitles[current.secondaryElementName]?.relation ?? `${current.secondaryElementName}来成形`;
+  const accentTitle = accentTitles[current.accentElementName] ?? `${current.accentElementName || '点睛'}让气质多一层余味`;
   return [
     {
-      label: '做决定时',
-      text: `你更容易先抓住${primaryTrait}和${judgmentTrait}，不太喜欢长期停在含糊状态。`,
+      eyebrow: '日主',
+      title: dayMaster ? `${dayMaster.label}：${dayMaster.action}` : '日主：底色先定',
+      paragraphs: dayMasterParagraphs.value,
+      termHint: `${termGlossary.dayMaster}${dayMaster?.hint ?? ''}`.trim(),
+      quote: dayMaster?.quote,
     },
     {
-      label: '推进事情时',
-      text: `你会用${orderTrait}维持自己的步调，也会留下${secondaryTrait}的回旋空间。`,
+      eyebrow: '主从',
+      title: `${elementTitles[current.primaryElementName]?.relation ?? `${current.primaryElementName}先发声`}，${secondaryTitle}`,
+      paragraphs: primarySecondaryParagraphs.value,
+      termHint: `${termGlossary.primaryElement}${termGlossary.secondaryElement}`,
+      quote: quoteRegistry.element[current.secondaryElementName] ?? quoteRegistry.element[current.primaryElementName],
     },
     {
-      label: '和人相处时',
-      text: `${result.value.starOfficerName}让你带着${starTrait}，既有个人风格，也愿意照顾关系里的感受。`,
+      eyebrow: '点睛',
+      title: accentTitle,
+      paragraphs: accentParagraphs.value,
+      termHint: termGlossary.accentElement,
+      quote: current.accentElementName === current.secondaryElementName ? undefined : quoteRegistry.element[current.accentElementName],
     },
   ];
 });
 
-const analysisSections = computed<AnalysisSection[]>(() => {
+const expressionBlocks = computed<TextBlock[]>(() => {
   if (!result.value) {
     return [];
   }
+  const current = result.value;
   return [
     {
-      order: '01',
-      kicker: '日主核心',
-      title: `你的核心底色偏「${result.value.primaryElementName}」`,
-      paragraphs: [
-        primaryProfile.value.image,
-        primaryProfile.value.core,
-        `${primaryProfile.value.action} ${primaryProfile.value.pressure}`,
-      ],
+      eyebrow: '内',
+      title: elementTitles[current.primaryElementName]?.inner ?? '内在先接住真实反应',
+      paragraphs: splitResultParagraphs(current, current.heavenText || '你的内在底色会影响你如何理解自己、安放情绪和判断方向。'),
     },
     {
-      order: '02',
-      kicker: '五行互动',
-      title: `${result.value.primaryElementName}是主线，${result.value.secondaryElementName}负责补充和校准`,
-      paragraphs: [
-        `你的结构里，${result.value.primaryElementName}的存在感最明显，所以它决定了你面对事情时的第一反应。`,
-        secondaryProfile.value.role,
-        result.value.relationshipText,
-      ],
-    },
-    {
-      order: '03',
-      kicker: '人格推测',
-      title: `你更像一个「${primaryProfile.value.label}」`,
-      paragraphs: [
-        `你擅长使用${result.value.keywords.slice(0, 3).join('、')}这些能力来理解问题，也会在熟悉的节奏里慢慢展现稳定的投入感。`,
-        '你不一定总是第一时间外放，但当目标足够清晰、环境足够可信时，会更愿意把自己的判断、行动和责任感拿出来。',
-        '压力场景里，你需要避免只在脑子里反复推演。把问题写下来、拆成步骤，会让你更快回到行动状态。',
-      ],
+      eyebrow: '外',
+      title: elementTitles[current.primaryElementName]?.outer ?? '外在呈现出可感的气质',
+      paragraphs: splitResultParagraphs(current, current.humanText || '你面对外部世界时，会在关系、目标和行动之间寻找自己的节奏。'),
     },
   ];
 });
 
-const growthAdvice = computed(() => primaryProfile.value.advice);
+const stuckParagraphs = computed(() => (
+  result.value ? splitResultParagraphs(result.value, result.value.strengthText) : []
+));
+
+function splitResultParagraphs(current: ResultDetail, text?: string) {
+  const paragraphs = (text || '')
+    .split(/\n\s*\n/)
+    .map((paragraph) => sanitizeResultText(current, paragraph.trim()))
+    .filter(Boolean)
+    .flatMap((paragraph) => splitLongParagraph(paragraph));
+  return paragraphs.length ? paragraphs : ['这一部分暂时没有足够信息展开，会在重新生成结果后补充。'];
+}
+
+function splitLongParagraph(paragraph: string) {
+  if (paragraph.length <= 118) {
+    return [paragraph];
+  }
+  const sentences = paragraph.match(/[^。！？；]+[。！？；]?/g) ?? [paragraph];
+  const chunks: string[] = [];
+  let current = '';
+  for (const sentence of sentences) {
+    const next = current ? current + sentence : sentence;
+    if (current && next.length > 112) {
+      chunks.push(current);
+      current = sentence;
+    } else {
+      current = next;
+    }
+  }
+  if (current) {
+    chunks.push(current);
+  }
+  return chunks;
+}
+
+function dayMasterProfile(current: ResultDetail) {
+  const explicit = current.dayMasterText.match(/日主核心是([甲乙丙丁戊己庚辛壬癸][金木水火土])/);
+  const stem = explicit?.[1]?.slice(0, 1) ?? current.dayMasterText.match(/天干「([甲乙丙丁戊己庚辛壬癸])」/)?.[1];
+  return stem ? stemProfiles[stem] : undefined;
+}
+
+const coreSectionTitle = computed(() => {
+  if (!result.value) {
+    return '星曜取象：结构正在生成';
+  }
+  return result.value.structureTitle || `${result.value.starToneName || result.value.personaLabel}：${result.value.primaryElementName}气为主，${result.value.secondaryElementName}气成形`;
+});
+
+const starTitle = computed(() => {
+  if (!result.value) {
+    return '星官：传统意象锚点';
+  }
+  return starTitleRegistry[result.value.starOfficerCode] ?? `${result.value.starOfficerName}：传统意象锚点`;
+});
+
+const starTermHint = computed(() => {
+  if (!result.value) {
+    return termGlossary.starOfficer;
+  }
+  if (result.value.starOfficerName === '虚宿') {
+    return `${termGlossary.starOfficer}${termGlossary.xuXiu}`;
+  }
+  return `${result.value.starOfficerName}：传统星宿文化里的意象锚点，用来增加画面和记忆，仅作文化参考。`;
+});
+
+const expressionTitle = computed(() => {
+  if (!result.value) {
+    return '心里有潮，外在有岸';
+  }
+  if (result.value.primaryElementName === '水' && result.value.secondaryElementName === '土') {
+    return '心里有潮，外在有岸';
+  }
+  return '内在有路，外在有形';
+});
+
+const stuckTitle = computed(() => {
+  if (!result.value) {
+    return '想得太深，出口太少';
+  }
+  return elementTitles[result.value.primaryElementName]?.stuck ?? '反应太满，出口要清';
+});
+
+const growthAdvice = computed(() => {
+  const advice = result.value?.growthAdvice ?? [];
+  return advice.length ? advice : fallbackAdvice;
+});
 
 onMounted(async () => {
+  resetResultScroll();
   try {
     result.value = await fetchResult(String(route.params.resultId));
   } catch (err) {
     error.value = err instanceof Error ? err.message : '结果加载失败';
   } finally {
     loading.value = false;
+    await resetResultScrollAfterRender();
   }
 });
+
+function resetResultScroll() {
+  window.scrollTo({ left: 0, top: 0 });
+}
+
+async function resetResultScrollAfterRender() {
+  await nextTick();
+  await new Promise<void>((resolve) => {
+    window.requestAnimationFrame(() => {
+      resetResultScroll();
+      resolve();
+    });
+  });
+}
 
 function copied() {
   if (result.value) {
@@ -279,7 +468,7 @@ function sharedLandingStart() {
         <section v-if="sharedEntry" class="shared-entry-banner" aria-label="分享来源提示">
           <div>
             <span>朋友分享给你的五行人格卡</span>
-            <strong>先看看这张卡像不像 TA，也可以顺手测一张自己的。</strong>
+            <strong>看看这张卡像不像 TA，也可以顺手测一张自己的。</strong>
           </div>
           <RouterLink
             class="button-link primary-cta"
@@ -290,68 +479,77 @@ function sharedLandingStart() {
           </RouterLink>
         </section>
 
-        <div class="panel">
+        <div class="panel result-hero-panel">
           <PersonaCard :result="result" />
         </div>
 
-        <section class="result-data-strip" aria-label="人格核心数据">
-          <article>
-            <span>主五行</span>
-            <strong>{{ result.primaryElementName }} {{ result.primaryPercent }}%</strong>
-          </article>
-          <article>
-            <span>副五行</span>
-            <strong>{{ result.secondaryElementName }} {{ result.secondaryPercent }}%</strong>
-          </article>
-          <article>
-            <span>人格短码</span>
-            <strong>{{ result.shortCode }}</strong>
-          </article>
-        </section>
-
-        <section class="identity-statement">
-          <p class="eyebrow">一句话人格标签</p>
-          <h2>{{ primaryProfile.label }}</h2>
-          <p>{{ personaLine }}</p>
-        </section>
-
-        <section class="panel interpretation-panel structured-analysis-panel" aria-label="人格分析">
+        <section class="panel interpretation-panel structured-analysis-panel" aria-label="核心结构">
           <div class="interpretation-head">
-            <p class="eyebrow">人格分析</p>
-            <h2>从日主核心到五行互动</h2>
-            <p>这部分不讲命运好坏，只把你的主五行、副五行和选择倾向翻译成性格语言。</p>
+            <p class="eyebrow">核心结构</p>
+            <h2>{{ coreSectionTitle }}</h2>
+            <p v-if="result.starToneExplanation" class="interpretation-summary">{{ result.starToneExplanation }}</p>
           </div>
           <div class="analysis-flow">
-            <article v-for="section in analysisSections" :key="section.kicker" class="analysis-card">
-              <span class="analysis-order">{{ section.order }}</span>
-              <div>
-                <p class="analysis-kicker">{{ section.kicker }}</p>
+            <article v-for="(section, index) in coreBlocks" :key="section.eyebrow" class="analysis-card">
+              <span class="analysis-order">{{ String(index + 1).padStart(2, '0') }}</span>
+              <div class="analysis-card-main">
+                <p class="analysis-kicker">{{ section.eyebrow }}</p>
                 <h3>{{ section.title }}</h3>
-                <p v-for="paragraph in section.paragraphs" :key="paragraph">{{ paragraph }}</p>
+                <p v-if="section.termHint" class="term-hint">{{ section.termHint }}</p>
+                <div class="analysis-body">
+                  <p v-for="paragraph in section.paragraphs" :key="paragraph">{{ paragraph }}</p>
+                </div>
+                <blockquote v-if="section.quote" class="quote-block">
+                  <p>「{{ section.quote.quote }}」</p>
+                  <footer>{{ section.quote.source }}</footer>
+                  <span>{{ section.quote.explain }}</span>
+                </blockquote>
               </div>
             </article>
           </div>
         </section>
 
-        <section class="panel stack resonance-panel">
-          <div>
-            <p class="eyebrow">人格推测</p>
-            <h2>朋友最容易认出的三个表现</h2>
+        <section class="identity-statement star-statement" :data-element="result.primaryElement">
+          <p class="eyebrow">星官</p>
+          <h2>{{ starTitle }}</h2>
+          <p class="term-hint star-term-hint">{{ starTermHint }}</p>
+          <div class="identity-body">
+            <p v-for="paragraph in starParagraphs" :key="paragraph" class="identity-copy">{{ paragraph }}</p>
           </div>
-          <div class="resonance-grid">
-            <article v-for="signal in behaviorSignals" :key="signal.label">
-              <span>{{ signal.label }}</span>
-              <p>{{ signal.text }}</p>
+        </section>
+
+        <section class="panel interpretation-panel expression-panel" aria-label="内外表现">
+          <div class="interpretation-head">
+            <p class="eyebrow">内外</p>
+            <h2>{{ expressionTitle }}</h2>
+          </div>
+          <div class="section-split-grid">
+            <article v-for="section in expressionBlocks" :key="section.eyebrow" class="analysis-card expression-card">
+              <span class="analysis-order">{{ section.eyebrow }}</span>
+              <div class="analysis-card-main">
+                <h3>{{ section.title }}</h3>
+                <div class="analysis-body">
+                  <p v-for="paragraph in section.paragraphs" :key="paragraph">{{ paragraph }}</p>
+                </div>
+              </div>
             </article>
           </div>
         </section>
 
         <section class="panel growth-panel" aria-label="成长建议">
           <div class="growth-head">
-            <p class="eyebrow">成长建议</p>
-            <h2>把人格结构用起来</h2>
-            <p>建议尽量具体，不做空泛判断，只帮助你把优势变成可持续的行动方式。</p>
+            <p class="eyebrow">成长</p>
+            <h2>把敏锐变成稳定输出</h2>
           </div>
+          <article class="analysis-card stuck-card">
+            <span class="analysis-order">卡</span>
+            <div class="analysis-card-main">
+              <h3>{{ stuckTitle }}</h3>
+              <div class="analysis-body">
+                <p v-for="paragraph in stuckParagraphs" :key="paragraph">{{ paragraph }}</p>
+              </div>
+            </div>
+          </article>
           <div class="advice-grid">
             <article v-for="(advice, index) in growthAdvice" :key="advice.title">
               <span>{{ index + 1 }}</span>
@@ -363,10 +561,6 @@ function sharedLandingStart() {
           </div>
         </section>
 
-        <div class="panel">
-          <ElementSpectrum :scores="result.allElementScores" />
-        </div>
-
         <ShareLinkBox
           v-if="!sharedEntry"
           :result-id="result.resultId"
@@ -375,6 +569,8 @@ function sharedLandingStart() {
           show-save-image
           @copied="copied"
           @save-image="downloadShareImage"
+          show-retake
+          @retake="retake"
         />
 
         <section v-else class="panel shared-bottom-cta" aria-label="分享结果底部行动">
@@ -391,8 +587,8 @@ function sharedLandingStart() {
           </RouterLink>
         </section>
 
-        <RouterLink v-if="!sharedEntry" class="button-link secondary result-retake-link" to="/test" @click="retake">重新测试</RouterLink>
         <p v-if="shareImageStatus" class="muted" role="status" aria-live="polite">{{ shareImageStatus }}</p>
+
       </template>
     </section>
   </main>
@@ -595,38 +791,6 @@ function sharedLandingStart() {
   box-shadow: 0 12px 24px rgba(157, 86, 49, 0.16);
 }
 
-.result-data-strip {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.result-data-strip article {
-  display: grid;
-  gap: 6px;
-  min-height: 86px;
-  border: 1px solid rgba(37, 48, 45, 0.12);
-  border-radius: 8px;
-  padding: 14px;
-  background:
-    linear-gradient(135deg, rgba(255, 252, 245, 0.92), rgba(248, 240, 226, 0.82));
-  box-shadow: 0 10px 24px rgba(49, 44, 35, 0.06);
-}
-
-.result-data-strip span {
-  color: var(--color-warm-deep);
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.result-data-strip strong {
-  color: var(--color-ink);
-  font-size: 22px;
-  font-weight: 900;
-  line-height: 1.16;
-  overflow-wrap: anywhere;
-}
-
 .result-action-buttons .compact-action {
   min-width: 96px;
   min-height: 44px;
@@ -638,15 +802,37 @@ function sharedLandingStart() {
   position: relative;
   overflow: hidden;
   display: grid;
-  gap: 10px;
+  gap: 9px;
   border-radius: 8px;
-  padding: 24px;
-  border: 1px solid rgba(47, 98, 85, 0.18);
+  padding: 22px 24px;
+  border: 1px solid rgba(230, 202, 153, 0.32);
   background:
-    linear-gradient(135deg, rgba(47, 98, 85, 0.96), rgba(31, 71, 62, 0.98)),
-    var(--color-primary-deep);
+    radial-gradient(circle at 84% -44px, rgba(255, 238, 202, 0.15), transparent 38%),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--identity-primary-color, var(--color-primary)) 78%, #18231f) 0%,
+      color-mix(in srgb, var(--identity-primary-color, var(--color-primary)) 55%, #101a18) 58%,
+      color-mix(in srgb, var(--identity-primary-color, var(--color-primary)) 36%, #07110f) 100%
+    );
   color: #fff;
-  box-shadow: 0 18px 34px rgba(31, 71, 62, 0.15);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 248, 232, 0.14),
+    inset 0 -24px 46px rgba(0, 0, 0, 0.13),
+    0 18px 34px color-mix(in srgb, var(--identity-primary-color, var(--color-primary)) 18%, transparent);
+}
+
+.identity-statement::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  z-index: 0;
+  pointer-events: none;
+  border: 1px solid rgba(255, 235, 188, 0.18);
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, transparent 0 8%, rgba(255, 232, 184, 0.36) 8% 27%, transparent 27% 73%, rgba(255, 232, 184, 0.36) 73% 92%, transparent 92%) top / 100% 1px,
+    linear-gradient(90deg, transparent 0 18%, rgba(255, 248, 232, 0.16) 18% 82%, transparent 82%) bottom / 100% 1px;
+  background-repeat: no-repeat;
 }
 
 .identity-statement::after {
@@ -654,9 +840,15 @@ function sharedLandingStart() {
   position: absolute;
   right: 20px;
   bottom: 18px;
+  z-index: 0;
   width: 58px;
   height: 1px;
-  background: rgba(255, 218, 171, 0.5);
+  background: linear-gradient(90deg, rgba(255, 218, 171, 0.18), rgba(255, 218, 171, 0.72));
+}
+
+.identity-statement > * {
+  position: relative;
+  z-index: 1;
 }
 
 .identity-statement .eyebrow {
@@ -668,9 +860,9 @@ function sharedLandingStart() {
   margin: 0;
   color: #fff;
   font-family: var(--font-serif);
-  font-size: 28px;
+  font-size: 36px;
   font-weight: 650;
-  line-height: 1.38;
+  line-height: 1.25;
 }
 
 .identity-statement p {
@@ -678,10 +870,34 @@ function sharedLandingStart() {
   color: rgba(255, 255, 255, 0.78);
 }
 
+.identity-statement .identity-copy {
+  max-width: min(100%, 30em);
+  line-height: 1.68;
+}
+
+.identity-body {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.identity-body .identity-copy {
+  margin: 0;
+}
+
 .resonance-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.resonance-intro {
+  max-width: 760px;
+  margin: 6px 0 0;
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 760;
+  line-height: 1.68;
 }
 
 .resonance-grid article {
@@ -700,6 +916,15 @@ function sharedLandingStart() {
   font-weight: 900;
 }
 
+.resonance-grid strong {
+  display: block;
+  margin-top: -4px;
+  color: var(--color-ink);
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
 .resonance-grid p {
   margin: 0;
   color: var(--color-ink);
@@ -711,14 +936,19 @@ function sharedLandingStart() {
 .interpretation-panel {
   display: grid;
   gap: 16px;
+  overflow: hidden;
+  border-color: rgba(47, 98, 85, 0.12);
   background:
-    linear-gradient(135deg, rgba(255, 252, 245, 0.84), rgba(248, 240, 226, 0.8)),
+    radial-gradient(circle at 92% 8%, rgba(47, 98, 85, 0.07), transparent 26%),
+    linear-gradient(135deg, rgba(255, 252, 245, 0.88), rgba(248, 240, 226, 0.78)),
     rgba(255, 252, 245, 0.78);
 }
 
 .interpretation-head {
   display: grid;
-  gap: 4px;
+  gap: 5px;
+  border-bottom: 1px solid rgba(47, 98, 85, 0.1);
+  padding-bottom: 12px;
 }
 
 .interpretation-head .eyebrow,
@@ -741,34 +971,79 @@ function sharedLandingStart() {
 
 .analysis-flow {
   display: grid;
+  gap: 14px;
+}
+
+.section-split-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
+.expression-card {
+  min-height: 100%;
+  align-content: start;
+  background:
+    linear-gradient(135deg, rgba(255, 252, 245, 0.84), rgba(242, 232, 214, 0.68));
+}
+
+.expression-panel {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(47, 98, 85, 0.08), transparent 30%),
+    linear-gradient(135deg, rgba(255, 252, 245, 0.88), rgba(244, 236, 222, 0.82));
+}
+
+.star-statement {
+  border-color: rgba(230, 202, 153, 0.34);
+}
+
+.star-statement h2 {
+  font-size: 30px;
+}
+
 .analysis-card {
+  position: relative;
+  overflow: hidden;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-content: start;
-  gap: 14px;
+  gap: 12px;
   border: 1px solid rgba(47, 98, 85, 0.13);
   border-radius: 8px;
   padding: 16px;
-  background: rgba(255, 252, 245, 0.72);
+  background:
+    linear-gradient(135deg, rgba(255, 252, 245, 0.84), rgba(247, 238, 222, 0.72)),
+    rgba(255, 252, 245, 0.72);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.66),
+    0 8px 16px rgba(58, 48, 34, 0.035);
+}
+
+.analysis-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 3px;
+  border-radius: 0 999px 999px 0;
+  background: rgba(201, 111, 61, 0.38);
 }
 
 .analysis-order {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   border-radius: 999px;
-  background: rgba(201, 111, 61, 0.12);
+  background: rgba(201, 111, 61, 0.08);
   color: var(--color-warm-deep);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 950;
 }
 
-.analysis-card > div {
+.analysis-card-main {
   display: grid;
   gap: 8px;
 }
@@ -783,28 +1058,103 @@ function sharedLandingStart() {
 .analysis-card h3 {
   margin: 0;
   color: var(--color-ink);
-  font-size: 19px;
+  font-size: 18px;
   line-height: 1.35;
 }
 
-.analysis-card p:not(.analysis-kicker) {
+.analysis-body {
+  display: grid;
+  gap: 10px;
+}
+
+.analysis-body p {
   margin: 0;
   color: #43524d;
   font-size: 14px;
-  line-height: 1.78;
+  line-height: 1.74;
+}
+
+.term-hint {
+  margin: 0;
+  border-left: 2px solid rgba(201, 111, 61, 0.26);
+  border-radius: 0 8px 8px 0;
+  padding: 7px 10px;
+  background: rgba(246, 233, 214, 0.46);
+  color: #68736d;
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.62;
+}
+
+.quote-block {
+  display: grid;
+  gap: 5px;
+  margin: 2px 0 0;
+  border-left: 3px solid rgba(47, 98, 85, 0.3);
+  border-radius: 0 8px 8px 0;
+  padding: 10px 12px;
+  background:
+    linear-gradient(135deg, rgba(239, 231, 214, 0.56), rgba(255, 252, 245, 0.62)),
+    rgba(255, 252, 245, 0.66);
+}
+
+.quote-block p,
+.quote-block footer,
+.quote-block span {
+  margin: 0;
+}
+
+.quote-block p {
+  color: var(--color-ink);
+  font-family: var(--font-serif);
+  font-size: 17px;
+  line-height: 1.42;
+}
+
+.quote-block footer {
+  color: var(--color-warm-deep);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.quote-block span {
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 720;
+  line-height: 1.62;
+}
+
+.star-term-hint {
+  justify-self: center;
+  max-width: min(100%, 32em);
+  border-color: rgba(255, 218, 171, 0.32);
+  background: rgba(255, 248, 232, 0.08);
+  color: rgba(255, 248, 232, 0.7);
 }
 
 .growth-panel {
   display: grid;
   gap: 16px;
+  overflow: hidden;
+  border-color: rgba(201, 111, 61, 0.14);
   background:
-    linear-gradient(135deg, rgba(255, 252, 245, 0.88), rgba(247, 237, 221, 0.82)),
+    radial-gradient(circle at 100% 0%, rgba(201, 111, 61, 0.09), transparent 28%),
+    linear-gradient(135deg, rgba(255, 252, 245, 0.9), rgba(247, 237, 221, 0.82)),
     rgba(255, 252, 245, 0.78);
+}
+
+.stuck-card {
+  border-color: rgba(201, 111, 61, 0.16);
+  background:
+    linear-gradient(135deg, rgba(255, 252, 245, 0.86), rgba(245, 232, 213, 0.78)),
+    rgba(255, 252, 245, 0.72);
 }
 
 .growth-head {
   display: grid;
-  gap: 4px;
+  gap: 5px;
+  border-bottom: 1px solid rgba(201, 111, 61, 0.11);
+  padding-bottom: 12px;
 }
 
 .growth-head .eyebrow,
@@ -828,15 +1178,28 @@ function sharedLandingStart() {
 }
 
 .advice-grid article {
+  position: relative;
+  overflow: hidden;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 12px;
   align-items: start;
-  min-height: 118px;
+  min-height: 116px;
   border: 1px solid rgba(201, 111, 61, 0.14);
   border-radius: 8px;
   padding: 14px;
-  background: rgba(255, 252, 245, 0.72);
+  background:
+    linear-gradient(135deg, rgba(255, 252, 245, 0.86), rgba(246, 236, 218, 0.72));
+}
+
+.advice-grid article::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 9px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(201, 111, 61, 0.2), transparent);
 }
 
 .advice-grid span {
@@ -846,10 +1209,12 @@ function sharedLandingStart() {
   width: 30px;
   height: 30px;
   border-radius: 999px;
-  background: var(--color-primary);
-  color: #fff;
+  background:
+    linear-gradient(135deg, var(--color-primary), #9b613a);
+  color: #fffaf0;
   font-size: 13px;
   font-weight: 900;
+  box-shadow: 0 7px 13px rgba(47, 98, 85, 0.12);
 }
 
 .advice-grid h3 {
@@ -866,50 +1231,189 @@ function sharedLandingStart() {
   line-height: 1.72;
 }
 
-.result-retake-link {
-  justify-self: center;
-  min-width: min(100%, 220px);
-}
-
 @media (max-width: 760px) {
+  .result-page {
+    padding: 16px 14px;
+  }
+
+  .result-shell {
+    gap: 11px;
+  }
+
   .resonance-grid,
-  .result-data-strip,
+  .section-split-grid,
   .shared-entry-banner,
   .result-action-strip,
   .shared-bottom-cta {
     grid-template-columns: 1fr;
   }
 
+  .shared-entry-banner {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .shared-entry-banner strong {
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .result-hero-panel,
+  .spectrum-panel,
+  .structured-analysis-panel,
+  .growth-panel,
+  .resonance-panel,
+  .shared-bottom-cta {
+    padding: 14px;
+  }
+
   .identity-statement h2 {
-    font-size: 22px;
+    font-size: 28px;
+    line-height: 1.24;
   }
 
   .identity-statement {
-    padding: 20px;
+    gap: 7px;
+    padding: 16px;
   }
 
-  .analysis-card,
-  .advice-grid,
+  .identity-statement p {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .identity-statement .identity-copy {
+    justify-self: center;
+    max-width: min(100%, 22em);
+    line-height: 1.62;
+  }
+
+  .interpretation-panel,
+  .growth-panel {
+    gap: 12px;
+  }
+
+  .interpretation-head p:not(.eyebrow),
+  .growth-head p {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
   .interpretation-grid {
     grid-template-columns: 1fr;
   }
 
   .analysis-card {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+    padding: 12px 11px;
+  }
+
+  .analysis-order {
+    width: 30px;
+    height: 30px;
+    font-size: 11px;
+  }
+
+  .analysis-card-main {
+    gap: 6px;
+  }
+
+  .analysis-card h3 {
+    font-size: 16px;
+    line-height: 1.32;
+  }
+
+  .analysis-body {
+    gap: 8px;
+  }
+
+  .analysis-body p {
+    font-size: 13px;
+    line-height: 1.68;
+  }
+
+  .term-hint {
+    padding: 6px 9px;
+    font-size: 11px;
+    line-height: 1.55;
+  }
+
+  .quote-block {
+    padding: 8px 10px;
+  }
+
+  .quote-block p {
+    font-size: 15px;
+  }
+
+  .quote-block span {
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  .resonance-panel {
     gap: 10px;
+  }
+
+  .resonance-intro {
+    margin-top: 5px;
+    font-size: 12px;
+    line-height: 1.5;
   }
 
   .resonance-grid article {
     min-height: auto;
-    padding: 14px;
+    gap: 6px;
+    padding: 11px 12px;
+  }
+
+  .resonance-grid span {
+    font-size: 12px;
+  }
+
+  .resonance-grid strong {
+    font-size: 15px;
   }
 
   .resonance-grid p {
+    font-size: 13px;
+    line-height: 1.52;
+  }
+
+  .advice-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .advice-grid article {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+    min-height: 0;
+    padding: 11px;
+  }
+
+  .advice-grid span {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+
+  .advice-grid h3 {
+    margin-bottom: 4px;
     font-size: 14px;
+    line-height: 1.25;
+  }
+
+  .advice-grid p {
+    font-size: 12px;
+    line-height: 1.5;
   }
 
   .result-action-strip strong,
   .shared-bottom-cta strong {
-    font-size: 18px;
+    font-size: 16px;
+    line-height: 1.35;
   }
 
   .result-action-buttons {
@@ -926,6 +1430,7 @@ function sharedLandingStart() {
   .shared-bottom-cta .primary-cta {
     width: 100%;
   }
+
 }
 
 @keyframes resultPulse {

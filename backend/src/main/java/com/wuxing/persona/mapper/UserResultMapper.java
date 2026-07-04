@@ -17,13 +17,17 @@ public interface UserResultMapper {
             INSERT INTO user_result (
               result_id, birth_year, birth_month, birth_day, birth_time_range, answer_json,
               primary_element, secondary_element, primary_percent, secondary_percent,
-              all_element_scores_json, star_officer_code, star_officer_name, keywords_json,
+              all_element_scores_json, persona_type_id, accent_element, relation_kind, persona_label,
+              day_master_text, primary_secondary_text, accent_text, heaven_text, human_text,
+              star_officer_text, growth_advice_json, star_officer_code, star_officer_name, keywords_json,
               layout_explanation, strength_text, relationship_text, card_image_key,
               status, created_at, updated_at
             ) VALUES (
               #{resultId}, #{birthYear}, #{birthMonth}, #{birthDay}, #{birthTimeRange}, #{answerJson},
               #{primaryElement}, #{secondaryElement}, #{primaryPercent}, #{secondaryPercent},
-              #{allElementScoresJson}, #{starOfficerCode}, #{starOfficerName}, #{keywordsJson},
+              #{allElementScoresJson}, #{personaTypeId}, #{accentElement}, #{relationKind}, #{personaLabel},
+              #{dayMasterText}, #{primarySecondaryText}, #{accentText}, #{heavenText}, #{humanText},
+              #{starOfficerText}, #{growthAdviceJson}, #{starOfficerCode}, #{starOfficerName}, #{keywordsJson},
               #{layoutExplanation}, #{strengthText}, #{relationshipText}, #{cardImageKey},
               #{status}, #{createdAt}, #{updatedAt}
             )
@@ -36,7 +40,12 @@ public interface UserResultMapper {
                    birth_day AS birthDay, birth_time_range AS birthTimeRange, answer_json AS answerJson,
                    primary_element AS primaryElement, secondary_element AS secondaryElement,
                    primary_percent AS primaryPercent, secondary_percent AS secondaryPercent,
-                   all_element_scores_json AS allElementScoresJson, star_officer_code AS starOfficerCode,
+                   all_element_scores_json AS allElementScoresJson, persona_type_id AS personaTypeId,
+                   accent_element AS accentElement, relation_kind AS relationKind, persona_label AS personaLabel,
+                   day_master_text AS dayMasterText, primary_secondary_text AS primarySecondaryText,
+                   accent_text AS accentText, heaven_text AS heavenText, human_text AS humanText,
+                   star_officer_text AS starOfficerText, growth_advice_json AS growthAdviceJson,
+                   star_officer_code AS starOfficerCode,
                    star_officer_name AS starOfficerName, keywords_json AS keywordsJson,
                    layout_explanation AS layoutExplanation, strength_text AS strengthText,
                    relationship_text AS relationshipText, card_image_key AS cardImageKey,

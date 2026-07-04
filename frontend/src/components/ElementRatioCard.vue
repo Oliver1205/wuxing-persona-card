@@ -58,4 +58,18 @@ function barStyle(element: string, percent: number) {
 .secondary {
   opacity: 0.9;
 }
+
+@media (max-width: 640px) {
+  .ratio-card {
+    gap: 7px;
+  }
+
+  .ratio-head {
+    font-size: 12px;
+  }
+
+  .bar {
+    height: 10px;
+  }
+}
 </style>

@@ -11,6 +11,17 @@ CREATE TABLE IF NOT EXISTS user_result (
     primary_percent INT NOT NULL,
     secondary_percent INT NOT NULL,
     all_element_scores_json TEXT NOT NULL,
+    persona_type_id VARCHAR(96) NULL,
+    accent_element VARCHAR(32) NULL,
+    relation_kind VARCHAR(32) NULL,
+    persona_label VARCHAR(96) NULL,
+    day_master_text TEXT NULL,
+    primary_secondary_text TEXT NULL,
+    accent_text TEXT NULL,
+    heaven_text TEXT NULL,
+    human_text TEXT NULL,
+    star_officer_text TEXT NULL,
+    growth_advice_json TEXT NULL,
     star_officer_code VARCHAR(64) NOT NULL,
     star_officer_name VARCHAR(64) NOT NULL,
     keywords_json TEXT NOT NULL,
@@ -23,7 +34,8 @@ CREATE TABLE IF NOT EXISTS user_result (
     updated_at DATETIME NOT NULL,
     UNIQUE KEY uk_result_id(result_id),
     INDEX idx_created_at(created_at),
-    INDEX idx_primary_secondary(primary_element, secondary_element)
+    INDEX idx_primary_secondary(primary_element, secondary_element),
+    INDEX idx_persona_type_id(persona_type_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS short_link (
@@ -107,4 +119,51 @@ CREATE TABLE IF NOT EXISTS short_link_daily_metric (
     UNIQUE KEY uk_short_link_daily_metric(metric_date, short_code),
     INDEX idx_short_link_daily_metric_code(short_code, metric_date),
     INDEX idx_short_link_daily_metric_pv(metric_date, pv)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS analytics_visitor (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    visitor_id_hash VARCHAR(128) NOT NULL,
+    first_seen_at DATETIME NOT NULL,
+    last_seen_at DATETIME NOT NULL,
+    user_agent_hash VARCHAR(128) NULL,
+    ip_hash VARCHAR(128) NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_analytics_visitor_id(visitor_id_hash),
+    INDEX idx_analytics_visitor_last_seen(last_seen_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS analytics_session (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    session_id_hash VARCHAR(128) NOT NULL,
+    visitor_id_hash VARCHAR(128) NOT NULL,
+    started_at DATETIME NOT NULL,
+    last_heartbeat_at DATETIME NOT NULL,
+    ended_at DATETIME NULL,
+    entry_path VARCHAR(255) NULL,
+    latest_path VARCHAR(255) NULL,
+    referrer VARCHAR(512) NULL,
+    device_type VARCHAR(32) NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_analytics_session_id(session_id_hash),
+    INDEX idx_analytics_session_visitor(visitor_id_hash),
+    INDEX idx_analytics_session_last_heartbeat(last_heartbeat_at),
+    INDEX idx_analytics_session_online(last_heartbeat_at, ended_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS analytics_metric_snapshot (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    metric_time DATETIME NOT NULL,
+    online_visitors BIGINT NOT NULL DEFAULT 0,
+    online_sessions BIGINT NOT NULL DEFAULT 0,
+    pv_1m BIGINT NOT NULL DEFAULT 0,
+    uv_1m BIGINT NOT NULL DEFAULT 0,
+    result_generated_1m BIGINT NOT NULL DEFAULT 0,
+    share_click_1m BIGINT NOT NULL DEFAULT 0,
+    match_enter_1m BIGINT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL,
+    UNIQUE KEY uk_analytics_metric_time(metric_time),
+    INDEX idx_analytics_metric_time(metric_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

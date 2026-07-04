@@ -1,6 +1,7 @@
 package com.wuxing.persona.service;
 
 import com.wuxing.persona.common.BusinessException;
+import com.wuxing.persona.common.TestFlowPolicy;
 import com.wuxing.persona.dto.AnswerRequest;
 import com.wuxing.persona.dto.CreateResultRequest;
 import com.wuxing.persona.enums.BirthTimeRange;
@@ -11,6 +12,7 @@ import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service;
 public class ElementCalculateService {
 
     public ElementScoreResult calculate(CreateResultRequest request) {
+        TestFlowStateMachine.requireReadyToSubmit(request);
         validateBirth(request);
         EnumMap<ElementType, Integer> scores = new EnumMap<>(ElementType.class);
         for (ElementType elementType : ElementType.values()) {
@@ -26,7 +29,10 @@ public class ElementCalculateService {
         add(scores, WuxingCalendarTerms.yearTone(request.getBirthYear()).nayinElement(), 8);
         addMonthWeight(scores, request.getBirthMonth());
         if (request.getBirthDay() != null) {
-            add(scores, WuxingCalendarTerms.dayTone(request.getBirthDay()).element(), 6);
+            add(scores, WuxingCalendarTerms.dayTone(
+                    request.getBirthYear(),
+                    request.getBirthMonth(),
+                    request.getBirthDay()).element(), 6);
         }
         BirthTimeRange timeRange = parseBirthTimeRange(request.getBirthTimeRange());
         if (timeRange != null) {
@@ -68,6 +74,12 @@ public class ElementCalculateService {
         int birthMonth = request.getBirthMonth();
         Integer birthDay = request.getBirthDay();
 
+        if (birthYear < TestFlowPolicy.MIN_BIRTH_YEAR) {
+            throw new BusinessException("birthYear must not be earlier than 1950");
+        }
+        if (birthYear > TestFlowPolicy.MAX_BIRTH_YEAR) {
+            throw new BusinessException("birthYear must not be greater than 2026");
+        }
         if (birthYear > today.getYear()) {
             throw new BusinessException("birthYear must not be greater than current year");
         }
@@ -89,17 +101,26 @@ public class ElementCalculateService {
     }
 
     private void validateAnswers(List<AnswerRequest> answers) {
-        long uniqueQuestions = answers.stream().map(AnswerRequest::getQuestionCode).distinct().count();
-        if (uniqueQuestions != 5) {
-            throw new BusinessException("answers must contain 5 unique questions");
+        List<String> questionCodes = answers.stream()
+                .map(AnswerRequest::getQuestionCode)
+                .map(ElementCalculateService::normalizeQuestionCode)
+                .toList();
+        long uniqueQuestions = questionCodes.stream().distinct().count();
+        if (uniqueQuestions != TestFlowPolicy.REQUIRED_QUESTION_COUNT) {
+            throw new BusinessException("answers must contain "
+                    + TestFlowPolicy.REQUIRED_QUESTION_COUNT + " unique questions");
         }
-        for (int i = 1; i <= 5; i++) {
+        for (int i = 1; i <= TestFlowPolicy.REQUIRED_QUESTION_COUNT; i++) {
             String questionCode = "Q" + i;
-            boolean exists = answers.stream().anyMatch(answer -> questionCode.equals(answer.getQuestionCode()));
+            boolean exists = questionCodes.contains(questionCode);
             if (!exists) {
                 throw new BusinessException("missing answer for " + questionCode);
             }
         }
+    }
+
+    private static String normalizeQuestionCode(String questionCode) {
+        return questionCode == null ? "" : questionCode.trim().toUpperCase(Locale.ROOT);
     }
 
     private ElementType parseElement(String code) {

@@ -8,15 +8,16 @@ const props = defineProps<{
   resultId?: string;
   shortCode?: string;
   showSaveImage?: boolean;
+  showRetake?: boolean;
 }>();
 
 const emit = defineEmits<{
   copied: [];
   'save-image': [];
+  retake: [];
 }>();
 
 const codeEl = ref<HTMLElement | null>(null);
-const urlEl = ref<HTMLElement | null>(null);
 const copied = ref(false);
 const codeCopied = ref(false);
 const copying = ref(false);
@@ -24,7 +25,6 @@ const codeCopying = ref(false);
 const sharing = ref(false);
 const message = ref('');
 const shareUrl = computed(() => withShareAttribution(props.shortUrl));
-const displayShareUrl = computed(() => compactShareUrl(props.shortUrl));
 const codeCopyLabel = computed(() => {
   if (codeCopying.value) {
     return '复制中';
@@ -51,7 +51,7 @@ async function copyShortCode() {
   try {
     await navigator.clipboard.writeText(props.shortCode);
     codeCopied.value = true;
-    message.value = '匹配短码已复制。朋友打开首页时，系统会尝试识别这段短码。';
+    message.value = '短码已复制，可以发给朋友做双人匹配。';
     emit('copied');
   } catch {
     codeCopied.value = false;
@@ -75,8 +75,7 @@ async function copy() {
     emit('copied');
   } catch {
     copied.value = false;
-    selectShareUrl();
-    message.value = '当前浏览器不支持自动复制，请长按链接手动复制';
+    message.value = '当前浏览器不支持自动复制，可以使用系统分享';
   } finally {
     copying.value = false;
   }
@@ -106,18 +105,6 @@ async function nativeShare() {
   }
 }
 
-function selectShareUrl() {
-  const el = urlEl.value;
-  if (!el) {
-    return;
-  }
-  const selection = window.getSelection();
-  const range = document.createRange();
-  range.selectNodeContents(el);
-  selection?.removeAllRanges();
-  selection?.addRange(range);
-}
-
 function selectShortCode() {
   const el = codeEl.value;
   if (!el) {
@@ -130,51 +117,36 @@ function selectShortCode() {
   selection?.addRange(range);
 }
 
-function compactShareUrl(url: string) {
-  try {
-    const target = new URL(url, window.location.origin);
-    const cleanPath = `${target.pathname}${target.hash}`;
-    if (target.origin === window.location.origin) {
-      return cleanPath || target.pathname;
-    }
-    return `${target.host}${cleanPath}`;
-  } catch {
-    return url.split('?')[0] || url;
-  }
-}
 </script>
 
 <template>
   <section id="share-box" class="share-box" :class="{ 'copy-only': !showSaveImage }">
     <div class="share-heading">
       <p class="label">保存与分享</p>
-      <strong>分享图、短码和链接</strong>
-      <span>保存图片适合发聊天窗口；短码用于双人匹配，链接用于打开结果。</span>
+      <strong>把这张人格卡发给朋友</strong>
+      <span>分享图适合直接转发，短码可用于双人匹配。</span>
     </div>
-    <div class="share-main">
-      <div v-if="shortCode" class="short-code-block">
-        <p class="label">双人匹配短码</p>
-        <p ref="codeEl" class="short-code" tabindex="0" @click="selectShortCode">{{ shortCode }}</p>
-      </div>
+
+    <div v-if="shortCode" class="match-code-card">
       <div>
-        <p class="label">打开结果短链</p>
-        <p ref="urlEl" class="url" tabindex="0" @click="selectShareUrl">{{ displayShareUrl }}</p>
+        <p class="label">匹配短码</p>
+        <span>发给朋友，可一起查看匹配结果。</span>
       </div>
+      <p ref="codeEl" class="short-code" tabindex="0" @click="selectShortCode">{{ shortCode }}</p>
     </div>
+
     <div class="share-actions">
       <button v-if="showSaveImage" data-testid="save-share-image" class="primary-share-action" type="button" @click="emit('save-image')">保存分享图</button>
-      <button data-testid="native-share" class="secondary main-secondary-action" type="button" :disabled="sharing" @click="nativeShare">
-        {{ sharing ? '分享中' : '系统分享' }}
-      </button>
-      <details class="copy-tools" :open="!showSaveImage">
-        <summary data-testid="copy-tools-toggle">复制备用信息</summary>
-        <div class="copy-actions">
-          <button v-if="shortCode" data-testid="copy-match-code" class="secondary subtle-action" type="button" :disabled="codeCopying" @click="copyShortCode">{{ codeCopyLabel }}</button>
-          <button data-testid="copy-share-link" class="secondary subtle-action" type="button" :disabled="copying" @click="copy">{{ copyLabel }}</button>
-        </div>
-      </details>
+      <div class="secondary-action-grid">
+        <button data-testid="native-share" class="secondary share-secondary-action" type="button" :disabled="sharing" @click="nativeShare">
+          {{ sharing ? '分享中' : '发给朋友' }}
+        </button>
+        <button v-if="shortCode" data-testid="copy-match-code" class="secondary share-secondary-action" type="button" :disabled="codeCopying" @click="copyShortCode">{{ codeCopyLabel }}</button>
+        <button data-testid="copy-share-link" class="secondary share-secondary-action" type="button" :disabled="copying" @click="copy">{{ copyLabel }}</button>
+      </div>
     </div>
     <p v-if="message" class="tip" role="status" aria-live="polite">{{ message }}</p>
+    <RouterLink v-if="showRetake" class="retake-action" to="/test" @click="emit('retake')">重新测试</RouterLink>
   </section>
 </template>
 
@@ -183,58 +155,74 @@ function compactShareUrl(url: string) {
   position: relative;
   overflow: hidden;
   display: grid;
-  grid-template-columns: minmax(180px, 0.56fr) minmax(0, 1fr);
-  gap: 14px 18px;
-  align-items: center;
+  gap: 14px;
   border: 1px solid rgba(37, 48, 45, 0.12);
   border-radius: 8px;
-  padding: 16px;
+  padding: 18px;
   background:
-    linear-gradient(135deg, rgba(255, 252, 245, 0.94), rgba(248, 240, 226, 0.86)),
-    linear-gradient(90deg, rgba(201, 111, 61, 0.08), rgba(47, 98, 85, 0.08));
+    radial-gradient(circle at 88% -18%, rgba(201, 111, 61, 0.11), transparent 34%),
+    linear-gradient(135deg, rgba(255, 252, 245, 0.94), rgba(248, 240, 226, 0.88)),
+    linear-gradient(90deg, rgba(201, 111, 61, 0.07), rgba(47, 98, 85, 0.07));
   box-shadow: var(--shadow-paper);
 }
 
 .share-heading {
   display: grid;
-  gap: 6px;
-  align-content: center;
+  gap: 5px;
+  text-align: center;
 }
 
 .share-heading strong {
   color: var(--color-ink);
   font-family: var(--font-serif);
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 650;
   line-height: 1.25;
 }
 
 .share-heading span {
-  max-width: 260px;
+  max-width: 32em;
+  justify-self: center;
   color: var(--color-muted);
   font-size: 13px;
   font-weight: 760;
   line-height: 1.55;
 }
 
+.match-code-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid rgba(47, 98, 85, 0.14);
+  border-radius: 8px;
+  padding: 12px 13px;
+  background:
+    linear-gradient(135deg, rgba(255, 252, 245, 0.78), rgba(242, 232, 214, 0.7));
+}
+
+.match-code-card span {
+  display: block;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 760;
+  line-height: 1.45;
+}
+
 .share-actions {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-column: 2;
-  grid-template-columns: repeat(2, minmax(0, auto));
+  gap: 9px;
+}
+
+.secondary-action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  justify-content: start;
-  align-items: start;
 }
 
-.share-box.copy-only .share-actions {
-  grid-template-columns: minmax(0, auto);
-}
-
-.share-actions button,
-.copy-tools summary {
-  min-width: 104px;
+.share-actions button {
   min-height: 44px;
   padding: 0 13px;
   font-size: 13px;
@@ -242,75 +230,33 @@ function compactShareUrl(url: string) {
   white-space: nowrap;
 }
 
-.copy-tools {
-  grid-column: 1 / -1;
-}
-
-.copy-tools summary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: fit-content;
-  border: 1px solid rgba(47, 98, 85, 0.18);
-  border-radius: 6px;
-  color: var(--color-primary);
-  cursor: pointer;
-  font-weight: 760;
-  list-style: none;
-}
-
-.copy-tools summary::-webkit-details-marker {
-  display: none;
-}
-
-.copy-tools summary::after {
-  content: "展开";
-  margin-left: 8px;
-  color: #7d8b86;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.copy-tools[open] summary::after {
-  content: "收起";
-}
-
-.copy-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding-top: 8px;
-}
-
 .share-actions .primary-share-action {
+  width: 100%;
+  min-height: 50px;
   border: 1px solid rgba(158, 79, 46, 0.24);
+  border-radius: 8px;
   background: linear-gradient(135deg, var(--color-warm), var(--color-warm-deep));
   color: #fff;
-  box-shadow: 0 10px 22px rgba(157, 86, 49, 0.18);
+  font-size: 15px;
+  font-weight: 950;
+  box-shadow: 0 12px 24px rgba(157, 86, 49, 0.2);
 }
 
-.share-actions .subtle-action {
+.share-secondary-action {
   border-color: rgba(47, 98, 85, 0.18);
+  background: rgba(255, 252, 245, 0.78);
   color: var(--color-primary);
-}
-
-.share-main {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: minmax(120px, auto) minmax(0, 1fr);
-  gap: 10px 14px;
-  align-items: start;
+  font-weight: 900;
 }
 
 .label {
   margin: 0 0 4px;
-  color: var(--color-muted);
+  color: var(--color-warm-deep);
   font-size: 13px;
+  font-weight: 900;
 }
 
-.short-code,
-.url {
+.short-code {
   margin: 0;
   overflow-wrap: anywhere;
   border-radius: 6px;
@@ -322,88 +268,123 @@ function compactShareUrl(url: string) {
 .short-code {
   width: fit-content;
   border: 1px solid rgba(201, 111, 61, 0.28);
-  padding: 7px 12px;
+  padding: 8px 13px;
   background: #fff2e7;
   color: var(--color-warm-deep);
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 950;
   letter-spacing: 0;
 }
 
-.short-code:focus,
-.url:focus {
+.short-code:focus {
   box-shadow: 0 0 0 3px rgba(47, 98, 85, 0.14);
 }
 
-.url {
-  display: -webkit-box;
-  overflow: hidden;
-  color: #43524d;
-  font-size: 13px;
-  font-weight: 760;
-  line-height: 1.45;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
 .tip {
-  grid-column: 1 / -1;
   margin: 0;
   color: var(--color-primary);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
+  text-align: center;
+}
+
+.retake-action {
+  justify-self: center;
+  min-height: 40px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(37, 48, 45, 0.11);
+  border-radius: 8px;
+  background: rgba(255, 252, 245, 0.62);
+  color: #6d766f;
+  font-size: 13px;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.retake-action:focus-visible {
+  outline: 3px solid rgba(47, 98, 85, 0.2);
+  outline-offset: 2px;
 }
 
 @media (max-width: 760px) {
   .share-box {
-    grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .share-heading {
+    gap: 3px;
+  }
+
+  .share-heading strong {
+    font-size: 20px;
+    line-height: 1.2;
   }
 
   .share-heading span {
     max-width: none;
+    font-size: 12px;
+    line-height: 1.4;
   }
 
-  .share-main {
-    grid-template-columns: 1fr;
-  }
-
-  .share-actions {
-    grid-column: auto;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .match-code-card {
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
+    padding: 10px;
   }
 
-  .share-actions button,
-  .copy-tools summary {
+  .match-code-card span {
+    font-size: 11px;
+  }
+
+  .secondary-action-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .share-actions button {
     width: 100%;
     min-width: 0;
     min-height: 44px;
     padding: 0 12px;
-    font-size: 14px;
+    font-size: 13px;
   }
 
-  .share-actions .primary-share-action {
-    grid-column: 1 / -1;
-  }
-
-  .share-box.copy-only .share-actions button[data-testid="native-share"],
-  .copy-tools {
-    grid-column: 1 / -1;
-  }
-
-  .copy-tools summary {
-    display: flex;
-  }
-
-  .copy-actions {
-    display: grid;
+  .share-box.copy-only .secondary-action-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .label {
+    margin-bottom: 3px;
+    font-size: 11px;
+  }
+
   .short-code {
-    font-size: 20px;
+    padding: 6px 8px;
+    font-size: 17px;
+  }
+
+  .tip {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+}
+
+@media (max-width: 380px) {
+  .match-code-card {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .secondary-action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .secondary-action-grid button[data-testid="native-share"] {
+    grid-column: 1 / -1;
   }
 }
 </style>

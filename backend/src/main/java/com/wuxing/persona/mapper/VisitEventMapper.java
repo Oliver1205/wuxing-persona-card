@@ -153,6 +153,21 @@ public interface VisitEventMapper {
     @Select("""
             <script>
             SELECT COUNT(*) FROM visit_event
+            WHERE event_type IN
+            <foreach collection="eventTypes" item="eventType" open="(" separator="," close=")">
+              #{eventType}
+            </foreach>
+            <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+            </script>
+            """)
+    long countByEventTypesBetween(@Param("eventTypes") List<String> eventTypes,
+                                  @Param("startAt") LocalDateTime startAt,
+                                  @Param("endAt") LocalDateTime endAt);
+
+    @Select("""
+            <script>
+            SELECT COUNT(*) FROM visit_event
             WHERE event_type = #{eventType}
             <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
             <if test="endAt != null">AND created_at &lt; #{endAt}</if>
@@ -362,6 +377,25 @@ public interface VisitEventMapper {
                                                                   @Param("offset") long offset,
                                                                   @Param("limit") long limit,
                                                                   @Param("excludedChannel") String excludedChannel);
+
+    @Select("""
+            <script>
+            SELECT id, event_type AS eventType, page_path AS pagePath, result_id AS resultId,
+                   short_code AS shortCode, client_id_hash AS clientIdHash, ip_hash AS ipHash,
+                   session_id_hash AS sessionIdHash, user_agent_hash AS userAgentHash,
+                   channel, campaign, device_type AS deviceType, referer,
+                   event_date AS eventDate, created_at AS createdAt
+            FROM visit_event
+            WHERE 1 = 1
+            <if test="startAt != null">AND created_at &gt;= #{startAt}</if>
+            <if test="endAt != null">AND created_at &lt; #{endAt}</if>
+            ORDER BY created_at DESC
+            LIMIT #{limit}
+            </script>
+            """)
+    List<VisitEventEntity> listRecentBetween(@Param("startAt") LocalDateTime startAt,
+                                             @Param("endAt") LocalDateTime endAt,
+                                             @Param("limit") int limit);
 
     @Select("""
             <script>

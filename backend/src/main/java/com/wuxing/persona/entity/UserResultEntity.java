@@ -16,6 +16,17 @@ public class UserResultEntity {
     private Integer primaryPercent;
     private Integer secondaryPercent;
     private String allElementScoresJson;
+    private String personaTypeId;
+    private String accentElement;
+    private String relationKind;
+    private String personaLabel;
+    private String dayMasterText;
+    private String primarySecondaryText;
+    private String accentText;
+    private String heavenText;
+    private String humanText;
+    private String starOfficerText;
+    private String growthAdviceJson;
     private String starOfficerCode;
     private String starOfficerName;
     private String keywordsJson;
@@ -121,6 +132,94 @@ public class UserResultEntity {
 
     public void setAllElementScoresJson(String allElementScoresJson) {
         this.allElementScoresJson = allElementScoresJson;
+    }
+
+    public String getPersonaTypeId() {
+        return personaTypeId;
+    }
+
+    public void setPersonaTypeId(String personaTypeId) {
+        this.personaTypeId = personaTypeId;
+    }
+
+    public String getAccentElement() {
+        return accentElement;
+    }
+
+    public void setAccentElement(String accentElement) {
+        this.accentElement = accentElement;
+    }
+
+    public String getRelationKind() {
+        return relationKind;
+    }
+
+    public void setRelationKind(String relationKind) {
+        this.relationKind = relationKind;
+    }
+
+    public String getPersonaLabel() {
+        return personaLabel;
+    }
+
+    public void setPersonaLabel(String personaLabel) {
+        this.personaLabel = personaLabel;
+    }
+
+    public String getDayMasterText() {
+        return dayMasterText;
+    }
+
+    public void setDayMasterText(String dayMasterText) {
+        this.dayMasterText = dayMasterText;
+    }
+
+    public String getPrimarySecondaryText() {
+        return primarySecondaryText;
+    }
+
+    public void setPrimarySecondaryText(String primarySecondaryText) {
+        this.primarySecondaryText = primarySecondaryText;
+    }
+
+    public String getAccentText() {
+        return accentText;
+    }
+
+    public void setAccentText(String accentText) {
+        this.accentText = accentText;
+    }
+
+    public String getHeavenText() {
+        return heavenText;
+    }
+
+    public void setHeavenText(String heavenText) {
+        this.heavenText = heavenText;
+    }
+
+    public String getHumanText() {
+        return humanText;
+    }
+
+    public void setHumanText(String humanText) {
+        this.humanText = humanText;
+    }
+
+    public String getStarOfficerText() {
+        return starOfficerText;
+    }
+
+    public void setStarOfficerText(String starOfficerText) {
+        this.starOfficerText = starOfficerText;
+    }
+
+    public String getGrowthAdviceJson() {
+        return growthAdviceJson;
+    }
+
+    public void setGrowthAdviceJson(String growthAdviceJson) {
+        this.growthAdviceJson = growthAdviceJson;
     }
 
     public String getStarOfficerCode() {

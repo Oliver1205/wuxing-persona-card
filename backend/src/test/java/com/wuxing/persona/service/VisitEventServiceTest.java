@@ -99,6 +99,31 @@ class VisitEventServiceTest {
     }
 
     @Test
+    void recordAsyncShouldInsertInCallerThreadWhenSyncModeEnabled() {
+        stubRequest("/s/abc123?channel=share");
+        AppProperties appProperties = new AppProperties();
+        appProperties.setHashSalt("test-salt");
+        AppProperties.VisitEventProperties visitEventProperties = new AppProperties.VisitEventProperties();
+        visitEventProperties.setAsyncMode("sync");
+        appProperties.setVisitEvent(visitEventProperties);
+        VisitEventService customService = localService(appProperties);
+
+        try {
+            customService.recordAsync(EventType.SHORT_LINK_VISIT, "/s/abc123", "R1", "abc123", "client-a", request);
+
+            ArgumentCaptor<VisitEventEntity> captor = ArgumentCaptor.forClass(VisitEventEntity.class);
+            verify(visitEventMapper).insert(captor.capture());
+            assertEquals("SHORT_LINK_VISIT", captor.getValue().getEventType());
+            assertEquals("abc123", captor.getValue().getShortCode());
+            assertEquals("sync", customService.runtime().getAsyncMode());
+            assertEquals(1, customService.runtime().getTotalFlushedEvents());
+            assertEquals("ok", customService.runtime().getHealthStatus());
+        } finally {
+            customService.shutdown();
+        }
+    }
+
+    @Test
     void recordAsyncShouldPublishToRocketMqWhenModeEnabledAndPublisherAvailable() {
         stubRequest("/s/abc123?channel=share");
         AppProperties appProperties = rocketMqProperties(true);

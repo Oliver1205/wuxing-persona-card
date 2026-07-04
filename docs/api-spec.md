@@ -127,14 +127,40 @@ X-Campaign: <campaign>
 后端行为：
 
 - 校验出生年月、可选日期、可选时段、5 道题答案。
-  - `birthYear` 不允许超过当前年份。
+  - `birthYear` 必须在 `1950-2026` 范围内，并且不允许超过当前年份。
   - 当前年份下，`birthMonth` 不允许超过当前月份。
   - 如果传入 `birthDay`，后端会校验它必须是真实日历日期，例如非闰年 `2 月 29 日` 会被拒绝。
 - 计算五行主副比例。
-- 生成星官、关键词和三段正向文案。
+- 生成 120 人格分流 id、星官、关键词、日主依据、主从关系、点睛元素、天人特质和成长建议。
 - 保存 `user_result`。
 - 生成内置短链接并保存 `short_link`。
 - 写入 `TEST_SUBMIT`、`RESULT_CREATED`、`SHORT_LINK_CREATED` 事件。
+
+### 3.1 答题状态机契约
+
+测算提交流程现在拆成两层状态机，避免把“页面按钮能不能点”和“后端能不能生成结果”混在一起：
+
+| 层级 | 位置 | 负责内容 | 不负责内容 |
+| --- | --- | --- | --- |
+| 前端交互状态机 | `frontend/src/utils/testFlowMachine.ts` | 出生信息页、当前题号、左下按钮文案、右下按钮文案、禁用态、浏览器返回上一题 | 不计算五行、不保存结果、不判断真实日期 |
+| 后端提交流状态机 | `TestFlowStateMachine` | 判断提交请求是否具备出生年月和 5 道有效题号答案，给出缺失题号 | 不决定选项五行是否合法、不计算分数、不写数据库 |
+| 五行计算服务 | `ElementCalculateService` | 校验年份、月份、日期、时辰、选项枚举，并计算五行分数 | 不处理页面步骤、不决定按钮文案 |
+
+前端状态机的产品规则：
+
+- 出生信息页右下按钮：未选年月时显示“选择月份后继续”，选完后显示“进入第 1 题”。
+- 五题答题页左下按钮：第 1 题为“基础信息”，第 2-5 题为“上一题”。
+- 五题答题页右下按钮：第 1-4 题为“下一题”，第 5 题为“生成我的人格卡”或“生成双人匹配”。
+- 浏览器返回键在答题中优先回到上一题；如果用户停在出生信息页，则按原始浏览器历史返回，通常会回到首页。
+- 未选择当前题答案时，右下主按钮保持禁用，避免用户跳过关键问题。
+
+后端状态机的提交边界：
+
+- `birthYear` 和 `birthMonth` 缺失时，请求停在 `BIRTH_REQUIRED`。
+- 题号会按 `trim + upper-case` 规范化；正常 API 入口还会用 DTO 限制答案数量为 5 条。状态机只统计 `Q1-Q5` 且 `optionCode` 非空的答案，未知题号和空选项不会把完成度虚高。
+- 任一题缺失时，请求停在 `ANSWERING`，错误信息会指出缺失题号。
+- 五题齐全后才进入 `READY_TO_SUBMIT`，随后由 `ElementCalculateService` 继续做真实日期和五行枚举校验。
+- 重复题号沿用旧错误文案 `answers must contain 5 unique questions`，避免破坏已有前端和测试契约。
 
 返回结果字段是前端结果页、分享图和双人匹配页的共同契约：
 
@@ -144,8 +170,18 @@ X-Campaign: <campaign>
 | `primaryElementName` / `secondaryElementName` | 展示中文主副元素 |
 | `primaryPercent` / `secondaryPercent` | 结果卡主副比例条 |
 | `allElementScores` | 完整五行分布图，key 必须使用 `METAL/WOOD/WATER/FIRE/EARTH` |
+| `personaTypeId` | 后端稳定分流 id，只用于排查和统计，不应作为用户端文案原样展示 |
+| `personaLabel` | 四字人格标签，当前要求包含“的” |
+| `accentElement` / `accentElementName` | 点睛元素 |
+| `relationKind` | 主从关系类型，前端不直接展示原始后台词 |
 | `starOfficerName` / `keywords` | 结果身份、人格短句、分享图摘要 |
-| `layoutExplanation` / `strengthText` / `relationshipText` | 三段结果解释：为什么像你、元素逐项解读、元素互动总览 |
+| `dayMasterText` | 日主依据说明 |
+| `primarySecondaryText` | 主元素和副元素关系 |
+| `accentText` | 点睛元素说明 |
+| `heavenText` / `humanText` | 内在世界和外部感受 |
+| `starOfficerText` | 星官或星宿记忆锚点说明 |
+| `growthAdvice` | 成长建议卡片 |
+| `layoutExplanation` / `strengthText` / `relationshipText` | 兼容旧结果页字段，新页面优先使用结构化文案字段 |
 | `shortCode` / `shortUrl` | 分享链接、双人匹配短码、短链回流追踪 |
 
 前端不再依赖静态占位图生成结果卡；五行人物、图例和分布图都从这组字段渲染。
@@ -450,7 +486,7 @@ X-Admin-Token: <admin-token>
 }
 ```
 
-用于性能 smoke 和后台排查：确认短链访问事件队列是否积压、后台 writer 是否存活、是否持续排水，以及低延迟是否以丢弃过多低价值事件或批量写失败为代价。`totalFlushedEvents` 表示批量写成功或批量失败后单条降级写成功的累计数，不把最终失败的写入尝试算作成功。`healthStatus` 取值为 `ok`、`watch`、`danger`；`danger` 表示 writer 异常、写库失败、队列接近满载或 MQ 无回退等需要立即处理的状态。`asyncMode=rocketmq` 时，这组字段还会展示 MQ 发布、回退和 shadow 本地落库状态；生产启用 MQ consumer 前，推荐保持 `rocketMqConsumerEnabled=false`。即使配置了 `rocketMqConsumerEnabled=true`，只有 `rocketMqConsumerPersistenceReady=true` 时才会让 MQ consumer 接管落库，否则仍保持 shadow 本地写入。
+用于性能 smoke 和后台排查：确认短链访问事件队列是否积压、后台 writer 是否存活、是否持续排水，以及低延迟是否以丢弃过多低价值事件或批量写失败为代价。`totalFlushedEvents` 表示批量写成功、同步写成功，或批量失败后单条降级写成功的累计数，不把最终失败的写入尝试算作成功。`healthStatus` 取值为 `ok`、`watch`、`danger`；`danger` 表示 writer 异常、写库失败、队列接近满载或 MQ 无回退等需要立即处理的状态。`asyncMode` 可为 `local`、`rocketmq` 或测试/本地验收使用的 `sync`；`asyncMode=rocketmq` 时，这组字段还会展示 MQ 发布、回退和 shadow 本地落库状态。生产启用 MQ consumer 前，推荐保持 `rocketMqConsumerEnabled=false`。即使配置了 `rocketMqConsumerEnabled=true`，只有 `rocketMqConsumerPersistenceReady=true` 时才会让 MQ consumer 接管落库，否则仍保持 shadow 本地写入。
 
 ## 13. 手动刷新增长聚合
 

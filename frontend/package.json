@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vue-tsc --noEmit -p tsconfig.json && vite build",
+    "validate:copy": "node ../scripts/validate-result-content.mjs",
+    "validate:star-tone": "node ../scripts/validate-result-content.mjs",
+    "validate:result-content": "node ../scripts/validate-result-content.mjs",
     "e2e:mobile": "playwright test e2e/mobile-main-flow.spec.mjs --browser=chromium",
     "e2e:showcase": "playwright test e2e/showcase-screenshots.spec.mjs --browser=chromium",
     "preview": "vite preview --host 0.0.0.0"
