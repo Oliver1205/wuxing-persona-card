@@ -33,7 +33,7 @@ type ActionTone = 'good' | 'watch' | 'danger' | 'cold';
 type MobileReportGroupKey = 'core' | 'trend' | 'attribution';
 type MonitorRangeKey = '1h' | '24h' | '7d' | '30d';
 type MonitorMetricKey = 'onlineVisitors' | 'pv' | 'uv' | 'resultGenerated' | 'shareClicks';
-type DashboardPageKey = 'monitor' | 'overview' | 'trend' | 'attribution';
+type DashboardPageKey = 'monitor' | 'overview' | 'traffic' | 'funnel' | 'results' | 'events' | 'performance';
 
 interface ActionItem {
   level: string;
@@ -242,22 +242,49 @@ const dashboardPages = computed<DashboardPageItem[]>(() => {
         : '指标、风险、复盘',
     },
     {
-      key: 'trend',
+      key: 'traffic',
       index: '03',
-      label: '趋势运行',
-      title: '趋势与漏斗',
+      label: '流量趋势',
+      title: '访问与回流',
       note: data
-        ? `${data.dailyTrends.length} 天趋势 · ${data.funnelSteps.length} 个漏斗节点`
-        : '趋势、漏斗、运行态',
+        ? `${data.dailyTrends.length} 天趋势 · PV/结果/回流`
+        : '访问、结果、回流',
     },
     {
-      key: 'attribution',
+      key: 'funnel',
       index: '04',
-      label: '归因短链',
-      title: '来源与明细',
+      label: '转化漏斗',
+      title: '漏斗与运行态',
       note: data
-        ? `${data.topChannels.length} 个渠道 · ${formatNumber(shortLinks.value?.total ?? 0)} 条短链`
-        : '渠道、人格、短链',
+        ? `${data.funnelSteps.length} 个节点 · ${visitEventRuntime.value ? runtimeHealthLabel(visitEventRuntime.value.healthStatus) : '运行态'}`
+        : '步骤、保留、运行态',
+    },
+    {
+      key: 'results',
+      index: '05',
+      label: '结果排行',
+      title: '星曜与来源',
+      note: data
+        ? `${data.popularStarOfficers.length} 个星官 · ${data.popularElementCombos.length} 个组合`
+        : '星官、元素、渠道',
+    },
+    {
+      key: 'events',
+      index: '06',
+      label: '事件明细',
+      title: '实时事件流',
+      note: recentMetricEvents.value.length
+        ? `${recentMetricEvents.value.length} 条最近事件`
+        : '访问、设备、来源',
+    },
+    {
+      key: 'performance',
+      index: '07',
+      label: '性能压测',
+      title: '承载与健康',
+      note: visitEventRuntime.value
+        ? `队列 ${visitEventRuntime.value.queueSize}/${visitEventRuntime.value.queueCapacity}`
+        : '队列、写入、压测',
     },
   ];
 });
@@ -266,6 +293,8 @@ const activeDashboardPageIndex = computed(() => {
   return index >= 0 ? index : 0;
 });
 const activeDashboardPageItem = computed(() => dashboardPages.value[activeDashboardPageIndex.value] ?? dashboardPages.value[0]);
+const reportShellPages = new Set<DashboardPageKey>(['overview', 'traffic', 'funnel', 'results']);
+const showMobileReportShell = computed(() => reportShellPages.has(activeDashboardPage.value));
 const dailyTrendMax = computed(() => {
   const rows = overview.value?.dailyTrends ?? [];
   return Math.max(1, ...rows.flatMap((item) => [item.pv, item.resultCreated, item.shortLinkVisits]));
@@ -859,11 +888,20 @@ function goDashboardPage(offset: number) {
 }
 
 function pageForEvidence(evidenceId: string): DashboardPageKey {
-  if (evidenceId === 'trend-section' || evidenceId === 'funnel-section' || evidenceId === 'runtime-section' || evidenceId === 'external-shortlink-section') {
-    return 'trend';
+  if (evidenceId === 'trend-section') {
+    return 'traffic';
   }
-  if (evidenceId === 'attribution-section' || evidenceId === 'shortlink-section') {
-    return 'attribution';
+  if (evidenceId === 'funnel-section' || evidenceId === 'journey-section') {
+    return 'funnel';
+  }
+  if (evidenceId === 'runtime-section' || evidenceId === 'external-shortlink-section') {
+    return 'performance';
+  }
+  if (evidenceId === 'attribution-section') {
+    return 'results';
+  }
+  if (evidenceId === 'shortlink-section') {
+    return 'events';
   }
   return 'overview';
 }
@@ -1852,6 +1890,125 @@ function metricEventLabel(eventType: string) {
           </div>
         </section>
 
+        <section
+          v-show="activeDashboardPage === 'events'"
+          class="panel stack events-console"
+          data-testid="admin-events-console"
+          aria-label="事件明细"
+        >
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">事件明细</p>
+              <h2>最近访问与行为事件</h2>
+              <p class="muted">只展示匿名事件、页面、设备和来源，不展示姓名、出生信息和原始 IP。</p>
+            </div>
+            <button class="secondary" type="button" :disabled="busy" @click="refreshRecentMetricEvents(token.trim())">
+              刷新事件
+            </button>
+          </div>
+          <div class="event-summary-grid">
+            <article>
+              <span>事件样本</span>
+              <strong>{{ recentMetricEvents.length }}</strong>
+              <small>最近 24 小时</small>
+            </article>
+            <article>
+              <span>今日 PV</span>
+              <strong>{{ formatNumber(realtimeMetrics?.todayPv ?? overview.totalPv) }}</strong>
+              <small>当前口径访问</small>
+            </article>
+            <article>
+              <span>今日 UV</span>
+              <strong>{{ formatNumber(realtimeMetrics?.todayUv ?? overview.totalUv) }}</strong>
+              <small>匿名访客去重</small>
+            </article>
+            <article>
+              <span>在线会话</span>
+              <strong>{{ formatNumber(realtimeMetrics?.currentOnlineSessions ?? 0) }}</strong>
+              <small>{{ realtimeMetrics ? `${realtimeMetrics.onlineWindowSeconds}s 窗口` : '等待心跳' }}</small>
+            </article>
+          </div>
+          <div v-if="recentMetricEvents.length" class="table-wrap event-table-wrap">
+            <table class="compact-table event-table">
+              <thead>
+                <tr>
+                  <th>事件</th>
+                  <th>页面</th>
+                  <th>设备</th>
+                  <th>渠道</th>
+                  <th>活动</th>
+                  <th>时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, index) in recentMetricEvents" :key="`${item.eventType}-${item.occurredAt}-${index}`">
+                  <td>{{ metricEventLabel(item.eventType) }}</td>
+                  <td>{{ item.pagePath || '/' }}</td>
+                  <td>{{ item.deviceType || 'unknown' }}</td>
+                  <td>{{ item.channel || '-' }}</td>
+                  <td>{{ item.campaign || '-' }}</td>
+                  <td>{{ formatMonitorTime(item.occurredAt) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p v-else class="muted empty-state">暂无事件明细。产生访问、测试或分享行为后会自动写入。</p>
+        </section>
+
+        <section
+          v-show="activeDashboardPage === 'performance'"
+          class="panel stack performance-console"
+          data-testid="admin-performance-console"
+          aria-label="性能压测与运行健康"
+        >
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">性能压测</p>
+              <h2>承载能力与写入健康</h2>
+              <p class="muted">把压测前最需要盯住的队列、写入失败、外部短链和测试流量隔离放在同一页。</p>
+            </div>
+            <button class="secondary" type="button" :disabled="busy || visitEventRuntimeChecking" @click="refreshVisitEventRuntime">
+              {{ visitEventRuntimeChecking ? '刷新中...' : '刷新运行态' }}
+            </button>
+          </div>
+          <div class="performance-grid">
+            <article class="performance-card" :class="visitEventRuntime ? `tone-${runtimeTone(visitEventRuntime.healthStatus)}` : 'tone-watch'">
+              <span>访问事件写入</span>
+              <strong>{{ visitEventRuntime ? runtimeHealthLabel(visitEventRuntime.healthStatus) : '待读取' }}</strong>
+              <small>{{ visitEventRuntime?.healthMessage ?? '刷新后查看队列和 writer 状态' }}</small>
+            </article>
+            <article class="performance-card">
+              <span>队列积压</span>
+              <strong>{{ visitEventRuntime ? `${visitEventRuntime.queueSize}/${visitEventRuntime.queueCapacity}` : '-' }}</strong>
+              <small>本地异步写入队列</small>
+            </article>
+            <article class="performance-card" :class="(visitEventRuntime?.droppedAsyncEvents ?? 0) > 0 ? 'tone-watch' : 'tone-good'">
+              <span>丢弃事件</span>
+              <strong>{{ formatNumber(visitEventRuntime?.droppedAsyncEvents ?? 0) }}</strong>
+              <small>压测时持续上升需停测</small>
+            </article>
+            <article class="performance-card" :class="(visitEventRuntime?.batchWriteFailures ?? 0) > 0 ? 'tone-watch' : 'tone-good'">
+              <span>批量写失败</span>
+              <strong>{{ formatNumber(visitEventRuntime?.batchWriteFailures ?? 0) }}</strong>
+              <small>排查 DB 锁等待和连接池</small>
+            </article>
+            <article class="performance-card" :class="runtime?.reachable === false ? 'tone-watch' : 'tone-good'">
+              <span>外部短链</span>
+              <strong>{{ runtime ? (runtime.reachable === false ? '不可达' : '可用') : '待读取' }}</strong>
+              <small>{{ runtime?.message || '内部短链可作为回退' }}</small>
+            </article>
+            <article class="performance-card" :class="overview.syntheticTrafficExcluded ? 'tone-good' : 'tone-watch'">
+              <span>测试流量隔离</span>
+              <strong>{{ overview.syntheticTrafficExcluded ? '默认排除' : '当前包含' }}</strong>
+              <small>{{ overview.syntheticIsolationLevel }}</small>
+            </article>
+          </div>
+          <div class="performance-note">
+            <strong>压测口径</strong>
+            <p>本地压测应使用 `perf-test` 渠道或独立测试环境，先跑小流量 smoke，再做阶梯压测；不要直接压线上真实用户入口。</p>
+          </div>
+        </section>
+
         <div v-show="activeDashboardPage === 'overview'" class="focus-grid" aria-label="运营核心观察">
           <article
             v-for="item in focusMetrics"
@@ -1952,7 +2109,7 @@ function metricEventLabel(eventType: string) {
           </div>
         </section>
 
-        <div v-show="activeDashboardPage !== 'monitor'" class="mobile-report-shell" :class="{ open: mobileReportOpen }">
+        <div v-show="showMobileReportShell" class="mobile-report-shell" :class="{ open: mobileReportOpen }">
           <div class="mobile-report-gate" aria-label="详细报表折叠入口">
             <div>
               <span>详细报表</span>
@@ -2072,10 +2229,10 @@ function metricEventLabel(eventType: string) {
             </details>
 
             <details
-              v-show="activeDashboardPage === 'trend'"
+              v-show="activeDashboardPage === 'traffic'"
               class="mobile-report-group"
               data-report-group="trend"
-              :open="activeDashboardPage === 'trend' || reportGroupOpen('trend')"
+              :open="activeDashboardPage === 'traffic' || reportGroupOpen('trend')"
             >
               <summary data-testid="admin-mobile-report-group-trend" @click.prevent="toggleMobileReportGroup('trend')">
                 <span>趋势与运行态</span>
@@ -2289,10 +2446,10 @@ function metricEventLabel(eventType: string) {
             </details>
 
             <details
-              v-show="activeDashboardPage === 'attribution'"
+              v-show="activeDashboardPage === 'results'"
               class="mobile-report-group"
               data-report-group="attribution"
-              :open="activeDashboardPage === 'attribution' || reportGroupOpen('attribution')"
+              :open="activeDashboardPage === 'results' || reportGroupOpen('attribution')"
             >
               <summary data-testid="admin-mobile-report-group-attribution" @click.prevent="toggleMobileReportGroup('attribution')">
                 <span>归因与短链</span>
@@ -3264,6 +3421,111 @@ function metricEventLabel(eventType: string) {
   color: #6a7774;
   font-size: 11px;
   font-weight: 850;
+}
+
+.events-console,
+.performance-console {
+  border-color: rgba(36, 48, 47, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(250, 249, 244, 0.92)),
+    #fff;
+}
+
+.event-summary-grid,
+.performance-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.event-summary-grid article,
+.performance-card {
+  display: grid;
+  gap: 6px;
+  min-height: 112px;
+  border: 1px solid rgba(36, 48, 47, 0.08);
+  border-radius: 8px;
+  padding: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 250, 248, 0.74)),
+    #fff;
+  box-shadow: 0 12px 28px rgba(38, 55, 62, 0.05);
+}
+
+.event-summary-grid span,
+.performance-card span {
+  color: #6a7774;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.event-summary-grid strong,
+.performance-card strong {
+  color: #24302f;
+  font-size: 30px;
+  line-height: 1.05;
+}
+
+.event-summary-grid small,
+.performance-card small {
+  color: #6a7774;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.45;
+}
+
+.event-table-wrap {
+  max-height: 520px;
+}
+
+.event-table td:nth-child(2),
+.event-table td:nth-child(5) {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.performance-card.tone-good {
+  border-color: rgba(47, 111, 94, 0.14);
+  background: linear-gradient(180deg, rgba(244, 250, 247, 0.95), rgba(255, 255, 255, 0.86));
+}
+
+.performance-card.tone-watch {
+  border-color: rgba(182, 95, 53, 0.18);
+  background: linear-gradient(180deg, rgba(255, 249, 241, 0.96), rgba(255, 255, 255, 0.84));
+}
+
+.performance-card.tone-cold {
+  border-color: rgba(39, 107, 154, 0.16);
+  background: linear-gradient(180deg, rgba(245, 249, 252, 0.96), rgba(255, 255, 255, 0.84));
+}
+
+.performance-card.tone-danger {
+  border-color: rgba(154, 54, 42, 0.22);
+  background: linear-gradient(180deg, rgba(255, 245, 242, 0.96), rgba(255, 255, 255, 0.84));
+}
+
+.performance-note {
+  border-left: 4px solid #b65f35;
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: rgba(255, 247, 236, 0.72);
+}
+
+.performance-note strong {
+  display: block;
+  color: #9f4f2e;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.performance-note p {
+  margin: 6px 0 0;
+  color: #596764;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.7;
 }
 
 .evidence-nav {
@@ -4657,7 +4919,9 @@ th {
   .stats-grid,
   .ops-grid,
   .radar-grid,
-  .journey-grid {
+  .journey-grid,
+  .event-summary-grid,
+  .performance-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -4899,7 +5163,9 @@ th {
   .monitor-kpi-grid,
   .ops-grid,
   .radar-grid,
-  .journey-grid {
+  .journey-grid,
+  .event-summary-grid,
+  .performance-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
