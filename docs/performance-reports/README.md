@@ -2,7 +2,7 @@
 
 ## 一句话结论
 
-当前报告证明的是“本地单机阶梯压测方法已经建立”，不是生产 QPS 结论。2026-06-21 新增短链跳转专项报告：`/s/{shortCode}` 在本机 1-64 并发阶梯下全部返回 302，最高阶 P95 `179ms`，错误率 `0.00%`，访问事件队列无丢弃；后续生产结论必须在 `Nginx + Spring Boot + MySQL + Redis` 的真实链路上重新压测。
+当前报告证明的是“本地单机阶梯压测方法已经建立”，不是生产 QPS 结论。2026-07-04 新增数据中台分页后的本地 mixed 小阶梯报告：1-16 并发全部完成，最高 P95 `8ms`，错误率 `0.00%`，访问事件队列无丢弃、无批量写失败；后续生产结论必须在 `Nginx + Spring Boot + MySQL + Redis` 的真实链路上重新压测。
 
 需要面试、PPT 或复盘讲解时，先看 [`../performance-visual-brief.md`](../performance-visual-brief.md)。报告索引保留原始证据，视觉简报负责把证据讲成一条清楚的性能故事线。
 
@@ -10,6 +10,7 @@
 
 | Run | Workload | 并发范围 | 最后一阶 P95 | 错误率 | 停止原因 | 报告 |
 | --- | --- | ---: | ---: | ---: | --- | --- |
+| `20260704-admin-dashboard-limit` | mixed | 1-16 | 8ms | 0.00% | completed all stages | [report](20260704-admin-dashboard-limit/report.md) |
 | `20260621-shortlink-redirect-optimized` | shortlink | 1-64 | 179ms | 0.00% | completed all stages | [report](20260621-shortlink-redirect-optimized/report.md) |
 | `20260621-mixed-after-shortlink-optimization` | mixed | 1-32 | 104ms | 0.00% | completed all stages | [report](20260621-mixed-after-shortlink-optimization/report.md) |
 | `20260614-010218` | legacy mixed | 1-16 | 54ms | 0.00% | completed all stages | [report](20260614-010218/report.md) |
@@ -41,6 +42,8 @@
 
 `workflow-shortlink-current-sanity` 是当前代码状态下的短链热路径单路径回归。它用于观察 `/s/{code}` 302、`Location` 响应、访问事件入队和本地短链查询在本机小阶梯下的表现；因为目标仍是本机 `local-h2`，不能外推为公网短链容量。
 
+`20260704-admin-dashboard-limit` 是数据中台分页改造后的本地 mixed 回归，覆盖短链、结果读取、后台 overview 和 health，同时开启 `STRICT_RUNTIME_OBSERVATION=1`。它用于确认分页后台和访问事件异步写入在本机小样本下仍然可观测、无队列积压、无丢弃、无批量写失败；因为目标仍是本机 `local-h2`，不能外推为公网容量。
+
 `20260621-shortlink-redirect-optimized` 是本轮短链热路径优化后的正式本地回归，重点验证 `/s/{code}` 302、`Location`、`last_visit_at` 限频后的跳转稳定性和访问事件 runtime。它仍然是本机 `local-h2` 证据，不等同公网容量。
 
 `20260621-mixed-after-shortlink-optimization` 是同一轮优化后的 mixed 回归，用于确认短链优化没有拖累结果读取、后台 overview 和 health；最高阶最慢接口是 admin，适合作为下一轮后台查询优化的线索。
@@ -49,12 +52,12 @@
 
 ## 阈值版 smoke 记录
 
-阶梯报告用于摸容量曲线，`scripts/performance-smoke-test.sh` 用于每次改动后的低成本回归门。本轮阈值版 smoke 在 `BASE_URL=http://127.0.0.1:48082` 下通过：
+阶梯报告用于摸容量曲线，`scripts/performance-smoke-test.sh` 用于每次改动后的低成本回归门。本轮阈值版 smoke 在 `BASE_URL=http://127.0.0.1:48082` 下通过，并额外落盘到 [`20260704-admin-dashboard-smoke`](20260704-admin-dashboard-smoke/summary.json)：
 
 | 检查项 | 结果 |
 | --- | ---: |
-| `shortlinkP95Ms` | `27ms` |
-| `adminP95Ms` | `36ms` |
+| `shortlinkP95Ms` | `30ms` |
+| `adminP95Ms` | `28ms` |
 | `asyncQueueSize` | `0` |
 | `asyncDroppedEvents` | `0` |
 | `asyncBatchWriteFailures` | `0` |
