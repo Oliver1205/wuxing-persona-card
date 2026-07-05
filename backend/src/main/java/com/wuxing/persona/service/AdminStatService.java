@@ -394,8 +394,17 @@ public class AdminStatService {
 
     private List<NameCountVO> toNameCounts(List<Map<String, Object>> rows) {
         return rows.stream()
-                .map(row -> new NameCountVO(value(row, "name").toString(), toLong(value(row, "count"))))
+                .map(row -> new NameCountVO(displayNameValue(row), toLong(value(row, "count"))))
                 .toList();
+    }
+
+    private String displayNameValue(Map<String, Object> row) {
+        Object raw = optionalValue(row, "name", "label", "channel", "campaign", "personaLabel", "persona_label",
+                "personaTypeId", "persona_type_id", "COALESCE(NULLIF(persona_label, ''), persona_type_id)");
+        if (raw == null || raw.toString().isBlank()) {
+            return "未标记";
+        }
+        return raw.toString();
     }
 
     private List<RecentResultVO> toRecentResults(List<UserResultEntity> rows) {
@@ -718,18 +727,26 @@ public class AdminStatService {
     }
 
     private Object value(Map<String, Object> row, String... expectedKeys) {
+        Object found = optionalValue(row, expectedKeys);
+        if (found != null) {
+            return found;
+        }
+        throw new IllegalArgumentException("missing query column: " + String.join("/", expectedKeys));
+    }
+
+    private Object optionalValue(Map<String, Object> row, String... expectedKeys) {
         for (String expectedKey : expectedKeys) {
             Object directValue = row.get(expectedKey);
             if (directValue != null) {
                 return directValue;
             }
             for (Map.Entry<String, Object> entry : row.entrySet()) {
-                if (entry.getKey().equalsIgnoreCase(expectedKey)) {
+                if (entry.getKey() != null && entry.getKey().equalsIgnoreCase(expectedKey)) {
                     return entry.getValue();
                 }
             }
         }
-        throw new IllegalArgumentException("missing query column: " + String.join("/", expectedKeys));
+        return null;
     }
 
     private record FunnelDefinition(EventType eventType, String label) {
