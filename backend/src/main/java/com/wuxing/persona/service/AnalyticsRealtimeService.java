@@ -28,15 +28,21 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AnalyticsRealtimeService {
 
+    private static final Logger log = LoggerFactory.getLogger(AnalyticsRealtimeService.class);
     private static final int MAX_PATH_LENGTH = 255;
     private static final int MAX_REFERER_LENGTH = 512;
+    private static final int SNAPSHOT_WRITE_ATTEMPTS = 3;
     private static final List<String> SHARE_EVENTS = List.of(
             EventType.SAVE_SHARE_IMAGE_SUCCESS.name(),
             EventType.NATIVE_SHARE_SUCCESS.name(),
@@ -224,6 +230,21 @@ public class AnalyticsRealtimeService {
     }
 
     private void snapshotCurrentMinute() {
+        for (int attempt = 1; attempt <= SNAPSHOT_WRITE_ATTEMPTS; attempt++) {
+            try {
+                writeSnapshotCurrentMinute();
+                return;
+            } catch (DeadlockLoserDataAccessException | CannotAcquireLockException ex) {
+                if (attempt == SNAPSHOT_WRITE_ATTEMPTS) {
+                    log.warn("Skip realtime metric snapshot after {} attempts: {}", attempt, ex.getMessage());
+                    return;
+                }
+                sleepBeforeSnapshotRetry(attempt);
+            }
+        }
+    }
+
+    private void writeSnapshotCurrentMinute() {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime metricTime = now.truncatedTo(ChronoUnit.MINUTES);
         LocalDateTime minuteEnd = metricTime.plusMinutes(1);
@@ -245,6 +266,14 @@ public class AnalyticsRealtimeService {
             }
         } else {
             metricSnapshotMapper.update(snapshot);
+        }
+    }
+
+    private void sleepBeforeSnapshotRetry(int attempt) {
+        try {
+            Thread.sleep(attempt * 25L);
+        } catch (InterruptedException interruptedException) {
+            Thread.currentThread().interrupt();
         }
     }
 

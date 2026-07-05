@@ -1,6 +1,8 @@
 package com.wuxing.persona.service;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -19,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 
 @ExtendWith(MockitoExtension.class)
@@ -56,7 +59,7 @@ class AnalyticsRealtimeServiceTest {
                 visitEventService,
                 properties
         );
-        when(servletRequest.getRemoteAddr()).thenReturn("127.0.0.1");
+        lenient().when(servletRequest.getRemoteAddr()).thenReturn("127.0.0.1");
     }
 
     @Test
@@ -78,5 +81,17 @@ class AnalyticsRealtimeServiceTest {
         verify(analyticsVisitorMapper).updateLastSeen(any(AnalyticsVisitorEntity.class));
         verify(analyticsSessionMapper).updateHeartbeat(any(AnalyticsSessionEntity.class));
         verify(metricSnapshotMapper).update(any(AnalyticsMetricSnapshotEntity.class));
+    }
+
+    @Test
+    void shouldRetryRealtimeSnapshotWhenCurrentMinuteUpdateDeadlocks() {
+        when(metricSnapshotMapper.selectByMetricTime(any())).thenReturn(new AnalyticsMetricSnapshotEntity());
+        when(metricSnapshotMapper.update(any(AnalyticsMetricSnapshotEntity.class)))
+                .thenThrow(new DeadlockLoserDataAccessException("deadlock", new RuntimeException("lock wait")))
+                .thenReturn(1);
+
+        service.realtime();
+
+        verify(metricSnapshotMapper, times(2)).update(any(AnalyticsMetricSnapshotEntity.class));
     }
 }
